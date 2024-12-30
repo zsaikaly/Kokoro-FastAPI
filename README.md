@@ -5,7 +5,7 @@
 # Kokoro TTS API
 [![Model Commit](https://img.shields.io/badge/model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/a67f11354c3e38c58c3327498bc4bd1e57e71c50)
 
-FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model with voice cloning capabilities. 
+FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model. 
 
 Dockerized with NVIDIA GPU support, simple queue handling via sqllite, and automatic chunking/stitching on lengthy input/outputs
 

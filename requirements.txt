@@ -1,0 +1,20 @@
+# Core dependencies
+fastapi==0.115.6
+uvicorn==0.34.0
+pydantic==2.10.4
+python-dotenv==1.0.1
+
+# ML/DL
+torch==2.5.1
+transformers==4.47.1
+numpy==2.2.1
+scipy==1.14.1
+
+# Text processing
+phonemizer==3.3.0
+regex==2024.11.6
+
+# Utilities
+tqdm==4.67.1
+requests==2.32.3
+munch==4.0.0

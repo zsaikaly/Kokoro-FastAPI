@@ -4,6 +4,7 @@ services:
       context: .
       args:
         - KOKORO_REPO=https://huggingface.co/hexgrad/Kokoro-82M
+        - KOKORO_COMMIT=a67f11354c3e38c58c3327498bc4bd1e57e71c50
     volumes:
       - ./api:/app/api
     ports:

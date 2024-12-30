@@ -1,6 +1,7 @@
 FROM nvidia/cuda:12.1.0-base-ubuntu22.04
 
 ARG KOKORO_REPO
+ARG KOKORO_COMMIT
 
 # Install base system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -13,14 +14,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install heavy Python dependencies first (better layer caching)
 RUN pip3 install --no-cache-dir \
-    phonemizer \
-    torch \
-    transformers \
-    scipy \
-    munch
+    phonemizer==3.3.0 \
+    torch==2.5.1 \
+    transformers==4.47.1 \
+    scipy==1.14.1 \
+    numpy==2.2.1 \
+    munch==4.0.0
 
 # Install API dependencies
-RUN pip3 install --no-cache-dir fastapi uvicorn pydantic-settings
+RUN pip3 install --no-cache-dir \
+    fastapi==0.115.6 \
+    uvicorn==0.34.0 \
+    pydantic==2.10.4 \
+    pydantic-settings==2.7.0 \
+    python-dotenv==1.0.1
 
 # Set working directory
 WORKDIR /app
@@ -32,8 +39,9 @@ RUN apt-get update && apt-get install -y git-lfs \
     && rm -rf /var/lib/apt/lists/* \
     && git lfs install
 
-# Clone Kokoro repo
-RUN git clone ${KOKORO_REPO} .
+# Clone Kokoro repo at specific commit
+RUN git clone ${KOKORO_REPO} . && \
+    git checkout ${KOKORO_COMMIT}
 # --------------------------------------
     
 # Create output directory
