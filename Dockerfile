@@ -27,7 +27,8 @@ RUN pip3 install --no-cache-dir \
     uvicorn==0.34.0 \
     pydantic==2.10.4 \
     pydantic-settings==2.7.0 \
-    python-dotenv==1.0.1
+    python-dotenv==1.0.1 \
+    sqlalchemy==2.0.27
 
 # Set working directory
 WORKDIR /app

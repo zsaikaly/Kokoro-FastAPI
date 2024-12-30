@@ -1,153 +1,52 @@
-import sqlite3
-import os
-from pathlib import Path
-from typing import Optional, Tuple
-
-DB_PATH = Path(__file__).parent.parent / "output" / "queue.db"
+from typing import Optional
+from sqlalchemy.orm import Session
+from .models import TTSQueue
+from .database import init_db
+from ..models.schemas import TTSStatus
 
 
 class QueueDB:
-    def __init__(self, db_path: str = str(DB_PATH)):
-        self.db_path = db_path
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
-        self._init_db()
-
-    def _init_db(self):
-        """Initialize the database with required tables"""
-        conn = sqlite3.connect(self.db_path)
-        c = conn.cursor()
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS tts_queue
-            (id INTEGER PRIMARY KEY AUTOINCREMENT,
-             text TEXT NOT NULL,
-             voice TEXT DEFAULT 'af',
-             stitch_long_output BOOLEAN DEFAULT 1,
-             status TEXT DEFAULT 'pending',
-             output_file TEXT,
-             processing_time REAL,
-             speed REAL,
-             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
-        """)
-        conn.commit()
-        conn.close()
-
-    def _ensure_table_if_needed(self, conn: sqlite3.Connection):
-        """Create table if it doesn't exist, only called for write operations"""
-        c = conn.cursor()
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS tts_queue
-            (id INTEGER PRIMARY KEY AUTOINCREMENT,
-             text TEXT NOT NULL,
-             voice TEXT DEFAULT 'af',
-             stitch_long_output BOOLEAN DEFAULT 1,
-             status TEXT DEFAULT 'pending',
-             output_file TEXT,
-             processing_time REAL,
-             speed REAL,
-             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
-        """)
-        conn.commit()
+    def __init__(self, db: Session):
+        self.db = db
+        init_db()  # Ensure tables exist
 
     def add_request(self, text: str, voice: str, speed: float, stitch_long_output: bool = True) -> int:
         """Add a new TTS request to the queue"""
-        conn = sqlite3.connect(self.db_path)
-        try:
-            c = conn.cursor()
-            c.execute(
-                "INSERT INTO tts_queue (text, voice, speed, stitch_long_output) VALUES (?, ?, ?, ?)",
-                (text, voice, speed, stitch_long_output)
-            )
-            request_id = c.lastrowid
-            conn.commit()
-            return request_id
-        except sqlite3.OperationalError:  # Table doesn't exist
-            self._ensure_table_if_needed(conn)
-            c = conn.cursor()
-            c.execute(
-                "INSERT INTO tts_queue (text, voice, speed, stitch_long_output) VALUES (?, ?, ?, ?)",
-                (text, voice, speed, stitch_long_output)
-            )
-            request_id = c.lastrowid
-            conn.commit()
-            return request_id
-        finally:
-            conn.close()
+        db_item = TTSQueue(
+            text=text,
+            voice=voice,
+            speed=speed,
+            stitch_long_output=stitch_long_output
+        )
+        self.db.add(db_item)
+        self.db.commit()
+        self.db.refresh(db_item)
+        return db_item.id
 
-    def get_next_pending(self) -> Optional[Tuple[int, str, float, str]]:
+    def get_next_pending(self) -> Optional[TTSQueue]:
         """Get the next pending request"""
-        conn = sqlite3.connect(self.db_path)
-        try:
-            c = conn.cursor()
-            c.execute(
-                'SELECT id, text, voice, speed, stitch_long_output FROM tts_queue WHERE status = "pending" ORDER BY created_at ASC LIMIT 1'
-            )
-            return c.fetchone()
-        except sqlite3.OperationalError:  # Table doesn't exist
-            return None
-        finally:
-            conn.close()
+        return self.db.query(TTSQueue)\
+            .filter(TTSQueue.status == TTSStatus.PENDING)\
+            .order_by(TTSQueue.created_at)\
+            .first()
 
     def update_status(
         self,
         request_id: int,
-        status: str,
+        status: TTSStatus,
         output_file: Optional[str] = None,
         processing_time: Optional[float] = None,
     ):
         """Update request status, output file, and processing time"""
-        conn = sqlite3.connect(self.db_path)
-        try:
-            c = conn.cursor()
-            if output_file and processing_time is not None:
-                c.execute(
-                    "UPDATE tts_queue SET status = ?, output_file = ?, processing_time = ? WHERE id = ?",
-                    (status, output_file, processing_time, request_id),
-                )
-            elif output_file:
-                c.execute(
-                    "UPDATE tts_queue SET status = ?, output_file = ? WHERE id = ?",
-                    (status, output_file, request_id),
-                )
-            else:
-                c.execute(
-                    "UPDATE tts_queue SET status = ? WHERE id = ?", (status, request_id)
-                )
-            conn.commit()
-        except sqlite3.OperationalError:  # Table doesn't exist
-            self._ensure_table_if_needed(conn)
-            # Retry the update
-            c = conn.cursor()
-            if output_file and processing_time is not None:
-                c.execute(
-                    "UPDATE tts_queue SET status = ?, output_file = ?, processing_time = ? WHERE id = ?",
-                    (status, output_file, processing_time, request_id),
-                )
-            elif output_file:
-                c.execute(
-                    "UPDATE tts_queue SET status = ?, output_file = ? WHERE id = ?",
-                    (status, output_file, request_id),
-                )
-            else:
-                c.execute(
-                    "UPDATE tts_queue SET status = ? WHERE id = ?", (status, request_id)
-                )
-            conn.commit()
-        finally:
-            conn.close()
+        request = self.db.query(TTSQueue).filter(TTSQueue.id == request_id).first()
+        if request:
+            request.status = status
+            if output_file:
+                request.output_file = output_file
+            if processing_time is not None:
+                request.processing_time = processing_time
+            self.db.commit()
 
-    def get_status(
-        self, request_id: int
-    ) -> Optional[Tuple[str, Optional[str], Optional[float]]]:
-        """Get status, output file, and processing time for a request"""
-        conn = sqlite3.connect(self.db_path)
-        try:
-            c = conn.cursor()
-            c.execute(
-                "SELECT status, output_file, processing_time FROM tts_queue WHERE id = ?",
-                (request_id,),
-            )
-            return c.fetchone()
-        except sqlite3.OperationalError:  # Table doesn't exist
-            return None
-        finally:
-            conn.close()
+    def get_status(self, request_id: int) -> Optional[TTSQueue]:
+        """Get full request details by ID"""
+        return self.db.query(TTSQueue).filter(TTSQueue.id == request_id).first()

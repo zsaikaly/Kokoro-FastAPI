@@ -1,7 +1,9 @@
 import os
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Depends
+from sqlalchemy.orm import Session
 from ..models.schemas import TTSRequest, TTSResponse, VoicesResponse
 from ..services.tts import TTSService
+from ..database.database import get_db
 
 router = APIRouter(
     prefix="/tts",
@@ -9,19 +11,20 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# Initialize TTS service
-tts_service = TTSService()
+def get_tts_service(db: Session = Depends(get_db)) -> TTSService:
+    """Dependency to get TTSService instance with database session"""
+    return TTSService(db)
 
 
 @router.get("/voices", response_model=VoicesResponse)
-async def get_voices():
+async def get_voices(tts_service: TTSService = Depends(get_tts_service)):
     """List all available voices"""
     voices = tts_service.list_voices()
     return {"voices": voices, "default": "af"}
 
 
 @router.post("", response_model=TTSResponse)
-async def create_tts(request: TTSRequest):
+async def create_tts(request: TTSRequest, tts_service: TTSService = Depends(get_tts_service)):
     """Submit text for TTS generation"""
     # Validate voice exists
     voices = tts_service.list_voices()
@@ -47,37 +50,35 @@ async def create_tts(request: TTSRequest):
 
 
 @router.get("/{request_id}", response_model=TTSResponse)
-async def get_status(request_id: int):
+async def get_status(request_id: int, tts_service: TTSService = Depends(get_tts_service)):
     """Check the status of a TTS request"""
-    status = tts_service.get_request_status(request_id)
-    if not status:
+    request = tts_service.get_request_status(request_id)
+    if not request:
         raise HTTPException(status_code=404, detail="Request not found")
 
-    status_str, output_file, processing_time = status
     return {
-        "request_id": request_id,
-        "status": status_str,
-        "output_file": output_file,
-        "processing_time": processing_time,
+        "request_id": request.id,
+        "status": request.status,
+        "output_file": request.output_file,
+        "processing_time": request.processing_time,
     }
 
 
 @router.get("/file/{request_id}")
-async def get_file(request_id: int):
+async def get_file(request_id: int, tts_service: TTSService = Depends(get_tts_service)):
     """Download the generated audio file"""
-    status = tts_service.get_request_status(request_id)
-    if not status:
+    request = tts_service.get_request_status(request_id)
+    if not request:
         raise HTTPException(status_code=404, detail="Request not found")
 
-    status_str, output_file, _ = status
-    if status_str != "completed":
+    if request.status != "completed":
         raise HTTPException(status_code=400, detail="Audio generation not complete")
 
-    if not output_file or not os.path.exists(output_file):
+    if not request.output_file or not os.path.exists(request.output_file):
         raise HTTPException(status_code=404, detail="Audio file not found")
 
     # Read file and ensure it's closed after
-    with open(output_file, "rb") as f:
+    with open(request.output_file, "rb") as f:
         content = f.read()
 
     return Response(

@@ -2,7 +2,10 @@ import os
 import threading
 import time
 import io
-from typing import Optional, Tuple, List
+from typing import Optional, List, Tuple
+from sqlalchemy.orm import Session, sessionmaker
+from ..models.schemas import TTSStatus
+from ..database.models import TTSQueue
 import numpy as np
 import torch
 import scipy.io.wavfile as wavfile
@@ -45,11 +48,12 @@ class TTSModel:
 
 
 class TTSService:
-    def __init__(self, output_dir: str = None):
+    def __init__(self, db: Session, output_dir: str = None):
         if output_dir is None:
             output_dir = os.path.join(os.path.dirname(__file__), "..", "output")
         self.output_dir = output_dir
-        self.db = QueueDB()
+        self.db = QueueDB(db)
+        self.engine = db.get_bind()  # Get engine from session
         os.makedirs(output_dir, exist_ok=True)
         self._start_worker()
 
@@ -146,31 +150,41 @@ class TTSService:
 
     def _process_queue(self):
         """Background worker that processes the queue"""
+        # Create a new session for the background worker
+        Session = sessionmaker(bind=self.engine)
+        
         while True:
-            next_request = self.db.get_next_pending()
-            if next_request:
-                request_id, text, voice, speed, stitch_long_output = next_request
-                try:
-                    # Generate audio and measure time
-                    audio, processing_time = self._generate_audio(text, voice, speed, stitch_long_output)
+            # Create a new session for each iteration
+            with Session() as session:
+                db = QueueDB(session)
+                request = db.get_next_pending()
+                if request:
+                    try:
+                        # Generate audio and measure time
+                        audio, processing_time = self._generate_audio(
+                            request.text, 
+                            request.voice, 
+                            request.speed, 
+                            request.stitch_long_output
+                        )
 
-                    # Save to file
-                    output_file = os.path.abspath(os.path.join(
-                        self.output_dir, f"speech_{request_id}.wav"
-                    ))
-                    self._save_audio(audio, output_file)
+                        # Save to file
+                        output_file = os.path.abspath(os.path.join(
+                            self.output_dir, f"speech_{request.id}.wav"
+                        ))
+                        self._save_audio(audio, output_file)
 
-                    # Update status with processing time
-                    self.db.update_status(
-                        request_id,
-                        "completed",
-                        output_file=output_file,
-                        processing_time=processing_time,
-                    )
+                        # Update status with processing time
+                        db.update_status(
+                            request.id,
+                            TTSStatus.COMPLETED,
+                            output_file=output_file,
+                            processing_time=processing_time,
+                        )
 
-                except Exception as e:
-                    print(f"Error processing request {request_id}: {str(e)}")
-                    self.db.update_status(request_id, "failed")
+                    except Exception as e:
+                        print(f"Error processing request {request.id}: {str(e)}")
+                        db.update_status(request.id, TTSStatus.FAILED)
 
             time.sleep(1)  # Prevent busy waiting
 
@@ -190,8 +204,6 @@ class TTSService:
         """Create a new TTS request and return the request ID"""
         return self.db.add_request(text, voice, speed, stitch_long_output)
 
-    def get_request_status(
-        self, request_id: int
-    ) -> Optional[Tuple[str, Optional[str], Optional[float]]]:
-        """Get the status, output file path, and processing time for a request"""
+    def get_request_status(self, request_id: int) -> Optional[TTSQueue]:
+        """Get the full request details"""
         return self.db.get_status(request_id)
