@@ -24,7 +24,7 @@ python examples/test_tts.py "Hello world" --voice af_bella
 
 ## Performance Benchmarks
 
-Benchmarking was performed soley on generation via the API (no download) using various text lengths up to ~10 minutes output, measuring processing time, token count, and output audio length. Tests were run on: 
+Benchmarking was performed solely on generation via the local API (ignoring file transfers) using various text lengths up to ~10 minutes output, measuring processing time, token count, and output audio length. Tests were run on: 
 - Windows 11 Home w/ WSL2 
 - NVIDIA 4060Ti 16gb GPU @ CUDA 12.1
 - 11th Gen i7-11700 @ 2.5GHz
