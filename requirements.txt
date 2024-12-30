@@ -1,3 +1,4 @@
+# Primarily for reference, as Dockerfile refer
 # Core dependencies
 fastapi==0.115.6
 uvicorn==0.34.0
@@ -19,3 +20,8 @@ regex==2024.11.6
 tqdm==4.67.1
 requests==2.32.3
 munch==4.0.0
+
+# Testing
+pytest==8.0.0
+httpx==0.26.0
+pytest-asyncio==0.23.5
