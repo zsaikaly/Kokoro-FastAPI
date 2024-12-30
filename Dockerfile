@@ -15,11 +15,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install heavy Python dependencies first (better layer caching)
 RUN pip3 install --no-cache-dir \
     phonemizer==3.3.0 \
-    torch==2.5.1 \
     transformers==4.47.1 \
     scipy==1.14.1 \
     numpy==2.2.1 \
-    munch==4.0.0
+    munch==4.0.0 \
+    && pip3 install --no-cache-dir torch==2.5.1 --extra-index-url https://download.pytorch.org/whl/cu121
 
 # Install API dependencies
 RUN pip3 install --no-cache-dir \
@@ -33,15 +33,16 @@ RUN pip3 install --no-cache-dir \
 WORKDIR /app
 
 # --(can skip if pre-cloning the repo)--
-# Install git-lfs 
+# Install and configure git-lfs
 RUN apt-get update && apt-get install -y git-lfs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && git lfs install
+    && git lfs install --skip-repo
 
-# Clone Kokoro repo at specific commit
-RUN git clone ${KOKORO_REPO} . && \
-    git checkout ${KOKORO_COMMIT}
+# Clone with LFS
+RUN GIT_LFS_SKIP_SMUDGE=1 git clone ${KOKORO_REPO} . && \
+    git checkout ${KOKORO_COMMIT} && \
+    git lfs pull
 # --------------------------------------
     
 # Create output directory
