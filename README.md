@@ -12,7 +12,7 @@ Dockerized with NVIDIA GPU support, simple queue handling via sqllite, and autom
 ## Quick Start
 
 ```bash
-# Start the API (will automatically clone source HF repo
+# Start the API (will automatically clone source HF repo via git-lfs)
 docker compose up --build
 ```
 
