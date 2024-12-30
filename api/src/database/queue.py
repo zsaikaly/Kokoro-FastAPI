@@ -21,6 +21,7 @@ class QueueDB:
             (id INTEGER PRIMARY KEY AUTOINCREMENT,
              text TEXT NOT NULL,
              voice TEXT DEFAULT 'af',
+             stitch_long_output BOOLEAN DEFAULT 1,
              status TEXT DEFAULT 'pending',
              output_file TEXT,
              processing_time REAL,
@@ -37,6 +38,7 @@ class QueueDB:
             (id INTEGER PRIMARY KEY AUTOINCREMENT,
              text TEXT NOT NULL,
              voice TEXT DEFAULT 'af',
+             stitch_long_output BOOLEAN DEFAULT 1,
              status TEXT DEFAULT 'pending',
              output_file TEXT,
              processing_time REAL,
@@ -44,13 +46,14 @@ class QueueDB:
         """)
         conn.commit()
 
-    def add_request(self, text: str, voice: str) -> int:
+    def add_request(self, text: str, voice: str, stitch_long_output: bool = True) -> int:
         """Add a new TTS request to the queue"""
         conn = sqlite3.connect(self.db_path)
         try:
             c = conn.cursor()
             c.execute(
-                "INSERT INTO tts_queue (text, voice) VALUES (?, ?)", (text, voice)
+                "INSERT INTO tts_queue (text, voice, stitch_long_output) VALUES (?, ?, ?)", 
+                (text, voice, stitch_long_output)
             )
             request_id = c.lastrowid
             conn.commit()
@@ -59,7 +62,8 @@ class QueueDB:
             self._ensure_table_if_needed(conn)
             c = conn.cursor()
             c.execute(
-                "INSERT INTO tts_queue (text, voice) VALUES (?, ?)", (text, voice)
+                "INSERT INTO tts_queue (text, voice, stitch_long_output) VALUES (?, ?, ?)", 
+                (text, voice, stitch_long_output)
             )
             request_id = c.lastrowid
             conn.commit()
@@ -73,7 +77,7 @@ class QueueDB:
         try:
             c = conn.cursor()
             c.execute(
-                'SELECT id, text, voice FROM tts_queue WHERE status = "pending" ORDER BY created_at ASC LIMIT 1'
+                'SELECT id, text, voice, stitch_long_output FROM tts_queue WHERE status = "pending" ORDER BY created_at ASC LIMIT 1'
             )
             return c.fetchone()
         except sqlite3.OperationalError:  # Table doesn't exist

@@ -7,6 +7,7 @@ class TTSRequest(BaseModel):
     text: str
     voice: str = "af"  # Default voice
     local: bool = False  # Whether to save file locally or return bytes
+    stitch_long_output: bool = True  # Whether to stitch together long outputs
 
 
 class TTSResponse(BaseModel):
@@ -19,3 +20,4 @@ class TTSResponse(BaseModel):
 class VoicesResponse(BaseModel):
     voices: list[str]
     default: str
+

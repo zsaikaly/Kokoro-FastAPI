@@ -32,7 +32,11 @@ async def create_tts(request: TTSRequest):
         )
 
     # Queue the request
-    request_id = tts_service.create_tts_request(request.text, request.voice)
+    request_id = tts_service.create_tts_request(
+        request.text, 
+        request.voice,
+        request.stitch_long_output
+    )
     return {
         "request_id": request_id,
         "status": "pending",

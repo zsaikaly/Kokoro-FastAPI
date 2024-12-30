@@ -79,13 +79,19 @@ def main():
         text = f.read()
     
     # Create range of sizes up to full text
-    sizes = [100, 250, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 7000, len(text)]
+    sizes = [100, 250, 500, 750, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 7000]
     
     # Process chunks
     results = []
+    import random
     for size in sizes:
-        # Get chunk and count tokens
-        chunk = text[:size]
+        # Get random starting point ensuring we have enough text left
+        max_start = len(text) - size
+        if max_start > 0:
+            start = random.randint(0, max_start)
+            chunk = text[start:start + size]
+        else:
+            chunk = text[:size]
         num_tokens = count_tokens(chunk)
         
         print(f"\nProcessing chunk with {num_tokens} tokens ({size} chars):")
@@ -106,23 +112,78 @@ def main():
     # Create DataFrame for plotting
     df = pd.DataFrame(results)
     
+    # Set the style
+    sns.set_theme(style="darkgrid", palette="husl", font_scale=1.1)
+    
+    # Common plot settings
+    def setup_plot(fig, ax, title):
+        # Improve grid
+        ax.grid(True, linestyle='--', alpha=0.7)
+        
+        # Set title and labels with better fonts
+        ax.set_title(title, pad=20, fontsize=16, fontweight='bold')
+        ax.set_xlabel(ax.get_xlabel(), fontsize=12, fontweight='medium')
+        ax.set_ylabel(ax.get_ylabel(), fontsize=12, fontweight='medium')
+        
+        # Improve tick labels
+        ax.tick_params(labelsize=10)
+        
+        # Add subtle spines
+        for spine in ax.spines.values():
+            spine.set_color('#666666')
+            spine.set_linewidth(0.5)
+            
+        return fig, ax
+    
     # Plot 1: Processing Time vs Output Length
-    plt.figure(figsize=(12, 8))
-    sns.scatterplot(data=df, x='output_length', y='processing_time')
-    sns.regplot(data=df, x='output_length', y='processing_time', scatter=False)
-    plt.title('Processing Time vs Output Length')
-    plt.xlabel('Output Audio Length (seconds)')
-    plt.ylabel('Processing Time (seconds)')
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    # Create scatter plot with custom styling
+    scatter = sns.scatterplot(data=df, x='output_length', y='processing_time', 
+                            s=100, alpha=0.6, color='#2ecc71')
+    
+    # Add regression line with confidence interval
+    sns.regplot(data=df, x='output_length', y='processing_time', 
+                scatter=False, color='#e74c3c', line_kws={'linewidth': 2})
+    
+    # Calculate correlation
+    corr = df['output_length'].corr(df['processing_time'])
+    
+    # Add correlation annotation
+    plt.text(0.05, 0.95, f'Correlation: {corr:.2f}', 
+             transform=ax.transAxes, fontsize=10,
+             bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
+    
+    setup_plot(fig, ax, 'Processing Time vs Output Length')
+    ax.set_xlabel('Output Audio Length (seconds)')
+    ax.set_ylabel('Processing Time (seconds)')
+    
     plt.savefig('examples/time_vs_output.png', dpi=300, bbox_inches='tight')
     plt.close()
     
     # Plot 2: Processing Time vs Token Count
-    plt.figure(figsize=(12, 8))
-    sns.scatterplot(data=df, x='tokens', y='processing_time')
-    sns.regplot(data=df, x='tokens', y='processing_time', scatter=False)
-    plt.title('Processing Time vs Token Count')
-    plt.xlabel('Number of Input Tokens')
-    plt.ylabel('Processing Time (seconds)')
+    fig, ax = plt.subplots(figsize=(12, 8))
+    
+    # Create scatter plot with custom styling
+    scatter = sns.scatterplot(data=df, x='tokens', y='processing_time', 
+                            s=100, alpha=0.6, color='#3498db')
+    
+    # Add regression line with confidence interval
+    sns.regplot(data=df, x='tokens', y='processing_time', 
+                scatter=False, color='#e74c3c', line_kws={'linewidth': 2})
+    
+    # Calculate correlation
+    corr = df['tokens'].corr(df['processing_time'])
+    
+    # Add correlation annotation
+    plt.text(0.05, 0.95, f'Correlation: {corr:.2f}', 
+             transform=ax.transAxes, fontsize=10,
+             bbox=dict(facecolor='white', edgecolor='none', alpha=0.7))
+    
+    setup_plot(fig, ax, 'Processing Time vs Token Count')
+    ax.set_xlabel('Number of Input Tokens')
+    ax.set_ylabel('Processing Time (seconds)')
+    
     plt.savefig('examples/time_vs_tokens.png', dpi=300, bbox_inches='tight')
     plt.close()
     
