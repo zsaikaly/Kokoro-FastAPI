@@ -1,80 +1,74 @@
 [
   {
     "char_length": 100,
-    "tokens": 25,
-    "processing_time": 0.3308234214782715,
-    "output_length": 6.95
+    "tokens": 24,
+    "processing_time": 0.19587302207946777,
+    "output_length": 7.775
   },
   {
     "char_length": 250,
-    "tokens": 59,
-    "processing_time": 0.6096279621124268,
-    "output_length": 17.0
+    "tokens": 54,
+    "processing_time": 0.35924220085144043,
+    "output_length": 14.95
   },
   {
     "char_length": 500,
-    "tokens": 110,
-    "processing_time": 0.9121463298797607,
-    "output_length": 32.325
+    "tokens": 113,
+    "processing_time": 0.7564902305603027,
+    "output_length": 31.75
   },
   {
     "char_length": 750,
-    "tokens": 170,
-    "processing_time": 1.5152575969696045,
-    "output_length": 47.375
+    "tokens": 163,
+    "processing_time": 0.8813207149505615,
+    "output_length": 44.3
   },
   {
     "char_length": 1000,
-    "tokens": 220,
-    "processing_time": 1.9711074829101562,
-    "output_length": 61.575
+    "tokens": 225,
+    "processing_time": 1.2577219009399414,
+    "output_length": 63.3
   },
   {
     "char_length": 1500,
-    "tokens": 329,
-    "processing_time": 2.958775043487549,
-    "output_length": 90.85
+    "tokens": 328,
+    "processing_time": 1.7542314529418945,
+    "output_length": 87.375
   },
   {
     "char_length": 2000,
-    "tokens": 450,
-    "processing_time": 4.669129133224487,
-    "output_length": 120.625
+    "tokens": 447,
+    "processing_time": 2.308401346206665,
+    "output_length": 120.7
   },
   {
     "char_length": 3000,
-    "tokens": 655,
-    "processing_time": 6.0434815883636475,
-    "output_length": 176.975
+    "tokens": 662,
+    "processing_time": 3.571138620376587,
+    "output_length": 181.75
   },
   {
     "char_length": 4000,
-    "tokens": 855,
-    "processing_time": 9.574363470077515,
-    "output_length": 238.925
+    "tokens": 873,
+    "processing_time": 4.4834370613098145,
+    "output_length": 242.2
   },
   {
     "char_length": 5000,
-    "tokens": 1078,
-    "processing_time": 9.906641483306885,
-    "output_length": 299.3
+    "tokens": 1077,
+    "processing_time": 5.798532009124756,
+    "output_length": 301.8
   },
   {
     "char_length": 6000,
-    "tokens": 1298,
-    "processing_time": 11.334998607635498,
-    "output_length": 361.625
+    "tokens": 1305,
+    "processing_time": 6.86953592300415,
+    "output_length": 365.7
   },
   {
     "char_length": 7000,
-    "tokens": 1512,
-    "processing_time": 13.87867283821106,
-    "output_length": 416.675
-  },
-  {
-    "char_length": 9783,
-    "tokens": 2139,
-    "processing_time": 19.85267996788025,
-    "output_length": 582.85
+    "tokens": 1527,
+    "processing_time": 7.992457866668701,
+    "output_length": 420.8
   }
 ]
