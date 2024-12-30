@@ -1,0 +1,80 @@
+[
+  {
+    "char_length": 100,
+    "tokens": 25,
+    "processing_time": 0.3308234214782715,
+    "output_length": 6.95
+  },
+  {
+    "char_length": 250,
+    "tokens": 59,
+    "processing_time": 0.6096279621124268,
+    "output_length": 17.0
+  },
+  {
+    "char_length": 500,
+    "tokens": 110,
+    "processing_time": 0.9121463298797607,
+    "output_length": 32.325
+  },
+  {
+    "char_length": 750,
+    "tokens": 170,
+    "processing_time": 1.5152575969696045,
+    "output_length": 47.375
+  },
+  {
+    "char_length": 1000,
+    "tokens": 220,
+    "processing_time": 1.9711074829101562,
+    "output_length": 61.575
+  },
+  {
+    "char_length": 1500,
+    "tokens": 329,
+    "processing_time": 2.958775043487549,
+    "output_length": 90.85
+  },
+  {
+    "char_length": 2000,
+    "tokens": 450,
+    "processing_time": 4.669129133224487,
+    "output_length": 120.625
+  },
+  {
+    "char_length": 3000,
+    "tokens": 655,
+    "processing_time": 6.0434815883636475,
+    "output_length": 176.975
+  },
+  {
+    "char_length": 4000,
+    "tokens": 855,
+    "processing_time": 9.574363470077515,
+    "output_length": 238.925
+  },
+  {
+    "char_length": 5000,
+    "tokens": 1078,
+    "processing_time": 9.906641483306885,
+    "output_length": 299.3
+  },
+  {
+    "char_length": 6000,
+    "tokens": 1298,
+    "processing_time": 11.334998607635498,
+    "output_length": 361.625
+  },
+  {
+    "char_length": 7000,
+    "tokens": 1512,
+    "processing_time": 13.87867283821106,
+    "output_length": 416.675
+  },
+  {
+    "char_length": 9783,
+    "tokens": 2139,
+    "processing_time": 19.85267996788025,
+    "output_length": 582.85
+  }
+]

@@ -1,0 +1,17 @@
+services:
+  kokoro-tts:
+    build:
+      context: .
+      args:
+        - KOKORO_REPO=https://huggingface.co/hexgrad/Kokoro-82M
+    volumes:
+      - ./api:/app/api
+    ports:
+      - "8880:8880"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

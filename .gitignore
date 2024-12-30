@@ -1,0 +1,15 @@
+
+output/
+
+
+*.db
+*.pyc
+*.pth
+
+Kokoro-82M/*
+__pycache__/
+.vscode/
+env/
+.Python
+
+
