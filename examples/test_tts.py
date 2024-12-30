@@ -22,11 +22,11 @@ def get_voices(
 
 
 def submit_tts_request(
-    text: str, voice: Optional[str] = None, base_url: str = "http://localhost:8880"
+    text: str, voice: Optional[str] = None, speed: Optional[float] = 1.0, base_url: str = "http://localhost:8880"
 ) -> Optional[int]:
     """Submit a TTS request and return the request ID"""
     try:
-        payload = {"text": text, "voice": voice} if voice else {"text": text}
+        payload = {"text": text, "speed": speed, "voice": voice} if voice else {"text": text, "speed": speed}
         response = requests.post(f"{base_url}/tts", json=payload)
         if response.status_code != 200:
             print(f"Error submitting request: {response.text}")
@@ -83,13 +83,14 @@ def download_audio(
 def generate_speech(
     text: str,
     voice: Optional[str] = None,
+    speed: Optional[float] = 1.0,
     base_url: str = "http://localhost:8880",
     download: bool = True,
 ) -> bool:
     """Generate speech from text"""
     # Submit request
     print("Submitting request...")
-    request_id = submit_tts_request(text, voice, base_url)
+    request_id = submit_tts_request(text, voice, speed, base_url)
     if not request_id:
         return False
 
@@ -149,6 +150,7 @@ def main():
     parser = argparse.ArgumentParser(description="Kokoro TTS CLI")
     parser.add_argument("text", nargs="?", help="Text to convert to speech")
     parser.add_argument("--voice", help="Voice to use")
+    parser.add_argument("--speed", default=1.0, help="speed of speech")
     parser.add_argument("--url", default="http://localhost:8880", help="API base URL")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument(
@@ -177,7 +179,7 @@ def main():
         )
 
     success = generate_speech(
-        args.text, args.voice, args.url, download=not args.no_download
+        args.text, args.voice, args.speed, args.url, download=not args.no_download
     )
     if not success:
         sys.exit(1)

@@ -25,6 +25,7 @@ class QueueDB:
              status TEXT DEFAULT 'pending',
              output_file TEXT,
              processing_time REAL,
+             speed REAL,
              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
         """)
         conn.commit()
@@ -42,18 +43,19 @@ class QueueDB:
              status TEXT DEFAULT 'pending',
              output_file TEXT,
              processing_time REAL,
+             speed REAL,
              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
         """)
         conn.commit()
 
-    def add_request(self, text: str, voice: str, stitch_long_output: bool = True) -> int:
+    def add_request(self, text: str, voice: str, speed: float, stitch_long_output: bool = True) -> int:
         """Add a new TTS request to the queue"""
         conn = sqlite3.connect(self.db_path)
         try:
             c = conn.cursor()
             c.execute(
-                "INSERT INTO tts_queue (text, voice, stitch_long_output) VALUES (?, ?, ?)", 
-                (text, voice, stitch_long_output)
+                "INSERT INTO tts_queue (text, voice, speed, stitch_long_output) VALUES (?, ?, ?, ?)",
+                (text, voice, speed, stitch_long_output)
             )
             request_id = c.lastrowid
             conn.commit()
@@ -62,8 +64,8 @@ class QueueDB:
             self._ensure_table_if_needed(conn)
             c = conn.cursor()
             c.execute(
-                "INSERT INTO tts_queue (text, voice, stitch_long_output) VALUES (?, ?, ?)", 
-                (text, voice, stitch_long_output)
+                "INSERT INTO tts_queue (text, voice, speed, stitch_long_output) VALUES (?, ?, ?, ?)",
+                (text, voice, speed, stitch_long_output)
             )
             request_id = c.lastrowid
             conn.commit()
@@ -71,13 +73,13 @@ class QueueDB:
         finally:
             conn.close()
 
-    def get_next_pending(self) -> Optional[Tuple[int, str, str]]:
+    def get_next_pending(self) -> Optional[Tuple[int, str, float, str]]:
         """Get the next pending request"""
         conn = sqlite3.connect(self.db_path)
         try:
             c = conn.cursor()
             c.execute(
-                'SELECT id, text, voice, stitch_long_output FROM tts_queue WHERE status = "pending" ORDER BY created_at ASC LIMIT 1'
+                'SELECT id, text, voice, speed, stitch_long_output FROM tts_queue WHERE status = "pending" ORDER BY created_at ASC LIMIT 1'
             )
             return c.fetchone()
         except sqlite3.OperationalError:  # Table doesn't exist

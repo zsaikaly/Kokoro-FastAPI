@@ -65,16 +65,16 @@ class TTSService:
             # Look for the last occurrence of marker before max_tokens
             test_text = text[:max_tokens + margin]  # Look a bit beyond the limit
             last_idx = test_text.rfind(marker)
-            
+
             if last_idx != -1:
                 # Verify this boundary is within our token limit
                 candidate = text[:last_idx + len(marker)].strip()
                 ps = phonemize(candidate, voice[0])
                 tokens = tokenize(ps)
-                
+
                 if len(tokens) <= max_tokens:
                     return last_idx + len(marker)
-        
+
         # If no good boundary found, find last whitespace within limit
         test_text = text[:max_tokens]
         last_space = test_text.rfind(' ')
@@ -85,7 +85,7 @@ class TTSService:
         MAX_TOKENS = 450  # Leave wider margin from 510 limit to account for tokenizer differences
         chunks = []
         remaining = text
-        
+
         while remaining:
             # If remaining text is within limit, add it as final chunk
             ps = phonemize(remaining, voice[0])
@@ -93,17 +93,17 @@ class TTSService:
             if len(tokens) <= MAX_TOKENS:
                 chunks.append(remaining.strip())
                 break
-            
+
             # Find best boundary position
             split_pos = self._find_boundary(remaining, MAX_TOKENS, voice)
-            
+
             # Add chunk and continue with remaining text
             chunks.append(remaining[:split_pos].strip())
             remaining = remaining[split_pos:].strip()
-        
+
         return chunks
 
-    def _generate_audio(self, text: str, voice: str, stitch_long_output: bool = True) -> Tuple[torch.Tensor, float]:
+    def _generate_audio(self, text: str, voice: str, speed: float, stitch_long_output: bool = True) -> Tuple[torch.Tensor, float]:
         """Generate audio and measure processing time"""
         start_time = time.time()
 
@@ -116,11 +116,11 @@ class TTSService:
             # Split text if needed and generate audio for each chunk
             chunks = self._split_text(text, voice)
             audio_chunks = []
-            
+
             for chunk in chunks:
-                chunk_audio, _ = generate(model, chunk, voicepack, lang=voice[0])
+                chunk_audio, _ = generate(model, chunk, voicepack, lang=voice[0], speed=speed)
                 audio_chunks.append(chunk_audio)
-            
+
             # Concatenate audio chunks
             if len(audio_chunks) > 1:
                 audio = np.concatenate(audio_chunks)
@@ -149,10 +149,10 @@ class TTSService:
         while True:
             next_request = self.db.get_next_pending()
             if next_request:
-                request_id, text, voice, stitch_long_output = next_request
+                request_id, text, voice, speed, stitch_long_output = next_request
                 try:
                     # Generate audio and measure time
-                    audio, processing_time = self._generate_audio(text, voice, stitch_long_output)
+                    audio, processing_time = self._generate_audio(text, voice, speed, stitch_long_output)
 
                     # Save to file
                     output_file = os.path.abspath(os.path.join(
@@ -186,9 +186,9 @@ class TTSService:
             print(f"Error listing voices: {str(e)}")
         return voices
 
-    def create_tts_request(self, text: str, voice: str = "af", stitch_long_output: bool = True) -> int:
+    def create_tts_request(self, text: str, voice: str = "af", speed: float = 1.0, stitch_long_output: bool = True) -> int:
         """Create a new TTS request and return the request ID"""
-        return self.db.add_request(text, voice, stitch_long_output)
+        return self.db.add_request(text, voice, speed, stitch_long_output)
 
     def get_request_status(
         self, request_id: int
