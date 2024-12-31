@@ -18,7 +18,7 @@ FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text
    - Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
    - Install [Git](https://git-scm.com/downloads) (or download and extract zip)
 
-2. Clone and run:
+2. Clone and start the service:
 ```bash
 # Clone repository
 git clone https://github.com/remsky/Kokoro-FastAPI.git
@@ -28,7 +28,7 @@ cd Kokoro-FastAPI
 docker compose up --build
 ```
 
-Test all voices:
+Test all voices (from another terminal):
 ```bash
 python examples/test_all_voices.py
 ```
@@ -102,15 +102,15 @@ Benchmarking was performed on generation via the local API using text lengths up
 Key Performance Metrics:
 - Realtime Factor: Ranges between 35-49x (generation time to output audio length)
 - Average Processing Rate: 137.67 tokens/second
-- Efficient Scaling: Maintains performance with long texts through automatic chunking
-- Natural Boundary Detection: Automatically splits and stitches at sentence boundaries to prevent artifacts
 
 ## Features
 
 - OpenAI-compatible API endpoints
-- Multiple audio formats: mp3, wav, opus, flac, (aac & pcm not implemented)
-- Automatic text chunking and audio stitching
 - GPU-accelerated inference
+- Multiple audio formats: mp3, wav, opus, flac, (aac & pcm not implemented)
+- Natural Boundary Detection:
+    - Automatically splits and stitches at sentence boundaries to reduce artifacts and maintain performacne
+
 
 ## Model
 
