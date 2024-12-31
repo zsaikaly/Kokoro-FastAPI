@@ -8,7 +8,7 @@
 [![Coverage](https://img.shields.io/badge/coverage-97%25-darkgreen)]()
 
 FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model, providing an OpenAI-compatible endpoint with:
-- NVIDIA GPU acceleration enabled
+- NVIDIA GPU accelerated inference (or CPU) option
 - automatic chunking/stitching for long texts
 - very fast generation time (~35-49x RTF)
 
@@ -24,9 +24,14 @@ FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text
 git clone https://github.com/remsky/Kokoro-FastAPI.git
 cd Kokoro-FastAPI
 
-# Start the API (will automatically clone source HF repo via git-lfs)
+# For GPU acceleration (requires NVIDIA GPU):
 docker compose up --build
+
+# For CPU-only deployment (~10x slower, but doesn't require an NVIDIA GPU):
+docker compose -f docker-compose.cpu.yml up --build
 ```
+
+
 
 Test all voices (from another terminal):
 ```bash
@@ -106,11 +111,12 @@ Key Performance Metrics:
 ## Features
 
 - OpenAI-compatible API endpoints
-- GPU-accelerated inference
+- GPU-accelerated inference (if desired)
 - Multiple audio formats: mp3, wav, opus, flac, (aac & pcm not implemented)
 - Natural Boundary Detection:
     - Automatically splits and stitches at sentence boundaries to reduce artifacts and maintain performacne
 
+*Note: CPU Inference is currently a very basic implementation, and not heavily tested*
 
 ## Model
 
@@ -135,4 +141,3 @@ The full Apache 2.0 license text can be found at: https://www.apache.org/license
   https://user-images.githubusercontent.com/338912d2-90f3-41fb-bca0-5db7b4e02287.mp4
   
 </div>
-

@@ -1,0 +1,38 @@
+services:
+  model-fetcher:
+    image: datamachines/git-lfs:latest
+    volumes:
+      - ./Kokoro-82M:/app/Kokoro-82M
+    working_dir: /app/Kokoro-82M
+    command: >
+      sh -c "
+        if [ -z \"$(ls -A .)\" ]; then
+          git clone https://huggingface.co/hexgrad/Kokoro-82M . && \
+          git checkout 8228a351f87c8a6076502c1e3b7e72e821ebec9a;
+          touch .cloned;
+        else
+          touch .cloned;
+        fi;
+        tail -f /dev/null
+      "
+    healthcheck:
+      test: ["CMD", "test", "-f", ".cloned"]
+      interval: 1s
+      timeout: 1s
+      retries: 120
+      start_period: 1s
+
+  kokoro-tts:
+    build:
+      context: .
+      dockerfile: Dockerfile.cpu
+    volumes:
+      - ./api/src:/app/api/src
+      - ./Kokoro-82M:/app/Kokoro-82M
+    ports:
+      - "8880:8880"
+    environment:
+      - PYTHONPATH=/app:/app/Kokoro-82M
+    depends_on:
+      model-fetcher:
+        condition: service_healthy
