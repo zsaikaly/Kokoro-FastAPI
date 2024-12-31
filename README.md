@@ -127,3 +127,12 @@ This project is licensed under the Apache License 2.0 - see below for details:
 - The inference code adapted from StyleTTS2 is MIT licensed
 
 The full Apache 2.0 license text can be found at: https://www.apache.org/licenses/LICENSE-2.0
+
+## Sample
+
+<div align="center";">
+  
+  https://user-images.githubusercontent.com/338912d2-90f3-41fb-bca0-5db7b4e02287.mp4
+  
+</div>
+
