@@ -49,7 +49,7 @@ List available voices:
 ```python
 import requests
 
-response = requests.get("http://localhost:8880/audio/voices")
+response = requests.get("http://localhost:8880/v1/audio/voices")
 voices = response.json()["voices"]
 ```
 
@@ -58,7 +58,7 @@ Generate speech:
 import requests
 
 response = requests.post(
-    "http://localhost:8880/audio/speech",
+    "http://localhost:8880/v1/audio/speech",
     json={
         "model": "kokoro",  # Not used but required for compatibility
         "input": "Hello world!",
