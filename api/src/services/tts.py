@@ -1,16 +1,17 @@
 import io
 import os
 import re
-import time
 import threading
+import time
 from typing import List, Tuple
 
 import numpy as np
-import torch
-import tiktoken
 import scipy.io.wavfile as wavfile
-from kokoro import generate, tokenize, phonemize, normalize_text
+import tiktoken
+import torch
 from loguru import logger
+
+from kokoro import generate, normalize_text, phonemize, tokenize
 from models import build_model
 
 from ..core.config import settings
@@ -93,7 +94,7 @@ class TTSService:
                         ps = phonemize(chunk, voice[0])
                         tokens = tokenize(ps)
                         logger.debug(
-                            f"Processing chunk {i+1}/{len(chunks)}: {len(tokens)} tokens"
+                            f"Processing chunk {i + 1}/{len(chunks)}: {len(tokens)} tokens"
                         )
 
                         # Only proceed if phonemization succeeded
@@ -104,11 +105,11 @@ class TTSService:
                             audio_chunks.append(chunk_audio)
                         else:
                             logger.error(
-                                f"No audio generated for chunk {i+1}/{len(chunks)}"
+                                f"No audio generated for chunk {i + 1}/{len(chunks)}"
                             )
                     except Exception as e:
                         logger.error(
-                            f"Failed to generate audio for chunk {i+1}/{len(chunks)}: '{chunk}'. Error: {str(e)}"
+                            f"Failed to generate audio for chunk {i + 1}/{len(chunks)}: '{chunk}'. Error: {str(e)}"
                         )
                         continue
 
@@ -141,7 +142,27 @@ class TTSService:
         wavfile.write(buffer, 24000, audio)
         return buffer.getvalue()
 
-    def list_voices(self) -> list[str]:
+    def combine_voices(self, voices: List[str]) -> str:
+        if len(voices) < 2:
+            return "af"
+        t_voices: List[torch.Tensor] = []
+        v_name: List[str] = []
+        try:
+            for file in os.listdir("voices"):
+                voice_name = file[:-3]  # Remove .pt extension
+                for n in voices:
+                    if n == voice_name:
+                        v_name.append(voice_name)
+                        t_voices.append(torch.load(f"voices/{file}", weights_only=True))
+        except Exception as e:
+            print(f"Error combining voices: {str(e)}")
+            return "af"
+        f: str = "_".join(v_name)
+        v = torch.mean(torch.stack(t_voices), dim=0)
+        torch.save(v, f"voices/{f}.pt")
+        return f
+
+    def list_voices(self) -> List[str]:
         """List all available voices"""
         voices = []
         try:
