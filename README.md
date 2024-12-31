@@ -7,9 +7,10 @@
 [![Tests](https://img.shields.io/badge/tests-33%20passed-darkgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-97%25-darkgreen)]()
 
-FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model. 
-
-OpenAI-compatible API with NVIDIA GPU support, with automatic chunking/stitching for long texts, and very fast generation time (~35-49x RTF)
+FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model, providing an OpenAI-compatible endpoint with:
+- NVIDIA GPU acceleration enabled
+- automatic chunking/stitching for long texts
+- very fast generation time (~35-49x RTF)
 
 ## Quick Start
 
@@ -57,7 +58,7 @@ response = requests.post(
         "model": "kokoro",  # Not used but required for compatibility
         "input": "Hello world!",
         "voice": "af_bella",
-        "response_format": "mp3",  # Supported: mp3, wav, opus, flac, aac
+        "response_format": "mp3",  # Supported: mp3, wav, opus, flac
         "speed": 1.0
     }
 )
@@ -90,6 +91,7 @@ Benchmarking was performed on generation via the local API using text lengths up
 - NVIDIA 4060Ti 16gb GPU @ CUDA 12.1
 - 11th Gen i7-11700 @ 2.5GHz
 - 64gb RAM
+- WAV native output
 - H.G. Wells - The Time Machine (full text)
 
 <p align="center">
@@ -106,11 +108,9 @@ Key Performance Metrics:
 ## Features
 
 - OpenAI-compatible API endpoints
-- Multiple audio formats: mp3, wav, opus, flac, aac
+- Multiple audio formats: mp3, wav, opus, flac, (aac & pcm not implemented)
 - Automatic text chunking and audio stitching
 - GPU-accelerated inference
-- Queue handling via SQLite
-- Progress tracking for long generations
 
 ## Model
 

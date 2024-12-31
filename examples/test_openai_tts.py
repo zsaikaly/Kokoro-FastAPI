@@ -60,7 +60,7 @@ def test_speed(speed: float):
 
 # Test different formats
 for format in ["wav", "mp3", "opus", "aac", "flac", "pcm"]:
-    test_format(format)
+    test_format(format) # aac and pcm should fail as they are not supported
 
 # Test different speeds
 for speed in [0.25, 1.0, 2.0, 4.0]:  # 5.0 should fail as it's out of range
