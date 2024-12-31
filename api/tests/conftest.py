@@ -3,17 +3,15 @@ from unittest.mock import Mock, patch
 import sys
 
 # Mock torch and other ML modules before they're imported
-sys.modules['torch'] = Mock()
-sys.modules['transformers'] = Mock()
-sys.modules['phonemizer'] = Mock()
-sys.modules['models'] = Mock()
-sys.modules['models.build_model'] = Mock()
-sys.modules['kokoro'] = Mock()
-sys.modules['kokoro.generate'] = Mock()
-sys.modules['kokoro.phonemize'] = Mock()
-sys.modules['kokoro.tokenize'] = Mock()
-
-from api.src.main import app
+sys.modules["torch"] = Mock()
+sys.modules["transformers"] = Mock()
+sys.modules["phonemizer"] = Mock()
+sys.modules["models"] = Mock()
+sys.modules["models.build_model"] = Mock()
+sys.modules["kokoro"] = Mock()
+sys.modules["kokoro.generate"] = Mock()
+sys.modules["kokoro.phonemize"] = Mock()
+sys.modules["kokoro.tokenize"] = Mock()
 
 
 @pytest.fixture(autouse=True)

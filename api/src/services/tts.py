@@ -2,8 +2,7 @@ import os
 import threading
 import time
 import io
-from typing import Optional, List, Tuple
-from sqlalchemy.orm import Session
+from typing import List, Tuple
 import numpy as np
 import torch
 import scipy.io.wavfile as wavfile
@@ -16,6 +15,7 @@ import tiktoken
 
 logger = logging.getLogger(__name__)
 enc = tiktoken.get_encoding("cl100k_base")
+
 
 class TTSModel:
     _instance = None
@@ -40,7 +40,9 @@ class TTSModel:
         model, device = cls.get_instance()
         if voice_name not in cls._voicepacks:
             try:
-                voice_path = os.path.join(settings.model_dir, settings.voices_dir, f"{voice_name}.pt")
+                voice_path = os.path.join(
+                    settings.model_dir, settings.voices_dir, f"{voice_name}.pt"
+                )
                 voicepack = torch.load(
                     voice_path, map_location=device, weights_only=True
                 )
@@ -61,9 +63,11 @@ class TTSService:
 
     def _split_text(self, text: str) -> List[str]:
         """Split text into sentences"""
-        return [s.strip() for s in re.split(r'(?<=[.!?])\s+', text) if s.strip()]
+        return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
 
-    def _generate_audio(self, text: str, voice: str, speed: float, stitch_long_output: bool = True) -> Tuple[torch.Tensor, float]:
+    def _generate_audio(
+        self, text: str, voice: str, speed: float, stitch_long_output: bool = True
+    ) -> Tuple[torch.Tensor, float]:
         """Generate audio and measure processing time"""
         start_time = time.time()
 
@@ -87,22 +91,34 @@ class TTSService:
                         # Validate phonemization first
                         ps = phonemize(chunk, voice[0])
                         tokens = tokenize(ps)
-                        logger.info(f"Processing chunk {i+1}/{len(chunks)}: {len(tokens)} tokens")
-                        
+                        logger.info(
+                            f"Processing chunk {i+1}/{len(chunks)}: {len(tokens)} tokens"
+                        )
+
                         # Only proceed if phonemization succeeded
-                        chunk_audio, _ = generate(model, chunk, voicepack, lang=voice[0], speed=speed)
+                        chunk_audio, _ = generate(
+                            model, chunk, voicepack, lang=voice[0], speed=speed
+                        )
                         if chunk_audio is not None:
                             audio_chunks.append(chunk_audio)
                         else:
-                            logger.error(f"No audio generated for chunk {i+1}/{len(chunks)}")
+                            logger.error(
+                                f"No audio generated for chunk {i+1}/{len(chunks)}"
+                            )
                     except Exception as e:
-                        logger.error(f"Failed to generate audio for chunk {i+1}/{len(chunks)}: '{chunk}'. Error: {str(e)}")
+                        logger.error(
+                            f"Failed to generate audio for chunk {i+1}/{len(chunks)}: '{chunk}'. Error: {str(e)}"
+                        )
                         continue
 
                 if not audio_chunks:
                     raise ValueError("No audio chunks were generated successfully")
 
-                audio = np.concatenate(audio_chunks) if len(audio_chunks) > 1 else audio_chunks[0]
+                audio = (
+                    np.concatenate(audio_chunks)
+                    if len(audio_chunks) > 1
+                    else audio_chunks[0]
+                )
             else:
                 audio, _ = generate(model, text, voicepack, lang=voice[0], speed=speed)
 
