@@ -1,0 +1,19 @@
+=== Benchmark Statistics ===
+
+Overall Stats:
+Total tokens processed: 37750
+Total audio generated: 11724.08s
+Total test duration: 270.20s
+Average processing rate: 143.76 tokens/second
+Average realtime factor: 45.13x
+
+Per-chunk Stats:
+Average chunk size: 2903.85 tokens
+Min chunk size: 100.00 tokens
+Max chunk size: 16000.00 tokens
+Average processing time: 20.27s
+Average output length: 901.85s
+
+Performance Ranges:
+Processing rate range: 103.56 - 159.43 tokens/second
+Realtime factor range: 32.26x - 50.46x

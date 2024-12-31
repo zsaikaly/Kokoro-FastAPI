@@ -2,13 +2,14 @@ services:
   kokoro-tts:
     build:
       context: .
-      args:
-        - KOKORO_REPO=https://huggingface.co/hexgrad/Kokoro-82M
-        - KOKORO_COMMIT=a67f11354c3e38c58c3327498bc4bd1e57e71c50
     volumes:
-      - ./api:/app/api
+      - ./api/src:/app/api/src
+      - ./Kokoro-82M:/app/Kokoro-82M
+      - ./api/src/output:/app/api/src/output
     ports:
       - "8880:8880"
+    environment:
+      - PYTHONPATH=/app:/app/Kokoro-82M
     deploy:
       resources:
         reservations:
