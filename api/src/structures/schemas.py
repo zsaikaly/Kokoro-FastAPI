@@ -26,6 +26,7 @@ class OpenAISpeechRequest(BaseModel):
         "bf_emma",
         "af_sarah",
         "af_bella",
+        "af_nicole",
     ] = Field(default="af", description="The voice to use for generation")
     response_format: Literal["mp3", "opus", "aac", "flac", "wav", "pcm"] = Field(
         default="mp3",

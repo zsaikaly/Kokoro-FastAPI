@@ -3,81 +3,114 @@
 </p>
 
 # Kokoro TTS API
-[![Model Commit](https://img.shields.io/badge/model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/a67f11354c3e38c58c3327498bc4bd1e57e71c50)
+[![Model Commit](https://img.shields.io/badge/model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/8228a351f87c8a6076502c1e3b7e72e821ebec9a)
+[![Tests](https://img.shields.io/badge/tests-33%20passed-darkgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-97%25-darkgreen)]()
 
 FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model. 
 
-Dockerized with NVIDIA GPU support, simple queue handling via sqllite, and automatic chunking/stitching on lengthy input/outputs
+OpenAI-compatible API with NVIDIA GPU support, with automatic chunking/stitching for long texts, and very fast generation time (~35-49x RTF)
 
 ## Quick Start
 
+1. Install prerequisites:
+   - Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+   - Install [Git](https://git-scm.com/downloads) (or download and extract zip)
+
+2. Clone and run:
 ```bash
+# Clone repository
+git clone https://github.com/remsky/Kokoro-FastAPI.git
+cd Kokoro-FastAPI
+
 # Start the API (will automatically clone source HF repo via git-lfs)
 docker compose up --build
 ```
 
-Test it out:
+Test all voices:
 ```bash
-# From host terminal
-python examples/test_tts.py "Hello world" --voice af_bella
+python examples/test_all_voices.py
+```
+
+Test OpenAI compatibility:
+```bash
+python examples/test_openai_tts.py
+```
+
+## OpenAI-Compatible API
+
+List available voices:
+```python
+import requests
+
+response = requests.get("http://localhost:8000/audio/voices")
+voices = response.json()["voices"]
+```
+
+Generate speech:
+```python
+import requests
+
+response = requests.post(
+    "http://localhost:8000/audio/speech",
+    json={
+        "model": "kokoro",  # Not used but required for compatibility
+        "input": "Hello world!",
+        "voice": "af_bella",
+        "response_format": "mp3",  # Supported: mp3, wav, opus, flac, aac
+        "speed": 1.0
+    }
+)
+
+# Save audio
+with open("output.mp3", "wb") as f:
+    f.write(response.content)
+```
+
+Using OpenAI's Python library:
+```python
+from openai import OpenAI
+
+client = OpenAI(base_url="http://localhost:8000", api_key="not-needed")
+
+response = client.audio.speech.create(
+    model="kokoro",  # Not used but required for compatibility, also accepts library defaults
+    voice="af_bella",
+    input="Hello world!",
+    response_format="mp3"
+)
+
+response.stream_to_file("output.mp3")
 ```
 
 ## Performance Benchmarks
 
-Benchmarking was performed solely on generation via the local API (ignoring file transfers) using various text lengths up to ~10 minutes output, measuring processing time, token count, and output audio length. Tests were run on: 
+Benchmarking was performed on generation via the local API using text lengths up to feature-length books (~1.5 hours output), measuring processing time and realtime factor. Tests were run on: 
 - Windows 11 Home w/ WSL2 
 - NVIDIA 4060Ti 16gb GPU @ CUDA 12.1
 - 11th Gen i7-11700 @ 2.5GHz
 - 64gb RAM
-- Randomized chunks from H.G. Wells - The Time Machine
+- H.G. Wells - The Time Machine (full text)
 
 <p align="center">
-  <img src="examples/time_vs_output.png" width="40%" alt="Processing Time vs Output Length" style="border: 2px solid #333; padding: 10px; margin-right: 1%;">
-  <img src="examples/time_vs_tokens.png" width="40%" alt="Processing Time vs Token Count" style="border: 2px solid #333; padding: 10px;">
+  <img src="examples/benchmarks/processing_time.png" width="45%" alt="Processing Time" style="border: 2px solid #333; padding: 10px; margin-right: 1%;">
+  <img src="examples/benchmarks/realtime_factor.png" width="45%" alt="Realtime Factor" style="border: 2px solid #333; padding: 10px;">
 </p>
 
+Key Performance Metrics:
+- Realtime Factor: Ranges between 35-49x (generation time to output audio length)
+- Average Processing Rate: 137.67 tokens/second
+- Efficient Scaling: Maintains performance with long texts through automatic chunking
+- Natural Boundary Detection: Automatically splits and stitches at sentence boundaries to prevent artifacts
 
-- Average processing speed: ~3.4 seconds per minute of audio output
-- Efficient token processing: ~0.01 seconds per token
-- Scales well with longer texts, maintains consistent performance
+## Features
 
-## API Endpoints
-
-```bash
-GET /tts/voices           # List available voices
-POST /tts                 # Generate speech
-GET /tts/{request_id}     # Check generation status
-GET /tts/file/{request_id} # Download audio file
-```
-
-## Example Usage
-
-List available voices:
-```bash
-python examples/test_tts.py
-```
-
-Generate speech:
-```bash
-# Default voice
-python examples/test_tts.py "Your text here"
-
-# Specific voice
-python examples/test_tts.py --voice af_bella "Your text here"
-
-# Get file path without downloading
-python examples/test_tts.py --no-download "Your text here"
-```
-
-Generated files are saved in:
-- With download: `examples/output/`
-- Without download: `src/output/` (in API container)
-
-## Requirements
-
-- Docker
-- NVIDIA GPU + CUDA
-- nvidia-container-toolkit installed on host
+- OpenAI-compatible API endpoints
+- Multiple audio formats: mp3, wav, opus, flac, aac
+- Automatic text chunking and audio stitching
+- GPU-accelerated inference
+- Queue handling via SQLite
+- Progress tracking for long generations
 
 ## Model
 

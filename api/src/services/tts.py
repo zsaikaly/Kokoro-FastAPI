@@ -92,7 +92,7 @@ class TTSService:
                         # Validate phonemization first
                         ps = phonemize(chunk, voice[0])
                         tokens = tokenize(ps)
-                        logger.info(
+                        logger.debug(
                             f"Processing chunk {i+1}/{len(chunks)}: {len(tokens)} tokens"
                         )
 

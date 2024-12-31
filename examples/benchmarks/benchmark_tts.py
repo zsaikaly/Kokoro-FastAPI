@@ -103,7 +103,7 @@ def make_tts_request(text: str, timeout: int = 120) -> tuple[float, float]:
         response = requests.post(
             "http://localhost:8880/v1/audio/speech",
             json={
-                "model": "tts-1",
+                "model": "kokoro",
                 "input": text,
                 "voice": "af",
                 "response_format": "wav",
@@ -240,15 +240,15 @@ def main():
     print(f"Total tokens in file: {total_tokens}")
 
     # Generate token sizes with dense sampling at start and increasing intervals
-    dense_range = list(range(100, 600, 100))  # 100, 200, 300, 400, 500
-    medium_range = [750, 1000, 1500, 2000, 3000]
+    dense_range = list(range(100, 1001, 100))
+    current = max(dense_range)
     large_range = []
-    current = 4000
     while current <= total_tokens:
         large_range.append(current)
-        current *= 2
+        current += 1000
 
-    token_sizes = dense_range + medium_range + large_range
+    token_sizes = sorted(list(set(dense_range + large_range)))
+    print(f"Testing sizes: {token_sizes}")
 
     # Process chunks
     results = []
