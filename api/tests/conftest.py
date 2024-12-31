@@ -1,6 +1,7 @@
-import pytest
-from unittest.mock import Mock, patch
 import sys
+from unittest.mock import Mock, patch
+
+import pytest
 
 # Mock torch and other ML modules before they're imported
 sys.modules["torch"] = Mock()

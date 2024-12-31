@@ -1,6 +1,8 @@
-from fastapi.testclient import TestClient
-import pytest
 from unittest.mock import Mock
+
+import pytest
+from fastapi.testclient import TestClient
+
 from ..src.main import app
 
 # Create test client
@@ -50,7 +52,7 @@ def test_health_check():
 def test_openai_speech_endpoint(mock_tts_service, mock_audio_service):
     """Test the OpenAI-compatible speech endpoint"""
     test_request = {
-        "model": "tts-1",
+        "model": "kokoro",
         "input": "Hello world",
         "voice": "bm_lewis",
         "response_format": "wav",
@@ -69,7 +71,7 @@ def test_openai_speech_endpoint(mock_tts_service, mock_audio_service):
 def test_openai_speech_invalid_voice(mock_tts_service):
     """Test the OpenAI-compatible speech endpoint with invalid voice"""
     test_request = {
-        "model": "tts-1",
+        "model": "kokoro",
         "input": "Hello world",
         "voice": "invalid_voice",
         "response_format": "wav",
@@ -82,7 +84,7 @@ def test_openai_speech_invalid_voice(mock_tts_service):
 def test_openai_speech_invalid_speed(mock_tts_service):
     """Test the OpenAI-compatible speech endpoint with invalid speed"""
     test_request = {
-        "model": "tts-1",
+        "model": "kokoro",
         "input": "Hello world",
         "voice": "af",
         "response_format": "wav",
@@ -96,7 +98,7 @@ def test_openai_speech_generation_error(mock_tts_service):
     """Test error handling in speech generation"""
     mock_tts_service._generate_audio.side_effect = Exception("Generation failed")
     test_request = {
-        "model": "tts-1",
+        "model": "kokoro",
         "input": "Hello world",
         "voice": "af",
         "response_format": "wav",

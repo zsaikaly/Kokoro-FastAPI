@@ -1,15 +1,16 @@
 import os
-import time
 import json
-import scipy.io.wavfile as wavfile
-import requests
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-import tiktoken
-import psutil
+import time
 import subprocess
 from datetime import datetime
+
+import pandas as pd
+import psutil
+import seaborn as sns
+import requests
+import tiktoken
+import scipy.io.wavfile as wavfile
+import matplotlib.pyplot as plt
 
 enc = tiktoken.get_encoding("cl100k_base")
 

@@ -1,19 +1,20 @@
-import os
-import threading
-import time
 import io
+import os
+import re
+import time
+import threading
 from typing import List, Tuple
+
 import numpy as np
 import torch
-import scipy.io.wavfile as wavfile
-from models import build_model
-from kokoro import generate, phonemize, tokenize, normalize_text
-from ..core.config import settings
-import re
-import logging
 import tiktoken
+import scipy.io.wavfile as wavfile
+from kokoro import generate, tokenize, phonemize, normalize_text
+from loguru import logger
+from models import build_model
 
-logger = logging.getLogger(__name__)
+from ..core.config import settings
+
 enc = tiktoken.get_encoding("cl100k_base")
 
 

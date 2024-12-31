@@ -1,12 +1,11 @@
 """Audio conversion service"""
 
 from io import BytesIO
-import numpy as np
-import scipy.io.wavfile as wavfile
-import soundfile as sf
-import logging
 
-logger = logging.getLogger(__name__)
+import numpy as np
+import soundfile as sf
+import scipy.io.wavfile as wavfile
+from loguru import logger
 
 
 class AudioService:

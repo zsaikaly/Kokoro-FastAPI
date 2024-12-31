@@ -1,10 +1,9 @@
-from fastapi import APIRouter, HTTPException, Response, Depends
-import logging
-from ..structures.schemas import OpenAISpeechRequest
+from loguru import logger
+from fastapi import Depends, Response, APIRouter, HTTPException
+
 from ..services.tts import TTSService
 from ..services.audio import AudioService
-
-logger = logging.getLogger(__name__)
+from ..structures.schemas import OpenAISpeechRequest
 
 router = APIRouter(
     tags=["OpenAI Compatible TTS"],

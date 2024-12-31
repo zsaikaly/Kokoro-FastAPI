@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import openai
 
 # Configure OpenAI client to use our local endpoint

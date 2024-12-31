@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import openai
 import requests
 
@@ -18,6 +19,7 @@ output_dir = Path(__file__).parent / "output"
 output_dir.mkdir(exist_ok=True)
 
 
+
 def test_voice(voice: str):
     speech_file = output_dir / f"speech_{voice}.wav"
     print(f"\nTesting voice: {voice}")
@@ -25,7 +27,7 @@ def test_voice(voice: str):
 
     try:
         response = client.audio.speech.create(
-            model="tts-1", voice=voice, input=SAMPLE_TEXT, response_format="wav"
+            model="kokoro", voice=voice, input=SAMPLE_TEXT, response_format="wav"
         )
 
         print("Got response, saving to file...")

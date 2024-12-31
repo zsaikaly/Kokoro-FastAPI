@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field
-from typing import Literal
 from enum import Enum
+from typing import Literal
+
+from pydantic import Field, BaseModel
 
 
 class TTSStatus(str, Enum):
@@ -13,7 +14,7 @@ class TTSStatus(str, Enum):
 
 # OpenAI-compatible schemas
 class OpenAISpeechRequest(BaseModel):
-    model: Literal["tts-1", "tts-1-hd"] = "tts-1"
+    model: Literal["tts-1", "tts-1-hd", "kokoro"] = "kokoro"
     input: str = Field(..., description="The text to generate audio for")
     voice: Literal[
         "am_adam",

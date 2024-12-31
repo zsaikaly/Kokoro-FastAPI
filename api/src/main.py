@@ -2,15 +2,16 @@
 FastAPI OpenAI Compatible API
 """
 
-import uvicorn
 from contextlib import asynccontextmanager
+
+import uvicorn
+from loguru import logger
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from loguru import logger
 
 from .core.config import settings
-from .routers.openai_compatible import router as openai_router
 from .services.tts import TTSModel, TTSService
+from .routers.openai_compatible import router as openai_router
 
 
 @asynccontextmanager
