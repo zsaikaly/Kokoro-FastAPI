@@ -21,13 +21,13 @@ output_dir.mkdir(exist_ok=True)
 
 
 def test_voice(voice: str):
-    speech_file = output_dir / f"speech_{voice}.wav"
+    speech_file = output_dir / f"speech_{voice}.mp3"
     print(f"\nTesting voice: {voice}")
     print(f"Making request to {client.base_url}/audio/speech...")
 
     try:
         response = client.audio.speech.create(
-            model="kokoro", voice=voice, input=SAMPLE_TEXT, response_format="wav"
+            model="kokoro", voice=voice, input=SAMPLE_TEXT, response_format="mp3"
         )
 
         print("Got response, saving to file...")
