@@ -44,7 +44,7 @@ List available voices:
 ```python
 import requests
 
-response = requests.get("http://localhost:8000/audio/voices")
+response = requests.get("http://localhost:8880/audio/voices")
 voices = response.json()["voices"]
 ```
 
@@ -53,7 +53,7 @@ Generate speech:
 import requests
 
 response = requests.post(
-    "http://localhost:8000/audio/speech",
+    "http://localhost:8880/audio/speech",
     json={
         "model": "kokoro",  # Not used but required for compatibility
         "input": "Hello world!",
@@ -72,7 +72,7 @@ Using OpenAI's Python library:
 ```python
 from openai import OpenAI
 
-client = OpenAI(base_url="http://localhost:8000", api_key="not-needed")
+client = OpenAI(base_url="http://localhost:8880", api_key="not-needed")
 
 response = client.audio.speech.create(
     model="kokoro",  # Not used but required for compatibility, also accepts library defaults
