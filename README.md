@@ -106,7 +106,7 @@ Benchmarking was performed on generation via the local API using text lengths up
 
 Key Performance Metrics:
 - Realtime Factor: Ranges between 35-49x (generation time to output audio length)
-- Average Processing Rate: 137.67 tokens/second
+- Average Processing Rate: 137.67 tokens/second (cl100k_base)
 
 ## Features
 
