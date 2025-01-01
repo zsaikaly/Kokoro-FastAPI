@@ -1,8 +1,10 @@
-from loguru import logger
-from fastapi import Depends, Response, APIRouter, HTTPException
+from typing import List
 
-from ..services.tts import TTSService
+from fastapi import APIRouter, Depends, HTTPException, Response
+from loguru import logger
+
 from ..services.audio import AudioService
+from ..services.tts import TTSService
 from ..structures.schemas import OpenAISpeechRequest
 
 router = APIRouter(
@@ -54,6 +56,17 @@ async def list_voices(tts_service: TTSService = Depends(get_tts_service)):
     try:
         voices = tts_service.list_voices()
         return {"voices": voices}
+    except Exception as e:
+        logger.error(f"Error listing voices: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/audio/voices/combine")
+async def combine_voices(request: List[str], tts_service: TTSService = Depends(get_tts_service)):
+    try:
+        t = tts_service.combine_voices(voices=request)
+        voices = tts_service.list_voices()
+        return {"voices": voices, "voice": t}
     except Exception as e:
         logger.error(f"Error listing voices: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
