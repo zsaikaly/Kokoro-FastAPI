@@ -79,36 +79,42 @@ def test_generate_audio_empty_text(mock_generate, mock_tokenize, mock_phonemize,
 
 
 @patch('api.src.services.tts.TTSModel.get_instance')
-@patch('api.src.services.tts.TTSModel.get_voicepack')
+@patch('os.path.exists')
 @patch('api.src.services.tts.normalize_text')
 @patch('api.src.services.tts.phonemize')
 @patch('api.src.services.tts.tokenize')
 @patch('api.src.services.tts.generate')
-def test_generate_audio_no_chunks(mock_generate, mock_tokenize, mock_phonemize, mock_normalize, mock_voicepack, mock_instance, tts_service):
+@patch('torch.load')
+def test_generate_audio_no_chunks(mock_torch_load, mock_generate, mock_tokenize, mock_phonemize, mock_normalize, mock_exists, mock_instance, tts_service):
     """Test generating audio with no successful chunks"""
     mock_normalize.return_value = "Test text"
     mock_phonemize.return_value = "Test text"
     mock_tokenize.return_value = ["test", "text"]
     mock_generate.return_value = (None, None)
     mock_instance.return_value = (MagicMock(), "cpu")
+    mock_exists.return_value = True
+    mock_torch_load.return_value = MagicMock()
     
     with pytest.raises(ValueError, match="No audio chunks were generated successfully"):
         tts_service._generate_audio("Test text", "af", 1.0)
 
 
 @patch('api.src.services.tts.TTSModel.get_instance')
-@patch('api.src.services.tts.TTSModel.get_voicepack')
+@patch('os.path.exists')
 @patch('api.src.services.tts.normalize_text')
 @patch('api.src.services.tts.phonemize')
 @patch('api.src.services.tts.tokenize')
 @patch('api.src.services.tts.generate')
-def test_generate_audio_success(mock_generate, mock_tokenize, mock_phonemize, mock_normalize, mock_voicepack, mock_instance, tts_service, sample_audio):
+@patch('torch.load')
+def test_generate_audio_success(mock_torch_load, mock_generate, mock_tokenize, mock_phonemize, mock_normalize, mock_exists, mock_instance, tts_service, sample_audio):
     """Test successful audio generation"""
     mock_normalize.return_value = "Test text"
     mock_phonemize.return_value = "Test text"
     mock_tokenize.return_value = ["test", "text"]
     mock_generate.return_value = (sample_audio, None)
     mock_instance.return_value = (MagicMock(), "cpu")
+    mock_exists.return_value = True
+    mock_torch_load.return_value = MagicMock()
     
     audio, processing_time = tts_service._generate_audio("Test text", "af", 1.0)
     assert isinstance(audio, np.ndarray)
@@ -148,34 +154,19 @@ def test_model_initialization_cpu(mock_build_model, mock_cuda_available):
     mock_build_model.assert_called_once()
 
 
+@patch('os.path.exists')
 @patch('api.src.services.tts.torch.load')
 @patch('os.path.join')
-def test_voicepack_loading_error(mock_join, mock_torch_load):
+def test_voicepack_loading_error(mock_join, mock_torch_load, mock_exists):
     """Test voicepack loading error handling"""
     mock_join.side_effect = lambda *args: '/'.join(args)
-    mock_torch_load.side_effect = [Exception("Failed to load voice"), MagicMock()]
+    mock_exists.side_effect = lambda x: False  # All voice files don't exist
     
     TTSModel._instance = (MagicMock(), "cpu")  # Mock instance
     TTSModel._voicepacks = {}  # Reset voicepacks
     
-    # Should fall back to 'af' voice
-    voicepack = TTSModel.get_voicepack("nonexistent_voice")
-    assert mock_torch_load.call_count == 2  # Tried original voice then fallback
-    assert isinstance(voicepack, MagicMock)  # Successfully got fallback voice
-
-
-@patch('api.src.services.tts.torch.load')
-@patch('os.path.join')
-def test_voicepack_loading_error_af(mock_join, mock_torch_load):
-    """Test voicepack loading error for 'af' voice"""
-    mock_join.side_effect = lambda *args: '/'.join(args)
-    mock_torch_load.side_effect = Exception("Failed to load voice")
-    
-    TTSModel._instance = (MagicMock(), "cpu")  # Mock instance
-    TTSModel._voicepacks = {}  # Reset voicepacks
-    
-    with pytest.raises(Exception):
-        TTSModel.get_voicepack("af")
+    with pytest.raises(FileNotFoundError, match="Voice file not found: af"):
+        TTSModel.get_voicepack("nonexistent_voice")
 
 
 def test_save_audio(tts_service, sample_audio, tmp_path):
@@ -188,14 +179,17 @@ def test_save_audio(tts_service, sample_audio, tmp_path):
 
 
 @patch('api.src.services.tts.TTSModel.get_instance')
-@patch('api.src.services.tts.TTSModel.get_voicepack')
+@patch('os.path.exists')
 @patch('api.src.services.tts.normalize_text')
 @patch('api.src.services.tts.generate')
-def test_generate_audio_without_stitching(mock_generate, mock_normalize, mock_voicepack, mock_instance, tts_service, sample_audio):
+@patch('torch.load')
+def test_generate_audio_without_stitching(mock_torch_load, mock_generate, mock_normalize, mock_exists, mock_instance, tts_service, sample_audio):
     """Test generating audio without text stitching"""
     mock_normalize.return_value = "Test text"
     mock_generate.return_value = (sample_audio, None)
     mock_instance.return_value = (MagicMock(), "cpu")
+    mock_exists.return_value = True
+    mock_torch_load.return_value = MagicMock()
     
     audio, processing_time = tts_service._generate_audio("Test text", "af", 1.0, stitch_long_output=False)
     assert isinstance(audio, np.ndarray)
@@ -214,16 +208,19 @@ def test_list_voices_error(mock_listdir, tts_service):
 
 
 @patch('api.src.services.tts.TTSModel.get_instance')
-@patch('api.src.services.tts.TTSModel.get_voicepack')
+@patch('os.path.exists')
 @patch('api.src.services.tts.normalize_text')
 @patch('api.src.services.tts.phonemize')
 @patch('api.src.services.tts.tokenize')
 @patch('api.src.services.tts.generate')
-def test_generate_audio_phonemize_error(mock_generate, mock_tokenize, mock_phonemize, mock_normalize, mock_voicepack, mock_instance, tts_service):
+@patch('torch.load')
+def test_generate_audio_phonemize_error(mock_torch_load, mock_generate, mock_tokenize, mock_phonemize, mock_normalize, mock_exists, mock_instance, tts_service):
     """Test handling phonemization error"""
     mock_normalize.return_value = "Test text"
     mock_phonemize.side_effect = Exception("Phonemization failed")
     mock_instance.return_value = (MagicMock(), "cpu")
+    mock_exists.return_value = True
+    mock_torch_load.return_value = MagicMock()
     mock_generate.return_value = (None, None)
     
     with pytest.raises(ValueError, match="No audio chunks were generated successfully"):
@@ -231,14 +228,17 @@ def test_generate_audio_phonemize_error(mock_generate, mock_tokenize, mock_phone
 
 
 @patch('api.src.services.tts.TTSModel.get_instance')
-@patch('api.src.services.tts.TTSModel.get_voicepack')
+@patch('os.path.exists')
 @patch('api.src.services.tts.normalize_text')
 @patch('api.src.services.tts.generate')
-def test_generate_audio_error(mock_generate, mock_normalize, mock_voicepack, mock_instance, tts_service):
+@patch('torch.load')
+def test_generate_audio_error(mock_torch_load, mock_generate, mock_normalize, mock_exists, mock_instance, tts_service):
     """Test handling generation error"""
     mock_normalize.return_value = "Test text"
     mock_generate.side_effect = Exception("Generation failed")
     mock_instance.return_value = (MagicMock(), "cpu")
+    mock_exists.return_value = True
+    mock_torch_load.return_value = MagicMock()
     
     with pytest.raises(ValueError, match="No audio chunks were generated successfully"):
         tts_service._generate_audio("Test text", "af", 1.0)

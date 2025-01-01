@@ -4,8 +4,8 @@
 
 # Kokoro TTS API
 [![Model Commit](https://img.shields.io/badge/model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/8228a351f87c8a6076502c1e3b7e72e821ebec9a)
-[![Tests](https://img.shields.io/badge/tests-33%20passed-darkgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-97%25-darkgreen)]()
+[![Tests](https://img.shields.io/badge/tests-36%20passed-darkgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-91%25-darkgreen)]()
 
 FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model, providing an OpenAI-compatible endpoint with:
 - NVIDIA GPU accelerated inference (or CPU) option
@@ -30,33 +30,40 @@ docker compose up --build
 # For CPU-only deployment (~10x slower, but doesn't require an NVIDIA GPU):
 docker compose -f docker-compose.cpu.yml up --build
 ```
-
-
-
-Test all voices (from another terminal):
-```bash
-python examples/test_all_voices.py
-```
+Quick tests (run from another terminal):
 
 Test OpenAI compatibility:
 ```bash
+# Test OpenAI Compatibility
 python examples/test_openai_tts.py
+# Test all available voices
+python examples/test_all_voices.py
 ```
 
 ## OpenAI-Compatible API
 
-List available voices:
+```python
+# Using OpenAI's Python library
+from openai import OpenAI
+client = OpenAI(base_url="http://localhost:8880", api_key="not-needed")
+response = client.audio.speech.create(
+    model="kokoro",  # Not used but required for compatibility, also accepts library defaults
+    voice="af_bella",
+    input="Hello world!",
+    response_format="mp3"
+)
+
+response.stream_to_file("output.mp3")
+```
+Or Via Requests:
 ```python
 import requests
+
 
 response = requests.get("http://localhost:8880/v1/audio/voices")
 voices = response.json()["voices"]
-```
 
-Generate speech:
-```python
-import requests
-
+# Generate audio
 response = requests.post(
     "http://localhost:8880/v1/audio/speech",
     json={
@@ -73,20 +80,28 @@ with open("output.mp3", "wb") as f:
     f.write(response.content)
 ```
 
-Using OpenAI's Python library:
+## Voice Combination
+
+Combine voices and generate audio:
 ```python
-from openai import OpenAI
+import requests
 
-client = OpenAI(base_url="http://localhost:8880", api_key="not-needed")
-
-response = client.audio.speech.create(
-    model="kokoro",  # Not used but required for compatibility, also accepts library defaults
-    voice="af_bella",
-    input="Hello world!",
-    response_format="mp3"
+# Create combined voice (saved locally on server)
+response = requests.post(
+    "http://localhost:8880/v1/audio/voices/combine",
+    json=["af_bella", "af_sarah"]
 )
+combined_voice = response.json()["voice"]
 
-response.stream_to_file("output.mp3")
+# Generate audio with combined voice
+response = requests.post(
+    "http://localhost:8880/v1/audio/speech",
+    json={
+        "input": "Hello world!",
+        "voice": combined_voice,
+        "response_format": "mp3"
+    }
+)
 ```
 
 ## Performance Benchmarks
@@ -115,6 +130,13 @@ Key Performance Metrics:
 - Multiple audio formats: mp3, wav, opus, flac, (aac & pcm not implemented)
 - Natural Boundary Detection:
     - Automatically splits and stitches at sentence boundaries to reduce artifacts and maintain performacne
+- Voice Combination:
+    - Averages model weights of any existing voicepacks
+    - Saves generated voicepacks for future use
+
+<p align="center">
+  <img src="examples/benchmarks/analysis_comparison.png" width="60%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
+</p>
 
 *Note: CPU Inference is currently a very basic implementation, and not heavily tested*
 
@@ -133,11 +155,3 @@ This project is licensed under the Apache License 2.0 - see below for details:
 - The inference code adapted from StyleTTS2 is MIT licensed
 
 The full Apache 2.0 license text can be found at: https://www.apache.org/licenses/LICENSE-2.0
-
-## Sample
-
-<div align="center";">
-  
-  https://user-images.githubusercontent.com/338912d2-90f3-41fb-bca0-5db7b4e02287.mp4
-  
-</div>

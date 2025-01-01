@@ -5,6 +5,7 @@ output/
 *.db
 *.pyc
 *.pth
+*.pt
 
 Kokoro-82M/*
 __pycache__/
