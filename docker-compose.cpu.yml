@@ -8,7 +8,7 @@ services:
       sh -c "
         if [ -z \"$(ls -A .)\" ]; then
           git clone https://huggingface.co/hexgrad/Kokoro-82M . && \
-          git checkout 8228a351f87c8a6076502c1e3b7e72e821ebec9a;
+          git checkout 7e9ebc5be7f66a1843b585b63d19d55b5d58ce30;
           touch .cloned;
         else
           touch .cloned;
