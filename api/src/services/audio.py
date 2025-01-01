@@ -4,7 +4,6 @@ from io import BytesIO
 
 import numpy as np
 import soundfile as sf
-import scipy.io.wavfile as wavfile
 from loguru import logger
 
 
@@ -20,7 +19,7 @@ class AudioService:
         Args:
             audio_data: Numpy array of audio samples
             sample_rate: Sample rate of the audio
-            output_format: Target format (wav, mp3, etc.)
+            output_format: Target format (wav, mp3, opus, flac, pcm)
 
         Returns:
             Bytes of the converted audio
@@ -30,45 +29,31 @@ class AudioService:
         try:
             if output_format == "wav":
                 logger.info("Writing to WAV format...")
-                wavfile.write(buffer, sample_rate, audio_data)
-                return buffer.getvalue()
-
+                # Ensure audio_data is in int16 format for WAV
+                audio_data_wav = audio_data.astype(np.int16)
+                sf.write(buffer, audio_data_wav, sample_rate, format="WAV")
             elif output_format == "mp3":
-                # For MP3, we need to convert to WAV first
                 logger.info("Converting to MP3 format...")
-                wav_buffer = BytesIO()
-                wavfile.write(wav_buffer, sample_rate, audio_data)
-                wav_buffer.seek(0)
-
-                # Convert WAV to MP3 using soundfile
-                buffer = BytesIO()
-                sf.write(buffer, audio_data, sample_rate, format="mp3")
-                return buffer.getvalue()
-
+                # soundfile can write MP3 if ffmpeg or libsox is installed
+                sf.write(buffer, audio_data, sample_rate, format="MP3")
             elif output_format == "opus":
                 logger.info("Converting to Opus format...")
-                sf.write(buffer, audio_data, sample_rate, format="ogg", subtype="opus")
-                return buffer.getvalue()
-
+                sf.write(buffer, audio_data, sample_rate, format="OGG", subtype="OPUS")
             elif output_format == "flac":
                 logger.info("Converting to FLAC format...")
-                sf.write(buffer, audio_data, sample_rate, format="flac")
-                return buffer.getvalue()
-
-            elif output_format == "aac":
-                raise ValueError(
-                    "AAC format is not currently supported. Please use wav, mp3, opus, or flac."
-                )
-
+                sf.write(buffer, audio_data, sample_rate, format="FLAC")
             elif output_format == "pcm":
-                raise ValueError(
-                    "PCM format is not currently supported. Please use wav, mp3, opus, or flac."
-                )
-
+                logger.info("Extracting PCM data...")
+                # Ensure audio_data is in int16 format for PCM
+                audio_data_pcm = audio_data.astype(np.int16)
+                buffer.write(audio_data_pcm.tobytes())
             else:
                 raise ValueError(
-                    f"Format {output_format} not supported. Supported formats are: wav, mp3, opus, flac."
+                    f"Format {output_format} not supported. Supported formats are: wav, mp3, opus, flac, pcm."
                 )
+
+            buffer.seek(0)
+            return buffer.getvalue()
 
         except Exception as e:
             logger.error(f"Error converting audio to {output_format}: {str(e)}")
