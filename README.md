@@ -31,8 +31,6 @@ docker compose up --build
 docker compose -f docker-compose.cpu.yml up --build
 ```
 Quick tests (run from another terminal):
-
-Test OpenAI compatibility:
 ```bash
 # Test OpenAI Compatibility
 python examples/test_openai_tts.py
@@ -41,7 +39,6 @@ python examples/test_all_voices.py
 ```
 
 ## OpenAI-Compatible API
-
 ```python
 # Using OpenAI's Python library
 from openai import OpenAI
