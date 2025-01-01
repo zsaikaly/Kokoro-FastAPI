@@ -16,18 +16,10 @@ class TTSStatus(str, Enum):
 class OpenAISpeechRequest(BaseModel):
     model: Literal["tts-1", "tts-1-hd", "kokoro"] = "kokoro"
     input: str = Field(..., description="The text to generate audio for")
-    voice: Literal[
-        "am_adam",
-        "am_michael",
-        "bm_lewis",
-        "af",
-        "bm_george",
-        "bf_isabella",
-        "bf_emma",
-        "af_sarah",
-        "af_bella",
-        "af_nicole",
-    ] = Field(default="af", description="The voice to use for generation")
+    voice: str = Field(
+        default="af", 
+        description="The voice to use for generation. Can be a base voice or a combined voice name."
+    )
     response_format: Literal["mp3", "opus", "aac", "flac", "wav", "pcm"] = Field(
         default="mp3",
         description="The format to return audio in. Supported formats: mp3, opus, flac, wav. AAC and PCM are not currently supported.",
