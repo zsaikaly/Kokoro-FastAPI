@@ -1,6 +1,8 @@
 import os
-import pytest
 from unittest.mock import patch
+
+import pytest
+
 from ui.lib import files
 from ui.lib.config import AUDIO_FORMATS
 

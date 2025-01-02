@@ -1,5 +1,6 @@
-import pytest
 import gradio as gr
+import pytest
+
 from ui.lib.components.input import create_input_column
 
 

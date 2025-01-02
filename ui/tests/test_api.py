@@ -1,6 +1,8 @@
+from unittest.mock import patch, mock_open
+
 import pytest
 import requests
-from unittest.mock import patch, mock_open
+
 from ui.lib import api
 
 
@@ -57,12 +59,11 @@ def test_check_api_status_connection_error():
 
 def test_text_to_speech_success(mock_response, tmp_path):
     """Test successful speech generation"""
-    with patch("requests.post", return_value=mock_response({})), \
-         patch("ui.lib.api.OUTPUTS_DIR", str(tmp_path)), \
-         patch("builtins.open", mock_open()) as mock_file:
-        
+    with patch("requests.post", return_value=mock_response({})), patch(
+        "ui.lib.api.OUTPUTS_DIR", str(tmp_path)
+    ), patch("builtins.open", mock_open()) as mock_file:
         result = api.text_to_speech("test text", "voice1", "mp3", 1.0)
-        
+
         assert result is not None
         assert "output_" in result
         assert result.endswith(".mp3")
@@ -105,25 +106,24 @@ def test_get_status_html_unavailable():
 
 def test_text_to_speech_api_params(mock_response, tmp_path):
     """Test correct API parameters are sent"""
-    with patch("requests.post") as mock_post, \
-         patch("ui.lib.api.OUTPUTS_DIR", str(tmp_path)), \
-         patch("builtins.open", mock_open()):
-        
+    with patch("requests.post") as mock_post, patch(
+        "ui.lib.api.OUTPUTS_DIR", str(tmp_path)
+    ), patch("builtins.open", mock_open()):
         mock_post.return_value = mock_response({})
         api.text_to_speech("test text", "voice1", "mp3", 1.5)
-        
+
         mock_post.assert_called_once()
         args, kwargs = mock_post.call_args
-        
+
         # Check request body
         assert kwargs["json"] == {
             "model": "kokoro",
             "input": "test text",
             "voice": "voice1",
             "response_format": "mp3",
-            "speed": 1.5
+            "speed": 1.5,
         }
-        
+
         # Check headers and timeout
         assert kwargs["headers"] == {"Content-Type": "application/json"}
         assert kwargs["timeout"] == 300

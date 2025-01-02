@@ -1,6 +1,8 @@
 """Tests for AudioService"""
+
 import numpy as np
 import pytest
+
 from api.src.services.audio import AudioService
 
 

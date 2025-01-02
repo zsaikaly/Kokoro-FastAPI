@@ -1,8 +1,9 @@
-import pytest
 import gradio as gr
+import pytest
+
+from ui.lib.config import AUDIO_FORMATS
 from ui.lib.components.model import create_model_column
 from ui.lib.components.output import create_output_column
-from ui.lib.config import AUDIO_FORMATS
 
 
 def test_create_model_column_structure():
@@ -15,12 +16,7 @@ def test_create_model_column_structure():
     assert isinstance(components, dict)
 
     # Test expected components presence
-    expected_components = {
-        "status_btn",
-        "voice",
-        "format",
-        "speed"
-    }
+    expected_components = {"status_btn", "voice", "format", "speed"}
     assert set(components.keys()) == expected_components
 
     # Test component types
@@ -78,7 +74,7 @@ def test_create_output_column_structure():
         "output_files",
         "play_btn",
         "selected_audio",
-        "clear_outputs"
+        "clear_outputs",
     }
     assert set(components.keys()) == expected_components
 

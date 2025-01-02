@@ -1,5 +1,5 @@
-import pytest
 import gradio as gr
+import pytest
 
 
 @pytest.fixture

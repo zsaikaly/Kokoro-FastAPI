@@ -1,17 +1,16 @@
 import io
 import os
 import re
-import threading
 import time
+import threading
 from typing import List, Tuple, Optional
 
 import numpy as np
-import scipy.io.wavfile as wavfile
-import tiktoken
 import torch
+import tiktoken
+import scipy.io.wavfile as wavfile
+from kokoro import generate, tokenize, phonemize, normalize_text
 from loguru import logger
-
-from kokoro import generate, normalize_text, phonemize, tokenize
 from models import build_model
 
 from ..core.config import settings
@@ -23,7 +22,7 @@ class TTSModel:
     _instance = None
     _device = None
     _lock = threading.Lock()
-    
+
     # Directory for all voices (copied base voices, and any created combined voices)
     VOICES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "voices")
 
@@ -38,10 +37,10 @@ class TTSModel:
                 model_path = os.path.join(settings.model_dir, settings.model_path)
                 model = build_model(model_path, cls._device)
                 cls._instance = model
-                
+
                 # Ensure voices directory exists
                 os.makedirs(cls.VOICES_DIR, exist_ok=True)
-                
+
                 # Copy base voices to local directory
                 base_voices_dir = os.path.join(settings.model_dir, settings.voices_dir)
                 if os.path.exists(base_voices_dir):
@@ -51,25 +50,37 @@ class TTSModel:
                             voice_path = os.path.join(cls.VOICES_DIR, file)
                             if not os.path.exists(voice_path):
                                 try:
-                                    logger.info(f"Copying base voice {voice_name} to voices directory")
+                                    logger.info(
+                                        f"Copying base voice {voice_name} to voices directory"
+                                    )
                                     base_path = os.path.join(base_voices_dir, file)
-                                    voicepack = torch.load(base_path, map_location=cls._device, weights_only=True)
+                                    voicepack = torch.load(
+                                        base_path,
+                                        map_location=cls._device,
+                                        weights_only=True,
+                                    )
                                     torch.save(voicepack, voice_path)
                                 except Exception as e:
-                                    logger.error(f"Error copying voice {voice_name}: {str(e)}")
-                
+                                    logger.error(
+                                        f"Error copying voice {voice_name}: {str(e)}"
+                                    )
+
                 # Warm up with default voice
                 try:
                     dummy_text = "Hello"
                     voice_path = os.path.join(cls.VOICES_DIR, "af.pt")
-                    dummy_voicepack = torch.load(voice_path, map_location=cls._device, weights_only=True)
-                    generate(model, dummy_text, dummy_voicepack, lang='a', speed=1.0)
+                    dummy_voicepack = torch.load(
+                        voice_path, map_location=cls._device, weights_only=True
+                    )
+                    generate(model, dummy_text, dummy_voicepack, lang="a", speed=1.0)
                     logger.info("Model warm-up complete")
                 except Exception as e:
                     logger.warning(f"Model warm-up failed: {e}")
-            
+
             # Count voices in directory for validation
-            voice_count = len([f for f in os.listdir(cls.VOICES_DIR) if f.endswith('.pt')])
+            voice_count = len(
+                [f for f in os.listdir(cls.VOICES_DIR) if f.endswith(".pt")]
+            )
             return cls._instance, voice_count
 
     @classmethod
@@ -86,11 +97,11 @@ class TTSService:
         self._ensure_voices()
         if start_worker:
             self.start_worker()
-            
+
     def _ensure_voices(self):
         """Copy base voices to local voices directory during initialization"""
         os.makedirs(TTSModel.VOICES_DIR, exist_ok=True)
-        
+
         base_voices_dir = os.path.join(settings.model_dir, settings.voices_dir)
         if os.path.exists(base_voices_dir):
             for file in os.listdir(base_voices_dir):
@@ -99,9 +110,15 @@ class TTSService:
                     voice_path = os.path.join(TTSModel.VOICES_DIR, file)
                     if not os.path.exists(voice_path):
                         try:
-                            logger.info(f"Copying base voice {voice_name} to voices directory")
+                            logger.info(
+                                f"Copying base voice {voice_name} to voices directory"
+                            )
                             base_path = os.path.join(base_voices_dir, file)
-                            voicepack = torch.load(base_path, map_location=TTSModel._device, weights_only=True)
+                            voicepack = torch.load(
+                                base_path,
+                                map_location=TTSModel._device,
+                                weights_only=True,
+                            )
                             torch.save(voicepack, voice_path)
                         except Exception as e:
                             logger.error(f"Error copying voice {voice_name}: {str(e)}")
@@ -112,10 +129,10 @@ class TTSService:
 
     def _get_voice_path(self, voice_name: str) -> Optional[str]:
         """Get the path to a voice file.
-        
+
         Args:
             voice_name: Name of the voice to find
-            
+
         Returns:
             Path to the voice file if found, None otherwise
         """
@@ -141,7 +158,9 @@ class TTSService:
 
             # Load model and voice
             model = TTSModel._instance
-            voicepack = torch.load(voice_path, map_location=TTSModel._device, weights_only=True)
+            voicepack = torch.load(
+                voice_path, map_location=TTSModel._device, weights_only=True
+            )
 
             # Generate audio with or without stitching
             if stitch_long_output:
@@ -152,11 +171,11 @@ class TTSService:
                 for i, chunk in enumerate(chunks):
                     try:
                         # Validate phonemization first
-                        ps = phonemize(chunk, voice[0])
-                        tokens = tokenize(ps)
-                        logger.debug(
-                            f"Processing chunk {i + 1}/{len(chunks)}: {len(tokens)} tokens"
-                        )
+                        # ps = phonemize(chunk, voice[0])
+                        # tokens = tokenize(ps)
+                        # logger.debug(
+                        #     f"Processing chunk {i + 1}/{len(chunks)}: {len(tokens)} tokens"
+                        # )
 
                         # Only proceed if phonemization succeeded
                         chunk_audio, _ = generate(
@@ -205,47 +224,51 @@ class TTSService:
 
     def combine_voices(self, voices: List[str]) -> str:
         """Combine multiple voices into a new voice.
-        
+
         Args:
             voices: List of voice names to combine
-            
+
         Returns:
             Name of the combined voice
-            
+
         Raises:
             ValueError: If less than 2 voices provided or voice loading fails
             RuntimeError: If voice combination or saving fails
         """
         if len(voices) < 2:
             raise ValueError("At least 2 voices are required for combination")
-            
+
         # Load voices
         t_voices: List[torch.Tensor] = []
         v_name: List[str] = []
-        
+
         for voice in voices:
             try:
                 voice_path = os.path.join(TTSModel.VOICES_DIR, f"{voice}.pt")
-                voicepack = torch.load(voice_path, map_location=TTSModel._device, weights_only=True)
+                voicepack = torch.load(
+                    voice_path, map_location=TTSModel._device, weights_only=True
+                )
                 t_voices.append(voicepack)
                 v_name.append(voice)
             except Exception as e:
                 raise ValueError(f"Failed to load voice {voice}: {str(e)}")
-        
+
         # Combine voices
         try:
             f: str = "_".join(v_name)
             v = torch.mean(torch.stack(t_voices), dim=0)
             combined_path = os.path.join(TTSModel.VOICES_DIR, f"{f}.pt")
-            
+
             # Save combined voice
             try:
                 torch.save(v, combined_path)
             except Exception as e:
-                raise RuntimeError(f"Failed to save combined voice to {combined_path}: {str(e)}")
-                
+                raise RuntimeError(
+                    f"Failed to save combined voice to {combined_path}: {str(e)}"
+                )
+
             return f
-            
+
         except Exception as e:
             if not isinstance(e, (ValueError, RuntimeError)):
                 raise RuntimeError(f"Error combining voices: {str(e)}")
