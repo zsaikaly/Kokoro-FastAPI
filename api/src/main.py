@@ -19,18 +19,10 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for model initialization"""
     logger.info("Loading TTS model and voice packs...")
 
-    # Initialize the main model
-    model, device = TTSModel.get_instance()
-    logger.info(f"Model loaded on {device}")
-
-    # Initialize all voice packs
-    tts_service = TTSService()
-    voices = tts_service.list_voices()
-    for voice in voices:
-        logger.info(f"Loading voice pack: {voice}")
-        TTSModel.get_voicepack(voice)
-
-    logger.info("All models and voice packs loaded successfully")
+    # Initialize the main model with warm-up
+    model, voicepack_count = TTSModel.initialize()
+    logger.info(f"Model loaded and warmed up on {TTSModel._device}")
+    logger.info(f"{voicepack_count} voice packs loaded successfully")
     yield
 
 

@@ -114,9 +114,9 @@ def test_combine_voices_success(mock_tts_service):
     """Test successful voice combination"""
     test_voices = ["af_bella", "af_sarah"]
     mock_tts_service.combine_voices.return_value = "af_bella_af_sarah"
-    
+
     response = client.post("/v1/audio/voices/combine", json=test_voices)
-    
+
     assert response.status_code == 200
     assert response.json()["voice"] == "af_bella_af_sarah"
     mock_tts_service.combine_voices.assert_called_once_with(voices=test_voices)
@@ -126,9 +126,9 @@ def test_combine_voices_single_voice(mock_tts_service):
     """Test combining single voice returns default voice"""
     test_voices = ["af_bella"]
     mock_tts_service.combine_voices.return_value = "af"
-    
+
     response = client.post("/v1/audio/voices/combine", json=test_voices)
-    
+
     assert response.status_code == 200
     assert response.json()["voice"] == "af"
 
@@ -137,9 +137,9 @@ def test_combine_voices_empty_list(mock_tts_service):
     """Test combining empty voice list returns default voice"""
     test_voices = []
     mock_tts_service.combine_voices.return_value = "af"
-    
+
     response = client.post("/v1/audio/voices/combine", json=test_voices)
-    
+
     assert response.status_code == 200
     assert response.json()["voice"] == "af"
 
@@ -148,8 +148,8 @@ def test_combine_voices_error(mock_tts_service):
     """Test error handling in voice combination"""
     test_voices = ["af_bella", "af_sarah"]
     mock_tts_service.combine_voices.side_effect = Exception("Combination failed")
-    
+
     response = client.post("/v1/audio/voices/combine", json=test_voices)
-    
+
     assert response.status_code == 500
     assert "Combination failed" in response.json()["detail"]["message"]

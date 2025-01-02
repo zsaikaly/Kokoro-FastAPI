@@ -1,10 +1,10 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Response
 from loguru import logger
+from fastapi import Depends, Response, APIRouter, HTTPException
 
-from ..services.audio import AudioService
 from ..services.tts import TTSService
+from ..services.audio import AudioService
 from ..structures.schemas import OpenAISpeechRequest
 
 router = APIRouter(
@@ -32,7 +32,7 @@ async def create_speech(
             raise ValueError(
                 f"Voice '{request.voice}' not found. Available voices: {', '.join(sorted(available_voices))}"
             )
-            
+
         # Generate audio directly using TTSService's method
         audio, _ = tts_service._generate_audio(
             text=request.input,
@@ -55,14 +55,12 @@ async def create_speech(
     except ValueError as e:
         logger.error(f"Invalid request: {str(e)}")
         raise HTTPException(
-            status_code=400,
-            detail={"error": "Invalid request", "message": str(e)}
+            status_code=400, detail={"error": "Invalid request", "message": str(e)}
         )
     except Exception as e:
         logger.error(f"Error generating speech: {str(e)}")
         raise HTTPException(
-            status_code=500,
-            detail={"error": "Server error", "message": str(e)}
+            status_code=500, detail={"error": "Server error", "message": str(e)}
         )
 
 
@@ -78,17 +76,19 @@ async def list_voices(tts_service: TTSService = Depends(get_tts_service)):
 
 
 @router.post("/audio/voices/combine")
-async def combine_voices(request: List[str], tts_service: TTSService = Depends(get_tts_service)):
+async def combine_voices(
+    request: List[str], tts_service: TTSService = Depends(get_tts_service)
+):
     """Combine multiple voices into a new voice.
-    
+
     Args:
         request: List of voice names to combine
-        
+
     Returns:
         Dict with combined voice name and list of all available voices
-        
+
     Raises:
-        HTTPException: 
+        HTTPException:
             - 400: Invalid request (wrong number of voices, voice not found)
             - 500: Server error (file system issues, combination failed)
     """
@@ -96,24 +96,21 @@ async def combine_voices(request: List[str], tts_service: TTSService = Depends(g
         combined_voice = tts_service.combine_voices(voices=request)
         voices = tts_service.list_voices()
         return {"voices": voices, "voice": combined_voice}
-        
+
     except ValueError as e:
         logger.error(f"Invalid voice combination request: {str(e)}")
         raise HTTPException(
-            status_code=400, 
-            detail={"error": "Invalid request", "message": str(e)}
+            status_code=400, detail={"error": "Invalid request", "message": str(e)}
         )
-        
+
     except RuntimeError as e:
         logger.error(f"Server error during voice combination: {str(e)}")
         raise HTTPException(
-            status_code=500, 
-            detail={"error": "Server error", "message": str(e)}
+            status_code=500, detail={"error": "Server error", "message": str(e)}
         )
-        
+
     except Exception as e:
         logger.error(f"Unexpected error during voice combination: {str(e)}")
         raise HTTPException(
-            status_code=500, 
-            detail={"error": "Unexpected error", "message": str(e)}
+            status_code=500, detail={"error": "Unexpected error", "message": str(e)}
         )
