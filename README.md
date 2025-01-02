@@ -124,7 +124,7 @@ response = requests.post(
 )
 ```
 <p align="center">
-  <img src="examples/benchmarks/analysis_comparison.png" width="60%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
+  <img src="examples/benchmarks/analysis_comparison.png" width="80%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
 </p>
 </details>
 
