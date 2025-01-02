@@ -72,7 +72,6 @@ jobs:
           tags: ${{ steps.meta-gpu.outputs.tags }}
           labels: ${{ steps.meta-gpu.outputs.labels }}
           platforms: linux/amd64
-          target: runtime
 
       # Build and push CPU version
       - name: Build and push CPU Docker image
@@ -84,7 +83,6 @@ jobs:
           tags: ${{ steps.meta-cpu.outputs.tags }}
           labels: ${{ steps.meta-cpu.outputs.labels }}
           platforms: linux/amd64
-          target: runtime
 
   create-release:
     needs: build

@@ -8,7 +8,7 @@ services:
       sh -c "
         rm -f .git/index.lock;
         if [ -z \"$(ls -A .)\" ]; then
-          git clone https://huggingface.co/hexgrad/Kokoro-82M
+          git clone https://huggingface.co/hexgrad/Kokoro-82M .
           touch .cloned;
         else
           rm -f .git/index.lock && \
@@ -20,9 +20,9 @@ services:
       "
     healthcheck:
       test: ["CMD", "test", "-f", ".cloned"]
-      interval: 3s
-      timeout: 1s
-      retries: 120
+      interval: 5s
+      timeout: 2s
+      retries: 300
       start_period: 1s
 
   kokoro-tts:
