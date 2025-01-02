@@ -19,7 +19,6 @@ output_dir = Path(__file__).parent / "output"
 output_dir.mkdir(exist_ok=True)
 
 
-
 def test_voice(voice: str):
     speech_file = output_dir / f"speech_{voice}.mp3"
     print(f"\nTesting voice: {voice}")

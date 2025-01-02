@@ -4,6 +4,10 @@ Notable changes to this project will be documented in this file.
 
 ## 2024-01-09
 
+### Added
+- Gradio Web Interface:
+  - Added simple web UI utility for audio generation from input or txt file
+
 ### Modified
 #### Configuration Changes
 - Updated Docker configurations:
