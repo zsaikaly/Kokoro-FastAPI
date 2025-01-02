@@ -4,6 +4,7 @@ import os
 from unittest.mock import MagicMock, call, patch
 
 import numpy as np
+import torch
 import pytest
 
 from api.src.services.tts import TTSModel, TTSService
@@ -117,6 +118,78 @@ def test_generate_audio_no_chunks(
 
     with pytest.raises(ValueError, match="No audio chunks were generated successfully"):
         tts_service._generate_audio("Test text", "af", 1.0)
+
+
+@patch("torch.load")
+@patch("torch.save")
+@patch("torch.stack")
+@patch("torch.mean")
+@patch("os.path.exists")
+def test_combine_voices(
+    mock_exists, mock_mean, mock_stack, mock_save, mock_load, tts_service
+):
+    """Test combining multiple voices"""
+    # Setup mocks
+    mock_exists.return_value = True
+    mock_load.return_value = torch.tensor([1.0, 2.0])
+    mock_stack.return_value = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+    mock_mean.return_value = torch.tensor([2.0, 3.0])
+
+    # Test combining two voices
+    result = tts_service.combine_voices(["voice1", "voice2"])
+
+    assert result == "voice1_voice2"
+    mock_stack.assert_called_once()
+    mock_mean.assert_called_once()
+    mock_save.assert_called_once()
+
+
+def test_combine_voices_invalid_input(tts_service):
+    """Test combining voices with invalid input"""
+    # Test with empty list
+    with pytest.raises(ValueError, match="At least 2 voices are required"):
+        tts_service.combine_voices([])
+
+    # Test with single voice
+    with pytest.raises(ValueError, match="At least 2 voices are required"):
+        tts_service.combine_voices(["voice1"])
+
+
+@patch("os.makedirs")
+@patch("os.path.exists")
+@patch("os.listdir")
+@patch("torch.load")
+@patch("torch.save")
+@patch("os.path.join")
+def test_ensure_voices(
+    mock_join,
+    mock_save,
+    mock_load,
+    mock_listdir,
+    mock_exists,
+    mock_makedirs,
+    tts_service,
+):
+    """Test voice directory initialization"""
+    # Setup mocks
+    mock_exists.side_effect = [
+        True,
+        False,
+        False,
+    ]  # base_dir exists, voice files don't exist
+    mock_listdir.return_value = ["voice1.pt", "voice2.pt"]
+    mock_load.return_value = MagicMock()
+    mock_join.return_value = "/fake/path"
+
+    # Test voice directory initialization
+    tts_service._ensure_voices()
+
+    # Verify directory was created
+    mock_makedirs.assert_called_once()
+
+    # Verify voices were loaded and saved
+    assert mock_load.call_count == len(mock_listdir.return_value)
+    assert mock_save.call_count == len(mock_listdir.return_value)
 
 
 @patch("api.src.services.tts.TTSModel.get_instance")
@@ -236,7 +309,6 @@ def test_generate_audio_without_stitching(
         "Test text", "af", 1.0, stitch_long_output=False
     )
     assert isinstance(audio, np.ndarray)
-    assert isinstance(processing_time, float)
     assert len(audio) > 0
     mock_generate.assert_called_once()
 

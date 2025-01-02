@@ -30,7 +30,9 @@ class AudioService:
             if output_format == "wav":
                 logger.info("Writing to WAV format...")
                 # Ensure audio_data is in int16 format for WAV
-                audio_data_wav = (audio_data / np.abs(audio_data).max() * np.iinfo(np.int16).max).astype(np.int16)  # Normalize
+                audio_data_wav = (
+                    audio_data / np.abs(audio_data).max() * np.iinfo(np.int16).max
+                ).astype(np.int16)  # Normalize
                 sf.write(buffer, audio_data_wav, sample_rate, format="WAV")
             elif output_format == "mp3":
                 logger.info("Converting to MP3 format...")
@@ -45,7 +47,9 @@ class AudioService:
             elif output_format == "pcm":
                 logger.info("Extracting PCM data...")
                 # Ensure audio_data is in int16 format for PCM
-                audio_data_pcm = (audio_data / np.abs(audio_data).max() * np.iinfo(np.int16).max).astype(np.int16)  # Normalize
+                audio_data_pcm = (
+                    audio_data / np.abs(audio_data).max() * np.iinfo(np.int16).max
+                ).astype(np.int16)  # Normalize
                 buffer.write(audio_data_pcm.tobytes())
             else:
                 raise ValueError(

@@ -2,8 +2,12 @@
 
 Notable changes to this project will be documented in this file.
 
-## 2024-01-09
 
+## 2025-01-02
+- Audio Format Support:
+  - Added comprehensive audio format conversion support (mp3, wav, opus, flac)
+
+## 2025-01-01
 ### Added
 - Gradio Web Interface:
   - Added simple web UI utility for audio generation from input or txt file
