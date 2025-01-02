@@ -3,9 +3,9 @@
 </p>
 
 # Kokoro TTS API
-[![Model Commit](https://img.shields.io/badge/model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/8228a351f87c8a6076502c1e3b7e72e821ebec9a)
-[![Tests](https://img.shields.io/badge/tests-36%20passed-darkgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-91%25-darkgreen)]()
+[![Tests](https://img.shields.io/badge/tests-37%20passed-darkgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-81%25-darkgreen)]()
+[![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/c3b0d86e2a980e027ef71c28819ea02e351c2667)
 
 FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model, providing an OpenAI-compatible endpoint with:
 - NVIDIA GPU accelerated inference (or CPU) option

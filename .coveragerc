@@ -1,6 +1,9 @@
 [run]
 source = api
-omit = Kokoro-82M/*
+omit = 
+    Kokoro-82M/*
+    MagicMock/*
+    test_*.py
 
 [report]
 exclude_lines =

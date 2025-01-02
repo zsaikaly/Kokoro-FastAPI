@@ -1,7 +1,22 @@
+import os
+import shutil
 import sys
 from unittest.mock import Mock, patch
 
 import pytest
+
+def cleanup_mock_dirs():
+    """Clean up any MagicMock directories created during tests"""
+    mock_dir = "MagicMock"
+    if os.path.exists(mock_dir):
+        shutil.rmtree(mock_dir)
+
+@pytest.fixture(autouse=True)
+def cleanup():
+    """Automatically clean up before and after each test"""
+    cleanup_mock_dirs()
+    yield
+    cleanup_mock_dirs()
 
 # Mock torch and other ML modules before they're imported
 sys.modules["torch"] = Mock()

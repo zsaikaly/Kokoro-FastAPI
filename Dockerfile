@@ -17,24 +17,24 @@ RUN pip3 install --no-cache-dir torch==2.5.1 --extra-index-url https://download.
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-# Copy application code and model
-COPY . /app/
-
 # Set working directory
 WORKDIR /app
-
-# Run with Python unbuffered output for live logging
-ENV PYTHONUNBUFFERED=1
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser
 
-# Create directories and set permissions
+# Create model directory and set ownership
 RUN mkdir -p /app/Kokoro-82M && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
+
+# Run with Python unbuffered output for live logging
+ENV PYTHONUNBUFFERED=1
+
+# Copy only necessary application code
+COPY --chown=appuser:appuser api /app/api
 
 # Set Python path (app first for our imports, then model dir for model imports)
 ENV PYTHONPATH=/app:/app/Kokoro-82M

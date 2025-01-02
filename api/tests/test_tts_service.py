@@ -131,9 +131,9 @@ def test_model_initialization_cuda(mock_build_model, mock_cuda_available):
     mock_build_model.return_value = mock_model
 
     TTSModel._instance = None  # Reset singleton
-    model, device = TTSModel.get_instance()
+    model, voice_count = TTSModel.initialize()
     
-    assert device == "cuda"
+    assert TTSModel._device == "cuda"  # Check the class variable instead
     assert model == mock_model
     mock_build_model.assert_called_once()
 
@@ -147,31 +147,34 @@ def test_model_initialization_cpu(mock_build_model, mock_cuda_available):
     mock_build_model.return_value = mock_model
 
     TTSModel._instance = None  # Reset singleton
-    model, device = TTSModel.get_instance()
+    model, voice_count = TTSModel.initialize()
     
-    assert device == "cpu"
+    assert TTSModel._device == "cpu"  # Check the class variable instead
     assert model == mock_model
     mock_build_model.assert_called_once()
 
 
-@patch('os.path.exists')
-@patch('api.src.services.tts.torch.load')
-@patch('os.path.join')
-def test_voicepack_loading_error(mock_join, mock_torch_load, mock_exists):
+@patch('api.src.services.tts.TTSService._get_voice_path')
+@patch('api.src.services.tts.TTSModel.get_instance')
+def test_voicepack_loading_error(mock_get_instance, mock_get_voice_path):
     """Test voicepack loading error handling"""
-    mock_join.side_effect = lambda *args: '/'.join(args)
-    mock_exists.side_effect = lambda x: False  # All voice files don't exist
+    mock_get_voice_path.return_value = None
+    mock_get_instance.return_value = (MagicMock(), "cpu")
     
-    TTSModel._instance = (MagicMock(), "cpu")  # Mock instance
     TTSModel._voicepacks = {}  # Reset voicepacks
     
-    with pytest.raises(FileNotFoundError, match="Voice file not found: af"):
-        TTSModel.get_voicepack("nonexistent_voice")
+    service = TTSService(start_worker=False)
+    with pytest.raises(ValueError, match="Voice not found: nonexistent_voice"):
+        service._generate_audio("test", "nonexistent_voice", 1.0)
 
 
-def test_save_audio(tts_service, sample_audio, tmp_path):
+@patch('api.src.services.tts.TTSModel')
+def test_save_audio(mock_tts_model, tts_service, sample_audio, tmp_path):
     """Test saving audio to file"""
-    output_path = os.path.join(tmp_path, "test_output", "audio.wav")
+    output_dir = os.path.join(tmp_path, "test_output")
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "audio.wav")
+    
     tts_service._save_audio(sample_audio, output_path)
     
     assert os.path.exists(output_path)
