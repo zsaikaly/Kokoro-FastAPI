@@ -86,6 +86,34 @@ jobs:
           labels: ${{ steps.meta-cpu.outputs.labels }}
           platforms: linux/amd64
 
+      # Extract metadata for UI image
+      - name: Extract metadata (tags, labels) for UI Docker
+        id: meta-ui
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: |
+            suffix=-ui
+          tags: |
+            type=raw,value=latest
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+
+      # Build and push UI version
+      - name: Build and push UI Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ui
+          file: ./ui/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta-ui.outputs.tags }}
+          labels: ${{ steps.meta-ui.outputs.labels }}
+          platforms: linux/amd64
+
   create-release:
     needs: build
     runs-on: ubuntu-latest
