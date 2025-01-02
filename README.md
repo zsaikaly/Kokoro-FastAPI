@@ -3,8 +3,8 @@
 </p>
 
 # Kokoro TTS API
-[![Tests](https://img.shields.io/badge/tests-81%20passed-darkgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-76%25-darkgreen)]()
+[![Tests](https://img.shields.io/badge/tests-89%20passed-darkgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-80%25-darkgreen)]()
 [![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/c3b0d86e2a980e027ef71c28819ea02e351c2667)
 
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
@@ -14,8 +14,7 @@ Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokor
 - automatic chunking/stitching for long texts
 - simple audio generation web ui utility
 
-<details open>
-<summary><b>Quick Start</b></summary>
+## Quick Start
 
 The service can be accessed through either the API endpoints or the Gradio web interface.
 
@@ -48,9 +47,10 @@ The service can be accessed through either the API endpoints or the Gradio web i
     <p align="center">
     <img src="ui\GradioScreenShot.png" width="80%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
     </p>
-</details>
+
+## Features 
 <details>
-<summary><b>OpenAI-Compatible Speech Endpoint</b></summary>
+<summary>OpenAI-Compatible Speech Endpoint</summary>
 
 ```python
 # Using OpenAI's Python library
@@ -98,7 +98,10 @@ python examples/test_all_voices.py # Test all available voices
 </details>
 
 <details>
-<summary><b>Voice Combination</b></summary>
+<summary>Voice Combination</summary>
+
+- Averages model weights of any existing voicepacks
+- Saves generated voicepacks for future use
 
 Combine voices and generate audio:
 ```python
@@ -129,7 +132,23 @@ response = requests.post(
 </details>
 
 <details>
-<summary><b>Gradio Web Utility</b></summary>
+<summary>Multiple Output Audio Formats</summary>
+
+- mp3
+- wav
+- opus 
+- flac
+- aac
+- pcm
+
+<p align="center">
+<img src="examples/benchmarks/format_comparison.png" width="80%" alt="Audio Format Comparison" style="border: 2px solid #333; padding: 10px;">
+</p>
+
+</details>
+
+<details>
+<summary>Gradio Web Utility</summary>
 
 Access the interactive web UI at http://localhost:7860 after starting the service. Features include:
 - Voice/format/speed selection
@@ -141,9 +160,9 @@ If you only want the API, just comment out everything in the docker-compose.yml 
 Currently, voices created via the API are accessible here, but voice combination/creation has not yet been added
 </details>
 
-
+## Processing Details
 <details>
-<summary><b>Performance Benchmarks</b></summary>
+<summary>Performance Benchmarks</summary>
 
 Benchmarking was performed on generation via the local API using text lengths up to feature-length books (~1.5 hours output), measuring processing time and realtime factor. Tests were run on: 
 - Windows 11 Home w/ WSL2 
@@ -163,7 +182,7 @@ Key Performance Metrics:
 - Average Processing Rate: 137.67 tokens/second (cl100k_base)
 </details>
 <details>
-<summary><b>GPU Vs. CPU<b></summary>
+<summary>GPU Vs. CPU</summary>
 
 ```bash
 # GPU: Requires NVIDIA GPU with CUDA 12.1 support
@@ -172,35 +191,29 @@ docker compose up --build
 # CPU: ~10x slower than GPU inference
 docker compose -f docker-compose.cpu.yml up --build
 ```
-</details>
-<details>
-<summary><b>Features</b></summary>
-
-- OpenAI-compatible API endpoints (with optional Gradio Web UI)
-- GPU-accelerated inference (if desired)
-- Multiple audio formats: mp3, wav, opus, flac, (aac & pcm not implemented)
-- Natural Boundary Detection:
-    - Automatically splits and stitches at sentence boundaries to reduce artifacts and maintain performacne
-- Voice Combination:
-    - Averages model weights of any existing voicepacks
-    - Saves generated voicepacks for future use
-
-
 
 *Note: CPU Inference is currently a very basic implementation, and not heavily tested*
+
 </details>
 
+<details>
+<summary>Natural Boundary Detection</summary>
+
+- Automatically splits and stitches at sentence boundaries 
+- Helps to reduce artifacts and allow long form processing as the base model is only currently configured for approximately 30s output 
+</details>
+
+## Model and License
+
 <details open>
-<summary><b>Model</b></summary>
+<summary>Model</summary>
 
 This API uses the [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) model from HuggingFace. 
 
 Visit the model page for more details about training, architecture, and capabilities. I have no affiliation with any of their work, and produced this wrapper for ease of use and personal projects.
 </details>
-
 <details>
-<summary><b>License</b></summary>
-
+<summary>License</summary>
 This project is licensed under the Apache License 2.0 - see below for details:
 
 - The Kokoro model weights are licensed under Apache 2.0 (see [model page](https://huggingface.co/hexgrad/Kokoro-82M))
@@ -209,3 +222,6 @@ This project is licensed under the Apache License 2.0 - see below for details:
 
 The full Apache 2.0 license text can be found at: https://www.apache.org/licenses/LICENSE-2.0
 </details>
+
+
+

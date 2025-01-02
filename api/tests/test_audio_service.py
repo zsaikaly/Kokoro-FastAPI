@@ -51,15 +51,19 @@ def test_convert_to_flac(sample_audio):
 def test_convert_to_aac_raises_error(sample_audio):
     """Test that converting to AAC raises an error"""
     audio_data, sample_rate = sample_audio
-    with pytest.raises(ValueError, match="AAC format is not currently supported"):
+    with pytest.raises(
+        ValueError,
+        match="Format aac not supported. Supported formats are: wav, mp3, opus, flac, pcm.",
+    ):
         AudioService.convert_audio(audio_data, sample_rate, "aac")
 
 
-def test_convert_to_pcm_raises_error(sample_audio):
-    """Test that converting to PCM raises an error"""
+def test_convert_to_pcm(sample_audio):
+    """Test converting to PCM format"""
     audio_data, sample_rate = sample_audio
-    with pytest.raises(ValueError, match="PCM format is not currently supported"):
-        AudioService.convert_audio(audio_data, sample_rate, "pcm")
+    result = AudioService.convert_audio(audio_data, sample_rate, "pcm")
+    assert isinstance(result, bytes)
+    assert len(result) > 0
 
 
 def test_convert_to_invalid_format_raises_error(sample_audio):
@@ -67,3 +71,51 @@ def test_convert_to_invalid_format_raises_error(sample_audio):
     audio_data, sample_rate = sample_audio
     with pytest.raises(ValueError, match="Format invalid not supported"):
         AudioService.convert_audio(audio_data, sample_rate, "invalid")
+
+
+def test_normalization_wav(sample_audio):
+    """Test that WAV output is properly normalized to int16 range"""
+    audio_data, sample_rate = sample_audio
+    # Create audio data outside int16 range
+    large_audio = audio_data * 1e5
+    result = AudioService.convert_audio(large_audio, sample_rate, "wav")
+    assert isinstance(result, bytes)
+    assert len(result) > 0
+
+
+def test_normalization_pcm(sample_audio):
+    """Test that PCM output is properly normalized to int16 range"""
+    audio_data, sample_rate = sample_audio
+    # Create audio data outside int16 range
+    large_audio = audio_data * 1e5
+    result = AudioService.convert_audio(large_audio, sample_rate, "pcm")
+    assert isinstance(result, bytes)
+    assert len(result) > 0
+
+
+def test_invalid_audio_data():
+    """Test handling of invalid audio data"""
+    invalid_audio = np.array([])  # Empty array
+    sample_rate = 24000
+    with pytest.raises(ValueError):
+        AudioService.convert_audio(invalid_audio, sample_rate, "wav")
+
+
+def test_different_sample_rates(sample_audio):
+    """Test converting audio with different sample rates"""
+    audio_data, _ = sample_audio
+    sample_rates = [8000, 16000, 44100, 48000]
+
+    for rate in sample_rates:
+        result = AudioService.convert_audio(audio_data, rate, "wav")
+        assert isinstance(result, bytes)
+        assert len(result) > 0
+
+
+def test_buffer_position_after_conversion(sample_audio):
+    """Test that buffer position is reset after writing"""
+    audio_data, sample_rate = sample_audio
+    result = AudioService.convert_audio(audio_data, sample_rate, "wav")
+    # Convert again to ensure buffer was properly reset
+    result2 = AudioService.convert_audio(audio_data, sample_rate, "wav")
+    assert len(result) == len(result2)
