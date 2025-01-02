@@ -15,7 +15,7 @@ Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokor
 - simple audio generation web ui utility
 
 <details open>
-<summary><b>OpenAI-Compatible Speech Endpoint</b></summary>
+<summary><b>Quick Start</b></summary>
 
 The service can be accessed through either the API endpoints or the Gradio web interface.
 
