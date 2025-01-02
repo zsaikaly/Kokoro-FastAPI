@@ -46,14 +46,14 @@ services:
       model-fetcher:
         condition: service_healthy
 
-  # # Gradio UI service
-  # gradio-ui:
-  #   build:
-  #     context: ./ui
-  #   ports:
-  #     - "7860:7860"
-  #   volumes:
-  #     - ./ui/data:/app/ui/data
-  #     - ./ui/app.py:/app/app.py  # Mount app.py for hot reload
-  #   environment:
-  #     - GRADIO_WATCH=True  # Enable hot reloading
+  # Gradio UI service [Comment out everything below if you don't need it]
+  gradio-ui:
+    build:
+      context: ./ui
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./ui/data:/app/ui/data
+      - ./ui/app.py:/app/app.py  # Mount app.py for hot reload
+    environment:
+      - GRADIO_WATCH=True  # Enable hot reloading

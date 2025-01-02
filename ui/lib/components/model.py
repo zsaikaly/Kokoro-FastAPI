@@ -10,10 +10,9 @@ def create_model_column(voice_ids: Optional[list] = None) -> Tuple[gr.Column, di
     with gr.Column(scale=1) as col:
         gr.Markdown("### Model Settings")
         
-        # Status button with embedded status
-        is_available, _ = api.check_api_status()
+        # Status button starts in waiting state
         status_btn = gr.Button(
-            f"Checking TTS Service: {'Available' if is_available else 'Not Yet Available'}",
+            "⌛ TTS Service: Waiting for Service...",
             variant="secondary"
         )
         
@@ -35,19 +34,12 @@ def create_model_column(voice_ids: Optional[list] = None) -> Tuple[gr.Column, di
             step=0.1,
             label="Speed"
         )
-        
-        submit_btn = gr.Button(
-            "Generate Speech",
-            variant="primary",
-            size="lg"
-        )
     
     components = {
         "status_btn": status_btn,
         "voice": voice_input,
         "format": format_input,
-        "speed": speed_input,
-        "submit": submit_btn
+        "speed": speed_input
     }
     
     return col, components

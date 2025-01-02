@@ -5,8 +5,8 @@ from .handlers import setup_event_handlers
 
 def create_interface():
     """Create the main Gradio interface."""
-    # Initial status check
-    is_available, available_voices = api.check_api_status()
+    # Skip initial status check - let the timer handle it
+    is_available, available_voices = False, []
 
     with gr.Blocks(
     title="Kokoro TTS Demo",
@@ -36,19 +36,55 @@ def create_interface():
             
         # Add periodic status check with Timer
         def update_status():
-            is_available, voices = api.check_api_status()
-            status = "Available" if is_available else "Unavailable"
-            return {
-                components["model"]["status_btn"]: gr.update(value=f"🔄 TTS Service: {status}"),
-                components["model"]["voice"]: gr.update(choices=voices, value=voices[0] if voices else None)
-            }
+            try:
+                is_available, voices = api.check_api_status()
+                status = "Available" if is_available else "Waiting for Service..."
+                
+                if is_available and voices:
+                    # Service is available, update UI and stop timer
+                    current_voice = components["model"]["voice"].value
+                    default_voice = current_voice if current_voice in voices else voices[0]
+                    # Return values in same order as outputs list
+                    return [
+                        gr.update(
+                            value=f"🔄 TTS Service: {status}",
+                            interactive=True,
+                            variant="secondary"
+                        ),
+                        gr.update(choices=voices, value=default_voice),
+                        gr.update(active=False)  # Stop timer
+                    ]
+                
+                # Service not available yet, keep checking
+                return [
+                    gr.update(
+                        value=f"⌛ TTS Service: {status}",
+                        interactive=True,
+                        variant="secondary"
+                    ),
+                    gr.update(choices=[], value=None),
+                    gr.update(active=True)
+                ]
+            except Exception as e:
+                print(f"Error in status update: {str(e)}")
+                # On error, keep the timer running but show error state
+                return [
+                    gr.update(
+                        value="❌ TTS Service: Connection Error",
+                        interactive=True,
+                        variant="secondary"
+                    ),
+                    gr.update(choices=[], value=None),
+                    gr.update(active=True)
+                ]
             
-        timer = gr.Timer(10, active=True)  # Check every 10 seconds
+        timer = gr.Timer(value=5)  # Check every 5 seconds
         timer.tick(
             fn=update_status,
             outputs=[
                 components["model"]["status_btn"],
-                components["model"]["voice"]
+                components["model"]["voice"],
+                timer
             ]
         )
 

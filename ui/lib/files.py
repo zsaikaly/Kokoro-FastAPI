@@ -56,6 +56,30 @@ def save_text(text: str, filename: Optional[str] = None) -> Optional[str]:
         print(f"Error saving file: {e}")
         return None
 
+def delete_all_input_files() -> bool:
+    """Delete all files from the inputs directory. Returns True if successful."""
+    try:
+        for filename in os.listdir(INPUTS_DIR):
+            if filename.endswith('.txt'):
+                file_path = os.path.join(INPUTS_DIR, filename)
+                os.remove(file_path)
+        return True
+    except Exception as e:
+        print(f"Error deleting input files: {e}")
+        return False
+
+def delete_all_output_files() -> bool:
+    """Delete all audio files from the outputs directory. Returns True if successful."""
+    try:
+        for filename in os.listdir(OUTPUTS_DIR):
+            if any(filename.endswith(ext) for ext in AUDIO_FORMATS):
+                file_path = os.path.join(OUTPUTS_DIR, filename)
+                os.remove(file_path)
+        return True
+    except Exception as e:
+        print(f"Error deleting output files: {e}")
+        return False
+
 def process_uploaded_file(file_path: str) -> bool:
     """Save uploaded file to inputs directory. Returns True if successful."""
     if not file_path:

@@ -7,19 +7,40 @@ def setup_event_handlers(components: dict):
     """Set up all event handlers for the UI components."""
     
     def refresh_status():
-        is_available, voices = api.check_api_status()
-        status = "Available" if is_available else "Unavailable"
-        btn_text = f"🔄 TTS Service: {status}"
-        
-        if is_available and voices:
-            return {
-                components["model"]["status_btn"]: gr.update(value=btn_text),
-                components["model"]["voice"]: gr.update(choices=voices, value=voices[0] if voices else None)
-            }
-        return {
-            components["model"]["status_btn"]: gr.update(value=btn_text),
-            components["model"]["voice"]: gr.update(choices=[], value=None)
-        }
+        try:
+            is_available, voices = api.check_api_status()
+            status = "Available" if is_available else "Waiting for Service..."
+            
+            if is_available and voices:
+                # Preserve current voice selection if it exists and is still valid
+                current_voice = components["model"]["voice"].value
+                default_voice = current_voice if current_voice in voices else voices[0]
+                return [
+                    gr.update(
+                        value=f"🔄 TTS Service: {status}",
+                        interactive=True,
+                        variant="secondary"
+                    ),
+                    gr.update(choices=voices, value=default_voice)
+                ]
+            return [
+                gr.update(
+                    value=f"⌛ TTS Service: {status}",
+                    interactive=True,
+                    variant="secondary"
+                ),
+                gr.update(choices=[], value=None)
+            ]
+        except Exception as e:
+            print(f"Error in refresh status: {str(e)}")
+            return [
+                gr.update(
+                    value="❌ TTS Service: Connection Error",
+                    interactive=True,
+                    variant="secondary"
+                ),
+                gr.update(choices=[], value=None)
+            ]
     
     def handle_file_select(filename):
         if filename:
@@ -56,45 +77,95 @@ def setup_event_handlers(components: dict):
             
         return gr.update(choices=files.list_input_files())
     
-    def generate_speech(text, selected_file, voice, format, speed):
+    def generate_from_text(text, voice, format, speed):
+        """Generate speech from direct text input"""
         is_available, _ = api.check_api_status()
         if not is_available:
             gr.Warning("TTS Service is currently unavailable")
-            return {
-                components["output"]["audio_output"]: None,
-                components["output"]["output_files"]: gr.update(choices=files.list_output_files())
-            }
-        
-        # Use text input if provided, otherwise use file content
-        if text and text.strip():
-            files.save_text(text)
-            final_text = text
-        elif selected_file:
-            final_text = files.read_text_file(selected_file)
-        else:
-            gr.Warning("Please enter text or select a file")
-            return {
-                components["output"]["audio_output"]: None,
-                components["output"]["output_files"]: gr.update(choices=files.list_output_files())
-            }
-        
-        result = api.text_to_speech(final_text, voice, format, speed)
+            return [
+                None,
+                gr.update(choices=files.list_output_files())
+            ]
+
+        if not text or not text.strip():
+            gr.Warning("Please enter text in the input box")
+            return [
+                None,
+                gr.update(choices=files.list_output_files())
+            ]
+
+        files.save_text(text)
+        result = api.text_to_speech(text, voice, format, speed)
         if result is None:
             gr.Warning("Failed to generate speech. Please try again.")
-            return {
-                components["output"]["audio_output"]: None,
-                components["output"]["output_files"]: gr.update(choices=files.list_output_files())
-            }
+            return [
+                None,
+                gr.update(choices=files.list_output_files())
+            ]
         
-        return {
-            components["output"]["audio_output"]: result,
-            components["output"]["output_files"]: gr.update(choices=files.list_output_files(), value=os.path.basename(result))
-        }
+        return [
+            result,
+            gr.update(choices=files.list_output_files(), value=os.path.basename(result))
+        ]
+
+    def generate_from_file(selected_file, voice, format, speed):
+        """Generate speech from selected file"""
+        is_available, _ = api.check_api_status()
+        if not is_available:
+            gr.Warning("TTS Service is currently unavailable")
+            return [
+                None,
+                gr.update(choices=files.list_output_files())
+            ]
+
+        if not selected_file:
+            gr.Warning("Please select a file")
+            return [
+                None,
+                gr.update(choices=files.list_output_files())
+            ]
+
+        text = files.read_text_file(selected_file)
+        result = api.text_to_speech(text, voice, format, speed)
+        if result is None:
+            gr.Warning("Failed to generate speech. Please try again.")
+            return [
+                None,
+                gr.update(choices=files.list_output_files())
+            ]
+        
+        return [
+            result,
+            gr.update(choices=files.list_output_files(), value=os.path.basename(result))
+        ]
 
     def play_selected(file_path):
         if file_path and os.path.exists(file_path):
             return gr.update(value=file_path, visible=True)
         return gr.update(visible=False)
+            
+    def clear_files(voice, format, speed):
+        """Delete all input files and clear UI components while preserving model settings"""
+        files.delete_all_input_files()
+        return [
+            gr.update(value=None, choices=[]),  # file_select
+            None,  # file_upload
+            gr.update(value=""),  # file_preview
+            None,  # audio_output
+            gr.update(choices=files.list_output_files()),  # output_files
+            gr.update(value=voice),  # voice
+            gr.update(value=format),  # format
+            gr.update(value=speed)  # speed
+        ]
+
+    def clear_outputs():
+        """Delete all output audio files and clear audio components"""
+        files.delete_all_output_files()
+        return [
+            None,  # audio_output
+            gr.update(choices=[], value=None),  # output_files
+            gr.update(visible=False)  # selected_audio
+        ]
 
     # Connect event handlers
     components["model"]["status_btn"].click(
@@ -123,10 +194,54 @@ def setup_event_handlers(components: dict):
         outputs=[components["output"]["selected_audio"]]
     )
     
-    components["model"]["submit"].click(
-        fn=generate_speech,
+    # Connect clear files button
+    components["input"]["clear_files"].click(
+        fn=clear_files,
+        inputs=[
+            components["model"]["voice"],
+            components["model"]["format"],
+            components["model"]["speed"]
+        ],
+        outputs=[
+            components["input"]["file_select"],
+            components["input"]["file_upload"],
+            components["input"]["file_preview"],
+            components["output"]["audio_output"],
+            components["output"]["output_files"],
+            components["model"]["voice"],
+            components["model"]["format"],
+            components["model"]["speed"]
+        ]
+    )
+    
+    # Connect submit buttons for each tab
+    components["input"]["text_submit"].click(
+        fn=generate_from_text,
         inputs=[
             components["input"]["text_input"],
+            components["model"]["voice"],
+            components["model"]["format"],
+            components["model"]["speed"]
+        ],
+        outputs=[
+            components["output"]["audio_output"],
+            components["output"]["output_files"]
+        ]
+    )
+    
+    # Connect clear outputs button
+    components["output"]["clear_outputs"].click(
+        fn=clear_outputs,
+        outputs=[
+            components["output"]["audio_output"],
+            components["output"]["output_files"],
+            components["output"]["selected_audio"]
+        ]
+    )
+
+    components["input"]["file_submit"].click(
+        fn=generate_from_file,
+        inputs=[
             components["input"]["file_select"],
             components["model"]["voice"],
             components["model"]["format"],

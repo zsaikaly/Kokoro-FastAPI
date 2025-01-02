@@ -26,12 +26,15 @@ def create_output_column() -> Tuple[gr.Column, dict]:
             type="filepath",
             visible=False
         )
+        
+        clear_outputs = gr.Button("⚠️ Delete All Previously Generated Output Audio 🗑️", size="sm", variant="secondary")
     
     components = {
         "audio_output": audio_output,
         "output_files": output_files,
         "play_btn": play_btn,
-        "selected_audio": selected_audio
+        "selected_audio": selected_audio,
+        "clear_outputs": clear_outputs
     }
     
     return col, components

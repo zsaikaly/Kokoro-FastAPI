@@ -7,7 +7,11 @@ from .config import API_URL, OUTPUTS_DIR
 def check_api_status() -> Tuple[bool, List[str]]:
     """Check TTS service status and get available voices."""
     try:
-        response = requests.get(f"{API_URL}/v1/audio/voices", timeout=5)
+        # Use a longer timeout during startup
+        response = requests.get(
+            f"{API_URL}/v1/audio/voices",
+            timeout=30  # Increased timeout for initial startup period
+        )
         response.raise_for_status()
         voices = response.json().get("voices", [])
         if voices:
@@ -15,7 +19,10 @@ def check_api_status() -> Tuple[bool, List[str]]:
         print("No voices found in response")
         return False, []
     except requests.exceptions.Timeout:
-        print("API request timed out")
+        print("API request timed out (waiting for service startup)")
+        return False, []
+    except requests.exceptions.ConnectionError as e:
+        print(f"Connection error (service may be starting up): {str(e)}")
         return False, []
     except requests.exceptions.RequestException as e:
         print(f"API request failed: {str(e)}")
