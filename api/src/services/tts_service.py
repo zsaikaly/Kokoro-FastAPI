@@ -12,8 +12,6 @@ from loguru import logger
 
 from ..core.config import settings
 from .tts_model import TTSModel
-from .tts_cpu import TTSCPUModel
-from .tts_gpu import TTSGPUModel
 
 
 class TTSService:
@@ -22,6 +20,8 @@ class TTSService:
 
     def _split_text(self, text: str) -> List[str]:
         """Split text into sentences"""
+        if not isinstance(text, str):
+            text = str(text) if text is not None else ""
         return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
 
     def _get_voice_path(self, voice_name: str) -> Optional[str]:
@@ -37,9 +37,12 @@ class TTSService:
 
         try:
             # Normalize text once at the start
-            text = normalize_text(text)
             if not text:
                 raise ValueError("Text is empty after preprocessing")
+            normalized = normalize_text(text)
+            if not normalized:
+                raise ValueError("Text is empty after preprocessing")
+            text = str(normalized)
 
             # Check voice exists
             voice_path = self._get_voice_path(voice)
@@ -61,12 +64,18 @@ class TTSService:
                     try:
                         # Process chunk
                         if TTSModel.get_device() == "cuda":
-                            chunk_audio, _ = TTSGPUModel.generate(chunk, voicepack, voice[0], speed)
+                            # GPU takes (text, voicepack, lang, speed)
+                            try:
+                                chunk_audio = TTSModel.generate(chunk, voicepack, voice[0], speed)
+                            except RuntimeError as e:
+                                logger.error(f"Failed to generate audio: {str(e)}")
+                                chunk_audio = None
                         else:
+                            # CPU takes (tokens, voicepack, speed)
                             ps = phonemize(chunk, voice[0])
                             tokens = tokenize(ps)
-                            tokens = [0] + tokens + [0]  # Add padding
-                            chunk_audio = TTSCPUModel.generate(tokens, voicepack, speed)
+                            tokens = [0] + list(tokens) + [0]  # Add padding
+                            chunk_audio = TTSModel.generate(tokens, voicepack, speed)
                             
                         if chunk_audio is not None:
                             audio_chunks.append(chunk_audio)
@@ -90,12 +99,18 @@ class TTSService:
             else:
                 # Process single chunk
                 if TTSModel.get_device() == "cuda":
-                    audio, _ = TTSGPUModel.generate(text, voicepack, voice[0], speed)
+                    # GPU takes (text, voicepack, lang, speed)
+                    try:
+                        audio = TTSModel.generate(text, voicepack, voice[0], speed)
+                    except RuntimeError as e:
+                        logger.error(f"Failed to generate audio: {str(e)}")
+                        raise ValueError("No audio chunks were generated successfully")
                 else:
+                    # CPU takes (tokens, voicepack, speed)
                     ps = phonemize(text, voice[0])
                     tokens = tokenize(ps)
-                    tokens = [0] + tokens + [0]  # Add padding
-                    audio = TTSCPUModel.generate(tokens, voicepack, speed)
+                    tokens = [0] + list(tokens) + [0]  # Add padding
+                    audio = TTSModel.generate(tokens, voicepack, speed)
 
             processing_time = time.time() - start_time
             return audio, processing_time

@@ -69,22 +69,13 @@ def get_gpu_memory():
 
 def get_system_metrics():
     """Get current system metrics"""
-    # Take multiple CPU measurements over a short period
-    samples = []
-    for _ in range(3):  # Take 3 samples
-        # Get both overall and per-CPU percentages
-        overall_cpu = psutil.cpu_percent(interval=0.1)
-        per_cpu = psutil.cpu_percent(percpu=True)
-        avg_per_cpu = sum(per_cpu) / len(per_cpu)
-        # Use the maximum of overall and average per-CPU
-        samples.append(max(overall_cpu, avg_per_cpu))
-    
-    # Use the maximum CPU usage from all samples
-    cpu_usage = round(max(samples), 2)
+    # Get per-CPU percentages and calculate average
+    cpu_percentages = psutil.cpu_percent(percpu=True)
+    avg_cpu = sum(cpu_percentages) / len(cpu_percentages)
     
     metrics = {
         "timestamp": datetime.now().isoformat(),
-        "cpu_percent": cpu_usage,
+        "cpu_percent": round(avg_cpu, 2),
         "ram_percent": psutil.virtual_memory().percent,
         "ram_used_gb": psutil.virtual_memory().used / (1024**3),
     }

@@ -1,10 +1,13 @@
 import os
+import numpy as np
 import torch
 from loguru import logger
 from models import build_model
 from kokoro import generate
 
-class TTSGPUModel:
+from .tts_base import TTSBaseModel
+
+class TTSGPUModel(TTSBaseModel):
     _instance = None
     _device = "cuda"
 
@@ -24,9 +27,26 @@ class TTSGPUModel:
         return cls._instance
 
     @classmethod
-    def generate(cls, text: str, voicepack: torch.Tensor, lang: str, speed: float) -> tuple[torch.Tensor, dict]:
-        """Generate audio using PyTorch model on GPU"""
+    def generate(cls, input_data: str, voicepack: torch.Tensor, *args) -> np.ndarray:
+        """Generate audio using PyTorch model on GPU
+        
+        Args:
+            input_data: Text string to generate audio from
+            voicepack: Voice tensor
+            *args: (lang, speed) tuple
+            
+        Returns:
+            np.ndarray: Generated audio samples
+        """
         if cls._instance is None:
             raise RuntimeError("GPU model not initialized")
             
-        return generate(cls._instance, text, voicepack, lang=lang, speed=speed)
+        lang, speed = args
+        result = generate(cls._instance, input_data, voicepack, lang=lang, speed=speed)
+        # kokoro.generate returns (audio, metadata, info), we only want audio
+        audio = result[0]
+        
+        # Convert to numpy array if needed
+        if isinstance(audio, torch.Tensor):
+            audio = audio.cpu().numpy()
+        return audio

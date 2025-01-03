@@ -4,17 +4,35 @@ import torch
 from onnxruntime import InferenceSession, SessionOptions, GraphOptimizationLevel, ExecutionMode
 from loguru import logger
 
-class TTSCPUModel:
+from .tts_base import TTSBaseModel
+
+class TTSCPUModel(TTSBaseModel):
     _instance = None
     _onnx_session = None
 
     @classmethod
-    def initialize(cls, model_dir: str):
+    def initialize(cls, model_dir: str, model_path: str = None):
         """Initialize ONNX model for CPU inference"""
         if cls._onnx_session is None:
             # Try loading ONNX model
-            onnx_path = os.path.join(model_dir, "kokoro-v0_19.onnx")
-            if not os.path.exists(onnx_path):
+            # First try the specified path if provided
+            if model_path and model_path.endswith('.onnx'):
+                onnx_path = os.path.join(model_dir, model_path)
+                if os.path.exists(onnx_path):
+                    logger.info(f"Loading specified ONNX model from {onnx_path}")
+                else:
+                    onnx_path = None
+            else:
+                # Look for any .onnx file in the directory as fallback
+                onnx_files = [f for f in os.listdir(model_dir) if f.endswith('.onnx')]
+                if onnx_files:
+                    onnx_path = os.path.join(model_dir, onnx_files[0])
+                    logger.info(f"Found ONNX model: {onnx_path}")
+                else:
+                    logger.error(f"No ONNX model found in {model_dir}")
+                    return None
+
+            if not onnx_path:
                 return None
 
             logger.info(f"Loading ONNX model from {onnx_path}")
@@ -44,22 +62,33 @@ class TTSCPUModel:
         return cls._onnx_session
 
     @classmethod
-    def generate(cls, tokens: list, voicepack: torch.Tensor, speed: float) -> np.ndarray:
-        """Generate audio using ONNX model"""
+    def generate(cls, input_data: list[int], voicepack: torch.Tensor, *args) -> np.ndarray:
+        """Generate audio using ONNX model
+        
+        Args:
+            input_data: list of token IDs
+            voicepack: Voice tensor
+            *args: (speed,) tuple
+            
+        Returns:
+            np.ndarray: Generated audio samples
+        """
         if cls._onnx_session is None:
             raise RuntimeError("ONNX model not initialized")
 
+        speed = args[0]
         # Pre-allocate and prepare inputs
-        tokens_input = np.array([tokens], dtype=np.int64)
-        style_input = voicepack[len(tokens)-2].numpy()  # Already has correct dimensions
+        tokens_input = np.array([input_data], dtype=np.int64)
+        style_input = voicepack[len(input_data)-2].numpy()  # Already has correct dimensions
         speed_input = np.full(1, speed, dtype=np.float32)  # More efficient than ones * speed
         
         # Run inference with optimized inputs
-        return cls._onnx_session.run(
+        result = cls._onnx_session.run(
             None,
             {
                 'tokens': tokens_input,
                 'style': style_input,
                 'speed': speed_input
             }
-        )[0]
+        )
+        return result[0]

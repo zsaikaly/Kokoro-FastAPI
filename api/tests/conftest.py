@@ -36,7 +36,7 @@ sys.modules["kokoro.tokenize"] = Mock()
 @pytest.fixture(autouse=True)
 def mock_tts_model():
     """Mock TTSModel to avoid loading real models during tests"""
-    with patch("api.src.services.tts.TTSModel") as mock:
+    with patch("api.src.services.tts_model.TTSModel") as mock:
         model_instance = Mock()
         model_instance.get_instance.return_value = model_instance
         model_instance.get_voicepack.return_value = None
