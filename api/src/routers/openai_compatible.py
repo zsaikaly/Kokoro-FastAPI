@@ -3,7 +3,7 @@ from typing import List
 from loguru import logger
 from fastapi import Depends, Response, APIRouter, HTTPException
 
-from ..services.tts import TTSService
+from ..services.tts_service import TTSService
 from ..services.audio import AudioService
 from ..structures.schemas import OpenAISpeechRequest
 
@@ -15,9 +15,7 @@ router = APIRouter(
 
 def get_tts_service() -> TTSService:
     """Dependency to get TTSService instance with database session"""
-    return TTSService(
-        start_worker=False
-    )  # Don't start worker thread for OpenAI endpoint
+    return TTSService()  # Initialize TTSService with default settings
 
 
 @router.post("/audio/speech")

@@ -10,7 +10,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
-from .services.tts import TTSModel, TTSService
+from .services.tts_model import TTSModel
+from .services.tts_service import TTSService
 from .routers.openai_compatible import router as openai_router
 
 
@@ -20,7 +21,7 @@ async def lifespan(app: FastAPI):
     logger.info("Loading TTS model and voice packs...")
 
     # Initialize the main model with warm-up
-    model, voicepack_count = TTSModel.initialize()
+    voicepack_count = TTSModel.initialize()
     logger.info(f"Model loaded and warmed up on {TTSModel._device}")
     logger.info(f"{voicepack_count} voice packs loaded successfully")
     yield

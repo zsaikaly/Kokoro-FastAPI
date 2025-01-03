@@ -7,7 +7,8 @@ import numpy as np
 import torch
 import pytest
 
-from api.src.services.tts import TTSModel, TTSService
+from api.src.services.tts_model import TTSModel
+from api.src.services.tts_service import TTSService
 
 
 @pytest.fixture
@@ -68,12 +69,12 @@ def test_list_voices(mock_join, mock_listdir, tts_service):
     assert "not_a_voice" not in voices
 
 
-@patch("api.src.services.tts.TTSModel.get_instance")
-@patch("api.src.services.tts.TTSModel.get_voicepack")
-@patch("api.src.services.tts.normalize_text")
-@patch("api.src.services.tts.phonemize")
-@patch("api.src.services.tts.tokenize")
-@patch("api.src.services.tts.generate")
+@patch("api.src.services.tts_model.TTSModel.get_instance")
+@patch("api.src.services.tts_model.TTSModel.get_voicepack")
+@patch("kokoro.normalize_text")
+@patch("kokoro.phonemize")
+@patch("kokoro.tokenize")
+@patch("kokoro.generate")
 def test_generate_audio_empty_text(
     mock_generate,
     mock_tokenize,
@@ -90,12 +91,12 @@ def test_generate_audio_empty_text(
         tts_service._generate_audio("", "af", 1.0)
 
 
-@patch("api.src.services.tts.TTSModel.get_instance")
+@patch("api.src.services.tts_model.TTSModel.get_instance")
 @patch("os.path.exists")
-@patch("api.src.services.tts.normalize_text")
-@patch("api.src.services.tts.phonemize")
-@patch("api.src.services.tts.tokenize")
-@patch("api.src.services.tts.generate")
+@patch("kokoro.normalize_text")
+@patch("kokoro.phonemize")
+@patch("kokoro.tokenize")
+@patch("kokoro.generate")
 @patch("torch.load")
 def test_generate_audio_no_chunks(
     mock_torch_load,
@@ -225,8 +226,8 @@ def test_generate_audio_success(
     assert len(audio) > 0
 
 
-@patch("api.src.services.tts.torch.cuda.is_available")
-@patch("api.src.services.tts.build_model")
+@patch("torch.cuda.is_available")
+@patch("models.build_model")
 def test_model_initialization_cuda(mock_build_model, mock_cuda_available):
     """Test model initialization with CUDA"""
     mock_cuda_available.return_value = True
@@ -257,8 +258,8 @@ def test_model_initialization_cpu(mock_build_model, mock_cuda_available):
     mock_build_model.assert_called_once()
 
 
-@patch("api.src.services.tts.TTSService._get_voice_path")
-@patch("api.src.services.tts.TTSModel.get_instance")
+@patch("api.src.services.tts_service.TTSService._get_voice_path")
+@patch("api.src.services.tts_model.TTSModel.get_instance")
 def test_voicepack_loading_error(mock_get_instance, mock_get_voice_path):
     """Test voicepack loading error handling"""
     mock_get_voice_path.return_value = None
@@ -271,7 +272,7 @@ def test_voicepack_loading_error(mock_get_instance, mock_get_voice_path):
         service._generate_audio("test", "nonexistent_voice", 1.0)
 
 
-@patch("api.src.services.tts.TTSModel")
+@patch("api.src.services.tts_model.TTSModel")
 def test_save_audio(mock_tts_model, tts_service, sample_audio, tmp_path):
     """Test saving audio to file"""
     output_dir = os.path.join(tmp_path, "test_output")
@@ -284,7 +285,7 @@ def test_save_audio(mock_tts_model, tts_service, sample_audio, tmp_path):
     assert os.path.getsize(output_path) > 0
 
 
-@patch("api.src.services.tts.TTSModel.get_instance")
+@patch("api.src.services.tts_model.TTSModel.get_instance")
 @patch("os.path.exists")
 @patch("api.src.services.tts.normalize_text")
 @patch("api.src.services.tts.generate")
