@@ -187,14 +187,12 @@ Key Performance Metrics:
 <summary>GPU Vs. CPU</summary>
 
 ```bash
-# GPU: Requires NVIDIA GPU with CUDA 12.1 support
+# GPU: Requires NVIDIA GPU with CUDA 12.1 support (~35x realtime speed)
 docker compose up --build
 
-# CPU: ~10x slower than GPU inference
+# CPU: ONNX optimized inference (~2.4x realtime speed)
 docker compose -f docker-compose.cpu.yml up --build
 ```
-
-*Note: CPU Inference is currently a very basic implementation, and not heavily tested*
 
 </details>
 

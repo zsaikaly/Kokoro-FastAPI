@@ -6,6 +6,7 @@ omit =
     Kokoro-82M/*
     MagicMock/*
     test_*.py
+    examples/*
 
 [report]
 exclude_lines =
