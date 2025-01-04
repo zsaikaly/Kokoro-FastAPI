@@ -13,6 +13,7 @@ from .core.config import settings
 from .services.tts_model import TTSModel
 from .services.tts_service import TTSService
 from .routers.openai_compatible import router as openai_router
+from .routers.text_processing import router as text_router
 
 
 @asynccontextmanager
@@ -45,8 +46,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include OpenAI compatible router
+# Include routers
 app.include_router(openai_router, prefix="/v1")
+app.include_router(text_router)
 
 
 # Health check endpoint

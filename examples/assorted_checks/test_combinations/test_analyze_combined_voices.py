@@ -332,8 +332,8 @@ def main():
     )
     parser.add_argument("--url", default="http://localhost:8880", help="API base URL")
     parser.add_argument(
-        "--output-dir",
-        default="examples/output",
+        "--output-dir", 
+        default="examples/assorted_checks/test_combinations/output",
         help="Output directory for audio files",
     )
     args = parser.parse_args()

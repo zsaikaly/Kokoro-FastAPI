@@ -7,7 +7,7 @@ from typing import List, Tuple, Optional
 import numpy as np
 import torch
 import scipy.io.wavfile as wavfile
-from kokoro import tokenize, phonemize, normalize_text
+from .text_processing import normalize_text
 from loguru import logger
 
 from ..core.config import settings
@@ -62,21 +62,10 @@ class TTSService:
                 # Process all chunks
                 for i, chunk in enumerate(chunks):
                     try:
-                        # Process chunk
-                        if TTSModel.get_device() == "cuda":
-                            # GPU takes (text, voicepack, lang, speed)
-                            try:
-                                chunk_audio = TTSModel.generate(chunk, voicepack, voice[0], speed)
-                            except RuntimeError as e:
-                                logger.error(f"Failed to generate audio: {str(e)}")
-                                chunk_audio = None
-                        else:
-                            # CPU takes (tokens, voicepack, speed)
-                            ps = phonemize(chunk, voice[0])
-                            tokens = tokenize(ps)
-                            tokens = [0] + list(tokens) + [0]  # Add padding
-                            chunk_audio = TTSModel.generate(tokens, voicepack, speed)
-                            
+                        # Process text and generate audio
+                        phonemes, tokens = TTSModel.process_text(chunk, voice[0])
+                        chunk_audio = TTSModel.generate_from_tokens(tokens, voicepack, speed)
+    
                         if chunk_audio is not None:
                             audio_chunks.append(chunk_audio)
                         else:
@@ -98,19 +87,8 @@ class TTSService:
                 )
             else:
                 # Process single chunk
-                if TTSModel.get_device() == "cuda":
-                    # GPU takes (text, voicepack, lang, speed)
-                    try:
-                        audio = TTSModel.generate(text, voicepack, voice[0], speed)
-                    except RuntimeError as e:
-                        logger.error(f"Failed to generate audio: {str(e)}")
-                        raise ValueError("No audio chunks were generated successfully")
-                else:
-                    # CPU takes (tokens, voicepack, speed)
-                    ps = phonemize(text, voice[0])
-                    tokens = tokenize(ps)
-                    tokens = [0] + list(tokens) + [0]  # Add padding
-                    audio = TTSModel.generate(tokens, voicepack, speed)
+                phonemes, tokens = TTSModel.process_text(text, voice[0])
+                audio = TTSModel.generate_from_tokens(tokens, voicepack, speed)
 
             processing_time = time.time() - start_time
             return audio, processing_time

@@ -1,14 +1,12 @@
 import os
 import threading
 from abc import ABC, abstractmethod
+from typing import List, Tuple
 import torch
 import numpy as np
 from loguru import logger
-from kokoro import tokenize, phonemize
-from typing import Union, List
 
 from ..core.config import settings
-
 
 class TTSBaseModel(ABC):
     _instance = None
@@ -28,16 +26,18 @@ class TTSBaseModel(ABC):
                     # Test CUDA device
                     test_tensor = torch.zeros(1).cuda()
                     logger.info("CUDA test successful")
+                    model_path = os.path.join(settings.model_dir, settings.pytorch_model_path)
                     cls._device = "cuda"
                 except Exception as e:
                     logger.error(f"CUDA test failed: {e}")
                     cls._device = "cpu"
             else:
                 cls._device = "cpu"
+                model_path = os.path.join(settings.model_dir, settings.onnx_model_path)
             logger.info(f"Initializing model on {cls._device}")
 
             # Initialize model
-            if not cls.initialize(settings.model_dir, settings.model_path):
+            if not cls.initialize(settings.model_dir, model_path=model_path):
                 raise RuntimeError(f"Failed to initialize {cls._device.upper()} model")
 
             # Setup voices directory
@@ -65,13 +65,9 @@ class TTSBaseModel(ABC):
                 voice_path = os.path.join(cls.VOICES_DIR, "af.pt")
                 dummy_voicepack = torch.load(voice_path, map_location=cls._device, weights_only=True)
                 
-                if cls._device == "cuda":
-                    cls.generate(dummy_text, dummy_voicepack, "a", 1.0)
-                else:
-                    ps = phonemize(dummy_text, "a")
-                    tokens = tokenize(ps)
-                    tokens = [0] + tokens + [0]
-                    cls.generate(tokens, dummy_voicepack, 1.0)
+                # Process text and generate audio
+                phonemes, tokens = cls.process_text(dummy_text, "a")
+                cls.generate_from_tokens(tokens, dummy_voicepack, 1.0)
                 
                 logger.info("Model warm-up complete")
             except Exception as e:
@@ -89,13 +85,43 @@ class TTSBaseModel(ABC):
 
     @classmethod
     @abstractmethod
-    def generate(cls, input_data: Union[str, List[int]], voicepack: torch.Tensor, *args) -> np.ndarray:
-        """Generate audio from input
+    def process_text(cls, text: str, language: str) -> Tuple[str, List[int]]:
+        """Process text into phonemes and tokens
         
         Args:
-            input_data: Either text string (GPU) or tokenized input (CPU)
+            text: Input text
+            language: Language code
+            
+        Returns:
+            tuple[str, list[int]]: Phonemes and token IDs
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def generate_from_text(cls, text: str, voicepack: torch.Tensor, language: str, speed: float) -> Tuple[np.ndarray, str]:
+        """Generate audio from text
+        
+        Args:
+            text: Input text
             voicepack: Voice tensor
-            *args: Additional args (lang+speed for GPU, speed for CPU)
+            language: Language code
+            speed: Speed factor
+            
+        Returns:
+            tuple[np.ndarray, str]: Generated audio samples and phonemes
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def generate_from_tokens(cls, tokens: List[int], voicepack: torch.Tensor, speed: float) -> np.ndarray:
+        """Generate audio from tokens
+        
+        Args:
+            tokens: Token IDs
+            voicepack: Voice tensor
+            speed: Speed factor
             
         Returns:
             np.ndarray: Generated audio samples
