@@ -60,7 +60,7 @@ def main():
     # Initialize system monitor
     monitor = SystemMonitor(interval=1.0)  # 1 second interval
     # Set prefix for output files (e.g. "gpu", "cpu", "onnx", etc.)
-    prefix = "gpu"
+    prefix = "cpu_2_1_seq"
     # Generate token sizes
     if 'gpu' in prefix:
         token_sizes = generate_token_sizes(
@@ -68,8 +68,8 @@ def main():
             dense_max=1000, sparse_step=1000)
     elif 'cpu' in prefix:
         token_sizes = generate_token_sizes(
-            max_tokens=1000, dense_step=150, 
-            dense_max=800, sparse_step=0)
+            max_tokens=1000, dense_step=300, 
+            dense_max=1000, sparse_step=0)
     else:
         token_sizes = generate_token_sizes(max_tokens=3000)
 
@@ -122,6 +122,7 @@ def main():
 
         # Calculate RTF using the correct formula
         rtf = real_time_factor(processing_time, audio_length)
+        print(f"Real-Time Factor: {rtf:.5f}")
         
         results.append({
             "tokens": actual_tokens,

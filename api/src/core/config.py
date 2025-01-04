@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     onnx_model_path: str = "kokoro-v0_19.onnx"
     voices_dir: str = "voices"
     sample_rate: int = 24000
+    
+    # ONNX Optimization Settings
+    onnx_num_threads: int = 4  # Number of threads for intra-op parallelism
+    onnx_inter_op_threads: int = 4  # Number of threads for inter-op parallelism
+    onnx_execution_mode: str = "parallel"  # parallel or sequential
+    onnx_optimization_level: str = "all"  # all, basic, or disabled
+    onnx_memory_pattern: bool = True  # Enable memory pattern optimization
+    onnx_arena_extend_strategy: str = "kNextPowerOfTwo"  # Memory allocation strategy
 
     class Config:
         env_file = ".env"

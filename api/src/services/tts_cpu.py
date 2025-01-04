@@ -31,14 +31,33 @@ class TTSCPUModel(TTSBaseModel):
             
             # Configure ONNX session for optimal performance
             session_options = SessionOptions()
-            session_options.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_ALL
-            session_options.intra_op_num_threads = 4  # Adjust based on CPU cores
-            session_options.execution_mode = ExecutionMode.ORT_SEQUENTIAL
+            
+            # Set optimization level
+            if settings.onnx_optimization_level == "all":
+                session_options.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_ALL
+            elif settings.onnx_optimization_level == "basic":
+                session_options.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_BASIC
+            else:
+                session_options.graph_optimization_level = GraphOptimizationLevel.ORT_DISABLE_ALL
+                
+            # Configure threading
+            session_options.intra_op_num_threads = settings.onnx_num_threads
+            session_options.inter_op_num_threads = settings.onnx_inter_op_threads
+            
+            # Set execution mode
+            session_options.execution_mode = (
+                ExecutionMode.ORT_PARALLEL 
+                if settings.onnx_execution_mode == "parallel" 
+                else ExecutionMode.ORT_SEQUENTIAL
+            )
+            
+            # Enable/disable memory pattern optimization
+            session_options.enable_mem_pattern = settings.onnx_memory_pattern
 
             # Configure CPU provider options
             provider_options = {
                 'CPUExecutionProvider': {
-                    'arena_extend_strategy': 'kNextPowerOfTwo',
+                    'arena_extend_strategy': settings.onnx_arena_extend_strategy,
                     'cpu_memory_arena_cfg': 'cpu:0'
                 }
             }
