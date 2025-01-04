@@ -10,8 +10,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import settings
-from .services.tts import TTSModel, TTSService
+from .services.tts_model import TTSModel
+from .services.tts_service import TTSService
 from .routers.openai_compatible import router as openai_router
+from .routers.text_processing import router as text_router
 
 
 @asynccontextmanager
@@ -20,8 +22,8 @@ async def lifespan(app: FastAPI):
     logger.info("Loading TTS model and voice packs...")
 
     # Initialize the main model with warm-up
-    model, voicepack_count = TTSModel.initialize()
-    logger.info(f"Model loaded and warmed up on {TTSModel._device}")
+    voicepack_count = TTSModel.setup()
+    logger.info(f"Model loaded and warmed up on {TTSModel.get_device()}")
     logger.info(f"{voicepack_count} voice packs loaded successfully")
     yield
 
@@ -44,8 +46,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include OpenAI compatible router
+# Include routers
 app.include_router(openai_router, prefix="/v1")
+app.include_router(text_router)
 
 
 # Health check endpoint

@@ -1,0 +1,300 @@
+{
+  "results": [
+    {
+      "tokens": 100,
+      "processing_time": 0.96,
+      "output_length": 31.1,
+      "rtf": 0.03,
+      "elapsed_time": 1.11
+    },
+    {
+      "tokens": 250,
+      "processing_time": 2.23,
+      "output_length": 77.17,
+      "rtf": 0.03,
+      "elapsed_time": 3.49
+    },
+    {
+      "tokens": 400,
+      "processing_time": 4.05,
+      "output_length": 128.05,
+      "rtf": 0.03,
+      "elapsed_time": 7.77
+    },
+    {
+      "tokens": 550,
+      "processing_time": 4.06,
+      "output_length": 171.45,
+      "rtf": 0.02,
+      "elapsed_time": 12.0
+    },
+    {
+      "tokens": 700,
+      "processing_time": 6.01,
+      "output_length": 221.6,
+      "rtf": 0.03,
+      "elapsed_time": 18.16
+    },
+    {
+      "tokens": 850,
+      "processing_time": 6.9,
+      "output_length": 269.1,
+      "rtf": 0.03,
+      "elapsed_time": 25.21
+    },
+    {
+      "tokens": 1000,
+      "processing_time": 7.65,
+      "output_length": 315.05,
+      "rtf": 0.02,
+      "elapsed_time": 33.03
+    },
+    {
+      "tokens": 6000,
+      "processing_time": 48.7,
+      "output_length": 1837.1,
+      "rtf": 0.03,
+      "elapsed_time": 82.21
+    },
+    {
+      "tokens": 11000,
+      "processing_time": 92.44,
+      "output_length": 3388.57,
+      "rtf": 0.03,
+      "elapsed_time": 175.46
+    },
+    {
+      "tokens": 16000,
+      "processing_time": 163.61,
+      "output_length": 4977.32,
+      "rtf": 0.03,
+      "elapsed_time": 340.46
+    },
+    {
+      "tokens": 21000,
+      "processing_time": 209.72,
+      "output_length": 6533.3,
+      "rtf": 0.03,
+      "elapsed_time": 551.92
+    },
+    {
+      "tokens": 26000,
+      "processing_time": 329.35,
+      "output_length": 8068.15,
+      "rtf": 0.04,
+      "elapsed_time": 883.37
+    },
+    {
+      "tokens": 31000,
+      "processing_time": 473.52,
+      "output_length": 9611.48,
+      "rtf": 0.05,
+      "elapsed_time": 1359.28
+    },
+    {
+      "tokens": 36000,
+      "processing_time": 650.98,
+      "output_length": 11157.15,
+      "rtf": 0.06,
+      "elapsed_time": 2012.9
+    }
+  ],
+  "system_metrics": [
+    {
+      "timestamp": "2025-01-03T14:41:01.331735",
+      "cpu_percent": 7.5,
+      "ram_percent": 50.2,
+      "ram_used_gb": 31.960269927978516,
+      "gpu_memory_used": 3191.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:02.357116",
+      "cpu_percent": 17.01,
+      "ram_percent": 50.2,
+      "ram_used_gb": 31.96163558959961,
+      "gpu_memory_used": 3426.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:02.445009",
+      "cpu_percent": 9.5,
+      "ram_percent": 50.3,
+      "ram_used_gb": 31.966781616210938,
+      "gpu_memory_used": 3426.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:04.742152",
+      "cpu_percent": 18.27,
+      "ram_percent": 50.4,
+      "ram_used_gb": 32.08788299560547,
+      "gpu_memory_used": 3642.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:04.847795",
+      "cpu_percent": 16.27,
+      "ram_percent": 50.5,
+      "ram_used_gb": 32.094364166259766,
+      "gpu_memory_used": 3640.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:09.019590",
+      "cpu_percent": 15.97,
+      "ram_percent": 50.7,
+      "ram_used_gb": 32.23244094848633,
+      "gpu_memory_used": 3640.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:09.110324",
+      "cpu_percent": 3.54,
+      "ram_percent": 50.7,
+      "ram_used_gb": 32.234458923339844,
+      "gpu_memory_used": 3640.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:13.252607",
+      "cpu_percent": 13.4,
+      "ram_percent": 50.6,
+      "ram_used_gb": 32.194271087646484,
+      "gpu_memory_used": 3935.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:13.327557",
+      "cpu_percent": 4.69,
+      "ram_percent": 50.6,
+      "ram_used_gb": 32.191776275634766,
+      "gpu_memory_used": 3935.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:19.413633",
+      "cpu_percent": 12.92,
+      "ram_percent": 50.9,
+      "ram_used_gb": 32.3467903137207,
+      "gpu_memory_used": 4250.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:19.492758",
+      "cpu_percent": 7.5,
+      "ram_percent": 50.8,
+      "ram_used_gb": 32.34375,
+      "gpu_memory_used": 4250.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:26.467284",
+      "cpu_percent": 13.09,
+      "ram_percent": 51.2,
+      "ram_used_gb": 32.56281280517578,
+      "gpu_memory_used": 4249.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:26.553559",
+      "cpu_percent": 8.39,
+      "ram_percent": 51.2,
+      "ram_used_gb": 32.56183624267578,
+      "gpu_memory_used": 4249.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:34.284362",
+      "cpu_percent": 12.61,
+      "ram_percent": 51.7,
+      "ram_used_gb": 32.874778747558594,
+      "gpu_memory_used": 4250.0
+    },
+    {
+      "timestamp": "2025-01-03T14:41:34.362353",
+      "cpu_percent": 1.25,
+      "ram_percent": 51.7,
+      "ram_used_gb": 32.87461471557617,
+      "gpu_memory_used": 4250.0
+    },
+    {
+      "timestamp": "2025-01-03T14:42:23.471312",
+      "cpu_percent": 11.64,
+      "ram_percent": 54.9,
+      "ram_used_gb": 34.90264129638672,
+      "gpu_memory_used": 4647.0
+    },
+    {
+      "timestamp": "2025-01-03T14:42:23.547203",
+      "cpu_percent": 5.31,
+      "ram_percent": 54.9,
+      "ram_used_gb": 34.91563415527344,
+      "gpu_memory_used": 4647.0
+    },
+    {
+      "timestamp": "2025-01-03T14:43:56.724933",
+      "cpu_percent": 12.97,
+      "ram_percent": 59.5,
+      "ram_used_gb": 37.84241485595703,
+      "gpu_memory_used": 4655.0
+    },
+    {
+      "timestamp": "2025-01-03T14:43:56.815453",
+      "cpu_percent": 11.75,
+      "ram_percent": 59.5,
+      "ram_used_gb": 37.832679748535156,
+      "gpu_memory_used": 4655.0
+    },
+    {
+      "timestamp": "2025-01-03T14:46:41.705155",
+      "cpu_percent": 12.94,
+      "ram_percent": 66.3,
+      "ram_used_gb": 42.1534538269043,
+      "gpu_memory_used": 4729.0
+    },
+    {
+      "timestamp": "2025-01-03T14:46:41.835177",
+      "cpu_percent": 7.73,
+      "ram_percent": 66.2,
+      "ram_used_gb": 42.13554000854492,
+      "gpu_memory_used": 4729.0
+    },
+    {
+      "timestamp": "2025-01-03T14:50:13.166236",
+      "cpu_percent": 11.62,
+      "ram_percent": 73.4,
+      "ram_used_gb": 46.71288299560547,
+      "gpu_memory_used": 4676.0
+    },
+    {
+      "timestamp": "2025-01-03T14:50:13.261611",
+      "cpu_percent": 8.16,
+      "ram_percent": 73.4,
+      "ram_used_gb": 46.71356201171875,
+      "gpu_memory_used": 4676.0
+    },
+    {
+      "timestamp": "2025-01-03T14:55:44.623607",
+      "cpu_percent": 12.92,
+      "ram_percent": 82.8,
+      "ram_used_gb": 52.65533447265625,
+      "gpu_memory_used": 4636.0
+    },
+    {
+      "timestamp": "2025-01-03T14:55:44.735410",
+      "cpu_percent": 15.29,
+      "ram_percent": 82.7,
+      "ram_used_gb": 52.63290786743164,
+      "gpu_memory_used": 4636.0
+    },
+    {
+      "timestamp": "2025-01-03T15:03:40.534449",
+      "cpu_percent": 13.88,
+      "ram_percent": 85.0,
+      "ram_used_gb": 54.050071716308594,
+      "gpu_memory_used": 4771.0
+    },
+    {
+      "timestamp": "2025-01-03T15:03:40.638708",
+      "cpu_percent": 12.21,
+      "ram_percent": 85.0,
+      "ram_used_gb": 54.053733825683594,
+      "gpu_memory_used": 4771.0
+    },
+    {
+      "timestamp": "2025-01-03T15:14:34.159142",
+      "cpu_percent": 14.51,
+      "ram_percent": 78.1,
+      "ram_used_gb": 49.70396423339844,
+      "gpu_memory_used": 4739.0
+    }
+  ]
+}

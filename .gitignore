@@ -1,5 +1,6 @@
 
-output/
+output/*
+output_audio/*
 ui/data/*
 
 *.db
@@ -16,3 +17,10 @@ env/
 
 .coverage
 
+examples/assorted_checks/benchmarks/output_audio/*
+examples/assorted_checks/test_combinations/output/*
+examples/assorted_checks/test_openai/output/*
+
+examples/assorted_checks/test_voices/output/*
+examples/assorted_checks/test_formats/output/*
+ui/RepoScreenshot.png

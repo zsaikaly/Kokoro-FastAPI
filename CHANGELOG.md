@@ -2,6 +2,20 @@
 
 Notable changes to this project will be documented in this file.
 
+## 2025-01-04
+### Added
+- ONNX Support:
+  - Added single batch ONNX support for CPU inference
+  - Roughly 0.4 RTF (2.4x real-time speed)
+
+### Modified
+- Code Refactoring:
+  - Work on modularizing phonemizer and tokenizer into separate services
+  - Incorporated these services into a dev endpoint
+- Testing and Benchmarking:
+  - Cleaned up benchmarking scripts
+  - Cleaned up test scripts
+  - Added auto-WAV validation scripts
 
 ## 2025-01-02
 - Audio Format Support:

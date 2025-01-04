@@ -1,3 +1,3 @@
-from .tts import TTSModel, TTSService
+from .tts_service import TTSService
 
-__all__ = ["TTSService", "TTSModel"]
+__all__ = ["TTSService"]
