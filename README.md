@@ -10,7 +10,7 @@
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
 - OpenAI-compatible Speech endpoint, with voice combination functionality
 - NVIDIA GPU accelerated inference (or CPU) option
-- very fast generation time (~35x real time factor via 4060Ti)
+- very fast generation time (~35x real time generation speed via 4060Ti)
 - automatic chunking/stitching for long texts
 - simple audio generation web ui utility
 
