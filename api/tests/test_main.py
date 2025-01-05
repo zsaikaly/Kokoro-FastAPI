@@ -1,6 +1,6 @@
 """Tests for FastAPI application"""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, call
 
 import pytest
 from fastapi.testclient import TestClient
@@ -39,8 +39,12 @@ async def test_lifespan_successful_warmup(mock_logger, mock_tts_model):
 
     # Verify the expected logging sequence
     mock_logger.info.assert_any_call("Loading TTS model and voice packs...")
-    mock_logger.info.assert_any_call("Model loaded and warmed up on cuda")
-    mock_logger.info.assert_any_call("3 voice packs loaded successfully")
+    
+    # Check for the startup message containing the required info
+    startup_calls = [call[0][0] for call in mock_logger.info.call_args_list]
+    startup_msg = next(msg for msg in startup_calls if "Model loaded and warmed up on" in msg)
+    assert "Model loaded and warmed up on cuda" in startup_msg
+    assert "3 voice packs loaded successfully" in startup_msg
 
     # Verify model setup was called
     mock_tts_model.setup.assert_called_once()

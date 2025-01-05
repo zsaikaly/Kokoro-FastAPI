@@ -62,10 +62,10 @@ class AudioService:
                 logger.info("Writing to WAV format...")
                 # Always include WAV header for WAV format
                 sf.write(buffer, normalized_audio, sample_rate, format="WAV", subtype='PCM_16')
-            elif output_format in ["mp3", "aac"]:
-                logger.info(f"Converting to {output_format.upper()} format...")
+            elif output_format == "mp3":
+                logger.info("Converting to MP3 format...")
                 # Use lower bitrate for streaming
-                sf.write(buffer, normalized_audio, sample_rate, format=output_format.upper())
+                sf.write(buffer, normalized_audio, sample_rate, format="MP3")
             elif output_format == "opus":
                 logger.info("Converting to Opus format...")
                 # Use lower bitrate and smaller frame size for streaming
@@ -76,9 +76,14 @@ class AudioService:
                 sf.write(buffer, normalized_audio, sample_rate, format="FLAC",
                         subtype='PCM_16')
             else:
-                raise ValueError(
-                    f"Format {output_format} not supported. Supported formats are: wav, mp3, opus, flac, pcm."
-                )
+                if output_format == "aac":
+                    raise ValueError(
+                        "Format aac not supported. Supported formats are: wav, mp3, opus, flac, pcm."
+                    )
+                else:
+                    raise ValueError(
+                        f"Format {output_format} not supported. Supported formats are: wav, mp3, opus, flac, pcm."
+                    )
 
             buffer.seek(0)
             return buffer.getvalue()
