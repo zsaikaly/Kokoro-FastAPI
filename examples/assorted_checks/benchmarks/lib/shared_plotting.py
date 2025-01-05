@@ -1,7 +1,9 @@
 """Shared plotting utilities for benchmarks and tests."""
 import pandas as pd
 import seaborn as sns
+import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 # Common style configurations
 STYLE_CONFIG = {
@@ -131,6 +133,132 @@ def plot_system_metrics(metrics_data, output_path):
                   xlabel="Time (seconds)", ylabel="GPU Memory (GB)")
         axes[2].set_ylim(0, max(df["gpu_memory_gb"]) * 1.1)
         axes[2].legend()
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+def plot_timeline(df, output_path):
+    """Create timeline plot showing latency for each run.
+    
+    Args:
+        df: pandas DataFrame containing run data with columns:
+            - target_tokens: number of tokens
+            - run_number: run iteration
+            - time_to_first_chunk: latency to first token
+        output_path: str, path to save the output plot
+    """
+    plt.style.use("dark_background")
+    
+    # Sort by tokens and run number
+    df = df.sort_values(['target_tokens', 'run_number'])
+    
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    # Calculate y positions for each run with tighter grouping
+    unique_tokens = sorted(df['target_tokens'].unique())
+    y_positions = {}
+    current_y = 0
+    group_spacing = 0.8  # Space between groups
+    run_spacing = 0.2    # Space between runs in a group
+    
+    for tokens in unique_tokens:
+        runs = df[df['target_tokens'] == tokens]
+        base_y = current_y
+        for i, (_, run) in enumerate(runs.iterrows()):
+            y_positions[(tokens, run['run_number'])] = base_y + (i * run_spacing)
+        current_y = base_y + (len(runs) * run_spacing) + group_spacing
+    
+    # Plot bars and points with more transparency
+    bar_height = 0.15
+    for _, row in df.iterrows():
+        y = y_positions[(row['target_tokens'], row['run_number'])]
+        latency = row['time_to_first_chunk']
+        
+        # Latency bar
+        ax.add_patch(patches.Rectangle(
+            (0, y - bar_height/2),
+            latency,
+            bar_height,
+            facecolor=STYLE_CONFIG["primary_color"],
+            alpha=0.3
+        ))
+        
+        # End point
+        ax.plot(latency, y, 'o', 
+                color=STYLE_CONFIG["secondary_color"],
+                markersize=4,
+                alpha=0.5)
+    
+    # Add mean lines and values for each token group
+    for tokens in unique_tokens:
+        token_runs = df[df['target_tokens'] == tokens]
+        mean_latency = token_runs['time_to_first_chunk'].mean()
+        y_positions_for_token = [y_positions[(tokens, run['run_number'])] for _, run in token_runs.iterrows()]
+        min_y = min(y_positions_for_token)
+        max_y = max(y_positions_for_token)
+        group_center = (min_y + max_y) / 2
+        
+        # Plot mean line with gradient alpha
+        gradient = np.linspace(0.2, 0.8, 100)
+        for i in range(len(gradient)-1):
+            y1 = min_y - bar_height + (max_y - min_y + 2*bar_height) * (i/len(gradient))
+            y2 = min_y - bar_height + (max_y - min_y + 2*bar_height) * ((i+1)/len(gradient))
+            ax.plot([mean_latency, mean_latency], [y1, y2],
+                   '-', color=STYLE_CONFIG["secondary_color"],
+                   linewidth=3, alpha=gradient[i])
+        
+        # Add mean value label with background
+        label_text = f'Mean: {mean_latency:.3f}s'
+        bbox_props = dict(
+            facecolor=STYLE_CONFIG["background_color"],
+            edgecolor=STYLE_CONFIG["secondary_color"],
+            alpha=0.8,
+            pad=3,
+            linewidth=1
+        )
+        ax.text(mean_latency + 0.02, group_center,
+                label_text,
+                color=STYLE_CONFIG["secondary_color"],
+                va='center',
+                fontsize=10,
+                fontweight='bold',
+                bbox=bbox_props)
+    
+    # Customize plot
+    ax.set_ylim(-1, current_y)
+    ax.set_xlim(0, df['time_to_first_chunk'].max() * 1.3)  # Extra space for labels
+    
+    # Add labels for token groups with tighter spacing
+    group_positions = {}
+    for tokens in unique_tokens:
+        runs = df[df['target_tokens'] == tokens]
+        y_positions_for_token = [y_positions[(tokens, run['run_number'])] for _, run in runs.iterrows()]
+        group_positions[tokens] = sum(y_positions_for_token) / len(y_positions_for_token)
+        plt.axhline(y=min(y_positions_for_token) - bar_height, 
+                   color='white', alpha=0.1, linestyle='-')
+    
+    # Calculate mean audio length for each token group
+    audio_lengths = {}
+    for tokens in unique_tokens:
+        token_runs = df[df['target_tokens'] == tokens]
+        audio_lengths[tokens] = token_runs['audio_length'].mean()
+
+    # Set y-ticks at group centers with token counts and audio lengths
+    plt.yticks(
+        list(group_positions.values()),
+        [f'{tokens} tokens\n({audio_lengths[tokens]:.1f}s)' for tokens in group_positions.keys()],
+        fontsize=10
+    )
+    
+    # Customize appearance
+    setup_plot(
+        fig, ax,
+        "Time-To-Audio Latency",
+        xlabel="Time (seconds)",
+        ylabel="Input Size"
+    )
     
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches="tight")

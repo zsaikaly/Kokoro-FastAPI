@@ -23,4 +23,5 @@ examples/assorted_checks/test_openai/output/*
 
 examples/assorted_checks/test_voices/output/*
 examples/assorted_checks/test_formats/output/*
+examples/assorted_checks/benchmarks/output_audio_stream/*
 ui/RepoScreenshot.png

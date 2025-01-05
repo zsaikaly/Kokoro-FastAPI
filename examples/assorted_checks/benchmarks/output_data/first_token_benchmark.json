@@ -1,0 +1,403 @@
+{
+  "individual_runs": [
+    {
+      "text_length": 37,
+      "token_count": 10,
+      "total_time": 0.16574740409851074,
+      "time_to_first_chunk": 0.16574740409851074,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens10_run1.wav",
+      "audio_length": 3.45,
+      "target_tokens": 10,
+      "actual_tokens": 10,
+      "run_number": 1
+    },
+    {
+      "text_length": 37,
+      "token_count": 10,
+      "total_time": 0.18812799453735352,
+      "time_to_first_chunk": 0.18812799453735352,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens10_run2.wav",
+      "audio_length": 3.45,
+      "target_tokens": 10,
+      "actual_tokens": 10,
+      "run_number": 2
+    },
+    {
+      "text_length": 37,
+      "token_count": 10,
+      "total_time": 0.18645429611206055,
+      "time_to_first_chunk": 0.18645429611206055,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens10_run3.wav",
+      "audio_length": 3.45,
+      "target_tokens": 10,
+      "actual_tokens": 10,
+      "run_number": 3
+    },
+    {
+      "text_length": 37,
+      "token_count": 10,
+      "total_time": 0.17632031440734863,
+      "time_to_first_chunk": 0.17632031440734863,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens10_run4.wav",
+      "audio_length": 3.45,
+      "target_tokens": 10,
+      "actual_tokens": 10,
+      "run_number": 4
+    },
+    {
+      "text_length": 37,
+      "token_count": 10,
+      "total_time": 0.13381195068359375,
+      "time_to_first_chunk": 0.13381195068359375,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens10_run5.wav",
+      "audio_length": 3.45,
+      "target_tokens": 10,
+      "actual_tokens": 10,
+      "run_number": 5
+    },
+    {
+      "text_length": 102,
+      "token_count": 25,
+      "total_time": 0.2086498737335205,
+      "time_to_first_chunk": 0.2086498737335205,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens25_run1.wav",
+      "audio_length": 7.225,
+      "target_tokens": 25,
+      "actual_tokens": 25,
+      "run_number": 1
+    },
+    {
+      "text_length": 102,
+      "token_count": 25,
+      "total_time": 0.2727653980255127,
+      "time_to_first_chunk": 0.2727653980255127,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens25_run2.wav",
+      "audio_length": 7.225,
+      "target_tokens": 25,
+      "actual_tokens": 25,
+      "run_number": 2
+    },
+    {
+      "text_length": 102,
+      "token_count": 25,
+      "total_time": 0.2096250057220459,
+      "time_to_first_chunk": 0.2096250057220459,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens25_run3.wav",
+      "audio_length": 7.225,
+      "target_tokens": 25,
+      "actual_tokens": 25,
+      "run_number": 3
+    },
+    {
+      "text_length": 102,
+      "token_count": 25,
+      "total_time": 0.2256758213043213,
+      "time_to_first_chunk": 0.2256758213043213,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens25_run4.wav",
+      "audio_length": 7.225,
+      "target_tokens": 25,
+      "actual_tokens": 25,
+      "run_number": 4
+    },
+    {
+      "text_length": 102,
+      "token_count": 25,
+      "total_time": 0.1945042610168457,
+      "time_to_first_chunk": 0.1945042610168457,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens25_run5.wav",
+      "audio_length": 7.225,
+      "target_tokens": 25,
+      "actual_tokens": 25,
+      "run_number": 5
+    },
+    {
+      "text_length": 212,
+      "token_count": 50,
+      "total_time": 0.4975121021270752,
+      "time_to_first_chunk": 0.4975121021270752,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens50_run1.wav",
+      "audio_length": 16.325,
+      "target_tokens": 50,
+      "actual_tokens": 50,
+      "run_number": 1
+    },
+    {
+      "text_length": 212,
+      "token_count": 50,
+      "total_time": 0.4518404006958008,
+      "time_to_first_chunk": 0.4518404006958008,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens50_run2.wav",
+      "audio_length": 16.325,
+      "target_tokens": 50,
+      "actual_tokens": 50,
+      "run_number": 2
+    },
+    {
+      "text_length": 212,
+      "token_count": 50,
+      "total_time": 0.5640325546264648,
+      "time_to_first_chunk": 0.5640325546264648,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens50_run3.wav",
+      "audio_length": 16.325,
+      "target_tokens": 50,
+      "actual_tokens": 50,
+      "run_number": 3
+    },
+    {
+      "text_length": 212,
+      "token_count": 50,
+      "total_time": 0.5305957794189453,
+      "time_to_first_chunk": 0.5305957794189453,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens50_run4.wav",
+      "audio_length": 16.325,
+      "target_tokens": 50,
+      "actual_tokens": 50,
+      "run_number": 4
+    },
+    {
+      "text_length": 212,
+      "token_count": 50,
+      "total_time": 0.5540030002593994,
+      "time_to_first_chunk": 0.5540030002593994,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens50_run5.wav",
+      "audio_length": 16.325,
+      "target_tokens": 50,
+      "actual_tokens": 50,
+      "run_number": 5
+    },
+    {
+      "text_length": 448,
+      "token_count": 100,
+      "total_time": 0.7963137626647949,
+      "time_to_first_chunk": 0.7963137626647949,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens100_run1.wav",
+      "audio_length": 31.1,
+      "target_tokens": 100,
+      "actual_tokens": 100,
+      "run_number": 1
+    },
+    {
+      "text_length": 448,
+      "token_count": 100,
+      "total_time": 0.9320805072784424,
+      "time_to_first_chunk": 0.9320805072784424,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens100_run2.wav",
+      "audio_length": 31.1,
+      "target_tokens": 100,
+      "actual_tokens": 100,
+      "run_number": 2
+    },
+    {
+      "text_length": 448,
+      "token_count": 100,
+      "total_time": 0.824256181716919,
+      "time_to_first_chunk": 0.824256181716919,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens100_run3.wav",
+      "audio_length": 31.1,
+      "target_tokens": 100,
+      "actual_tokens": 100,
+      "run_number": 3
+    },
+    {
+      "text_length": 448,
+      "token_count": 100,
+      "total_time": 0.9034836292266846,
+      "time_to_first_chunk": 0.9034836292266846,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens100_run4.wav",
+      "audio_length": 31.1,
+      "target_tokens": 100,
+      "actual_tokens": 100,
+      "run_number": 4
+    },
+    {
+      "text_length": 448,
+      "token_count": 100,
+      "total_time": 0.8364357948303223,
+      "time_to_first_chunk": 0.8364357948303223,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens100_run5.wav",
+      "audio_length": 31.1,
+      "target_tokens": 100,
+      "actual_tokens": 100,
+      "run_number": 5
+    },
+    {
+      "text_length": 906,
+      "token_count": 200,
+      "total_time": 1.8122682571411133,
+      "time_to_first_chunk": 1.8122682571411133,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens200_run1.wav",
+      "audio_length": 62.625,
+      "target_tokens": 200,
+      "actual_tokens": 200,
+      "run_number": 1
+    },
+    {
+      "text_length": 906,
+      "token_count": 200,
+      "total_time": 1.7290427684783936,
+      "time_to_first_chunk": 1.7290427684783936,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens200_run2.wav",
+      "audio_length": 62.625,
+      "target_tokens": 200,
+      "actual_tokens": 200,
+      "run_number": 2
+    },
+    {
+      "text_length": 906,
+      "token_count": 200,
+      "total_time": 2.141728401184082,
+      "time_to_first_chunk": 2.141728401184082,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens200_run3.wav",
+      "audio_length": 62.625,
+      "target_tokens": 200,
+      "actual_tokens": 200,
+      "run_number": 3
+    },
+    {
+      "text_length": 906,
+      "token_count": 200,
+      "total_time": 2.0155680179595947,
+      "time_to_first_chunk": 2.0155680179595947,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens200_run4.wav",
+      "audio_length": 62.625,
+      "target_tokens": 200,
+      "actual_tokens": 200,
+      "run_number": 4
+    },
+    {
+      "text_length": 906,
+      "token_count": 200,
+      "total_time": 1.8707575798034668,
+      "time_to_first_chunk": 1.8707575798034668,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens200_run5.wav",
+      "audio_length": 62.625,
+      "target_tokens": 200,
+      "actual_tokens": 200,
+      "run_number": 5
+    },
+    {
+      "text_length": 2232,
+      "token_count": 500,
+      "total_time": 4.822713851928711,
+      "time_to_first_chunk": 4.822713851928711,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens500_run1.wav",
+      "audio_length": 157.875,
+      "target_tokens": 500,
+      "actual_tokens": 500,
+      "run_number": 1
+    },
+    {
+      "text_length": 2232,
+      "token_count": 500,
+      "total_time": 4.227782726287842,
+      "time_to_first_chunk": 4.227782726287842,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens500_run2.wav",
+      "audio_length": 157.875,
+      "target_tokens": 500,
+      "actual_tokens": 500,
+      "run_number": 2
+    },
+    {
+      "text_length": 2232,
+      "token_count": 500,
+      "total_time": 4.414916276931763,
+      "time_to_first_chunk": 4.414916276931763,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens500_run3.wav",
+      "audio_length": 157.875,
+      "target_tokens": 500,
+      "actual_tokens": 500,
+      "run_number": 3
+    },
+    {
+      "text_length": 2232,
+      "token_count": 500,
+      "total_time": 4.579505681991577,
+      "time_to_first_chunk": 4.579505681991577,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens500_run4.wav",
+      "audio_length": 157.875,
+      "target_tokens": 500,
+      "actual_tokens": 500,
+      "run_number": 4
+    },
+    {
+      "text_length": 2232,
+      "token_count": 500,
+      "total_time": 4.332529067993164,
+      "time_to_first_chunk": 4.332529067993164,
+      "error": null,
+      "audio_path": "c:\\Users\\jerem\\Desktop\\Kokoro-FastAPI\\examples\\assorted_checks\\benchmarks\\output_audio\\benchmark_tokens500_run5.wav",
+      "audio_length": 157.875,
+      "target_tokens": 500,
+      "actual_tokens": 500,
+      "run_number": 5
+    }
+  ],
+  "summary": {
+    "10": {
+      "avg_time_to_first_chunk": 0.17,
+      "avg_total_time": 0.17,
+      "avg_audio_length": 3.45,
+      "num_successful_runs": 5
+    },
+    "25": {
+      "avg_time_to_first_chunk": 0.222,
+      "avg_total_time": 0.222,
+      "avg_audio_length": 7.225,
+      "num_successful_runs": 5
+    },
+    "50": {
+      "avg_time_to_first_chunk": 0.52,
+      "avg_total_time": 0.52,
+      "avg_audio_length": 16.325,
+      "num_successful_runs": 5
+    },
+    "100": {
+      "avg_time_to_first_chunk": 0.859,
+      "avg_total_time": 0.859,
+      "avg_audio_length": 31.1,
+      "num_successful_runs": 5
+    },
+    "200": {
+      "avg_time_to_first_chunk": 1.914,
+      "avg_total_time": 1.914,
+      "avg_audio_length": 62.625,
+      "num_successful_runs": 5
+    },
+    "500": {
+      "avg_time_to_first_chunk": 4.475,
+      "avg_total_time": 4.475,
+      "avg_audio_length": 157.875,
+      "num_successful_runs": 5
+    }
+  },
+  "timestamp": "2025-01-04 13:52:28"
+}

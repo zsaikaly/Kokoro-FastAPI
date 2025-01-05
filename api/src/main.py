@@ -23,8 +23,16 @@ async def lifespan(app: FastAPI):
 
     # Initialize the main model with warm-up
     voicepack_count = TTSModel.setup()
+    logger.info("""
+    ███████╗█████╗█████████████████╗  ██╗██████╗██╗  ██╗██████╗ 
+    ██╔════██╔══████╔════╚══██╔══██║ ██╔██╔═══████║ ██╔██╔═══██╗
+    █████╗ ██████████████╗  ██║  █████╔╝██║   ███████╔╝██║   ██║
+    ██╔══╝ ██╔══██╚════██║  ██║  ██╔═██╗██║   ████╔═██╗██║   ██║
+    ██║    ██║  █████████║  ██║  ██║  ██╚██████╔██║  ██╚██████╔╝
+    ╚═╝    ╚═╝  ╚═╚══════╝  ╚═╝  ╚═╝  ╚═╝╚═════╝╚═╝  ╚═╝╚═════╝ """)
     logger.info(f"Model loaded and warmed up on {TTSModel.get_device()}")
     logger.info(f"{voicepack_count} voice packs loaded successfully")
+    logger.info("#" * 80)
     yield
 
 
