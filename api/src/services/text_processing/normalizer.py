@@ -49,7 +49,7 @@ def handle_decimal(num: re.Match) -> str:
     a, b = num.group().split(".")
     return " point ".join([a, " ".join(b)])
 
-@lru_cache(maxsize=1000)  # Cache normalized text results
+# @lru_cache(maxsize=1000)  # Cache normalized text results
 def normalize_text(text: str) -> str:
     """Normalize text for TTS processing
     

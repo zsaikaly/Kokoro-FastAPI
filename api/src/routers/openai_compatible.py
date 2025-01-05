@@ -57,10 +57,8 @@ async def create_speech(
             "pcm": "audio/pcm",
         }.get(request.response_format, f"audio/{request.response_format}")
 
-        # Check if streaming is requested via header
-        is_streaming = x_raw_response == "stream"
-
-        if is_streaming:
+        # Check if streaming is requested (default for OpenAI client)
+        if request.stream:
             # Stream audio chunks as they're generated
             return StreamingResponse(
                 stream_audio_chunks(tts_service, request),

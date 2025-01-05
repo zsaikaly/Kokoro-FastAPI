@@ -138,7 +138,7 @@ def plot_system_metrics(metrics_data, output_path):
     plt.savefig(output_path, dpi=300, bbox_inches="tight")
     plt.close()
 
-def plot_timeline(df, output_path):
+def plot_timeline(df, output_path, suffix=""):
     """Create timeline plot showing latency for each run.
     
     Args:
@@ -255,7 +255,7 @@ def plot_timeline(df, output_path):
     # Customize appearance
     setup_plot(
         fig, ax,
-        "Time-To-Audio Latency",
+        "Time-To-Audio Latency" + suffix,
         xlabel="Time (seconds)",
         ylabel="Input Size"
     )

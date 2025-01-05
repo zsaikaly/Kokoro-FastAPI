@@ -20,11 +20,40 @@ class TTSService:
     def __init__(self, output_dir: str = None):
         self.output_dir = output_dir
 
-    def _split_text(self, text: str) -> List[str]:
-        """Split text into sentences"""
+    def _split_text(self, text: str):
+        """Generate text chunks one at a time, splitting on natural pause points"""
         if not isinstance(text, str):
             text = str(text) if text is not None else ""
-        return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
+            
+        # First split into sentences
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+                
+            # For longer sentences, split on commas and semicolons
+            if len(sentence) > 300:  # Only split long sentences
+                # Split on pause points while preserving the punctuation
+                chunks = re.split(r"((?<=[,;])\s+)", sentence)
+                
+                # Reassemble chunks with their trailing punctuation
+                current_chunk = ""
+                for i, chunk in enumerate(chunks):
+                    if i % 2 == 0:  # Text chunk
+                        current_chunk += chunk
+                    else:  # Punctuation/whitespace chunk
+                        current_chunk += chunk
+                        if current_chunk.strip():
+                            yield current_chunk.strip()
+                        current_chunk = ""
+                        
+                # Yield any remaining text
+                if current_chunk.strip():
+                    yield current_chunk.strip()
+            else:
+                yield sentence
 
     @staticmethod
     @lru_cache(maxsize=20)  # Cache up to 8 most recently used voices
@@ -69,11 +98,11 @@ class TTSService:
 
             # Generate audio with or without stitching
             if stitch_long_output:
-                chunks = self._split_text(text)
                 audio_chunks = []
+                chunk_count = 0
 
-                # Process all chunks
-                for i, chunk in enumerate(chunks):
+                # Process chunks as they're generated
+                for chunk in self._split_text(text):
                     try:
                         # Process text and generate audio
                         phonemes, tokens = TTSModel.process_text(chunk, voice[0])
@@ -81,23 +110,21 @@ class TTSService:
     
                         if chunk_audio is not None:
                             audio_chunks.append(chunk_audio)
+                            chunk_count += 1
                         else:
-                            logger.error(f"No audio generated for chunk {i + 1}/{len(chunks)}")
+                            logger.error(f"No audio generated for chunk {chunk_count + 1}")
                             
                     except Exception as e:
                         logger.error(
-                            f"Failed to generate audio for chunk {i + 1}/{len(chunks)}: '{chunk}'. Error: {str(e)}"
+                            f"Failed to generate audio for chunk {chunk_count + 1}: '{chunk}'. Error: {str(e)}"
                         )
                         continue
 
                 if not audio_chunks:
                     raise ValueError("No audio chunks were generated successfully")
 
-                audio = (
-                    np.concatenate(audio_chunks)
-                    if len(audio_chunks) > 1
-                    else audio_chunks[0]
-                )
+                # Concatenate all chunks
+                audio = np.concatenate(audio_chunks) if len(audio_chunks) > 1 else audio_chunks[0]
             else:
                 # Process single chunk
                 phonemes, tokens = TTSModel.process_text(text, voice[0])
@@ -132,11 +159,9 @@ class TTSService:
                 raise ValueError(f"Voice not found: {voice}")
             voicepack = self._load_voice(voice_path)
 
-            # Split text into sentences for natural boundaries
-            chunks = self._split_text(text)
-
-            # Process and stream chunks
-            for i, chunk in enumerate(chunks):
+            # Process chunks as they're generated
+            is_first = True
+            for chunk in self._split_text(text):
                 try:
                     # Process text and generate audio
                     phonemes, tokens = TTSModel.process_text(chunk, voice[0])
@@ -148,17 +173,16 @@ class TTSService:
                             chunk_audio,
                             24000,
                             output_format,
-                            is_first_chunk=(i == 0),
+                            is_first_chunk=is_first,
                             normalizer=stream_normalizer
                         )
                         yield chunk_bytes
+                        is_first = False
                     else:
-                        logger.error(f"No audio generated for chunk {i + 1}/{len(chunks)}")
+                        logger.error(f"No audio generated for chunk: '{chunk}'")
 
                 except Exception as e:
-                    logger.error(
-                        f"Failed to generate audio for chunk {i + 1}/{len(chunks)}: '{chunk}'. Error: {str(e)}"
-                    )
+                    logger.error(f"Failed to generate audio for chunk: '{chunk}'. Error: {str(e)}")
                     continue
 
         except Exception as e:

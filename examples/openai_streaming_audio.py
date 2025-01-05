@@ -36,10 +36,7 @@ def stream_to_speakers() -> None:
         model="kokoro",
         voice="af",
         response_format="pcm",  # similar to WAV, but without a header chunk at the start.
-        input="""I see skies of blue and clouds of white
-                The bright blessed days, the dark sacred nights
-                And I think to myself
-                What a wonderful world""",
+        input="""My dear sir, that is just where you are wrong. That is just where the whole world has gone wrong. We are always getting away from the present moment. Our mental existences, which are immaterial and have no dimensions, are passing along the Time-Dimension with a uniform velocity from the cradle to the grave. Just as we should travel down if we began our existence fifty miles above the earth’s surface""",
     ) as response:
         print(f"Time to first byte: {int((time.time() - start_time) * 1000)}ms")
         for chunk in response.iter_bytes(chunk_size=1024):

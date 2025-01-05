@@ -3,14 +3,14 @@ import os
 import time
 import json
 import numpy as np
-import requests
 import pandas as pd
+from openai import OpenAI
 from lib.shared_benchmark_utils import get_text_for_tokens, enc
 from lib.shared_utils import save_json_results
 from lib.shared_plotting import plot_correlation, plot_timeline
 
 def measure_first_token(text: str, output_dir: str, tokens: int, run_number: int) -> dict:
-    """Measure time to audio via API calls and save the audio output"""
+    """Measure time to audio via OpenAI API calls and save the audio output"""
     results = {
         "text_length": len(text),
         "token_count": len(enc.encode(text)),
@@ -24,40 +24,32 @@ def measure_first_token(text: str, output_dir: str, tokens: int, run_number: int
     try:
         start_time = time.time()
         
-        # Make request with streaming enabled
-        response = requests.post(
-            "http://localhost:8880/v1/audio/speech",
-            json={
-                "model": "kokoro",
-                "input": text,
-                "voice": "af",
-                "response_format": "pcm",
-                "stream": True
-            },
-            stream=True,
-            timeout=1800
-        )
-        response.raise_for_status()
+        # Initialize OpenAI client
+        openai = OpenAI(base_url="http://localhost:8880/v1", api_key="not-needed-for-local")
         
         # Save complete audio
-        audio_filename = f"benchmark_tokens{tokens}_run{run_number}_stream.wav"
+        audio_filename = f"benchmark_tokens{tokens}_run{run_number}_stream_openai.wav"
         audio_path = os.path.join(output_dir, audio_filename)
         results["audio_path"] = audio_path
         
         first_chunk_time = None
-        chunks = []
-        for chunk in response.iter_content(chunk_size=1024):
-            if chunk:
-                if first_chunk_time is None:
-                    first_chunk_time = time.time()
-                    results["time_to_first_chunk"] = first_chunk_time - start_time
-                chunks.append(chunk)
+        all_audio_data = bytearray()
+        chunk_count = 0
         
-        # Concatenate all PCM chunks
-        if not chunks:
-            raise ValueError("No audio chunks received")
-            
-        all_audio_data = b''.join(chunks)
+        # Make streaming request using OpenAI client
+        with openai.audio.speech.with_streaming_response.create(
+            model="kokoro",
+            voice="af",
+            response_format="pcm",
+            input=text,
+        ) as response:
+            for chunk in response.iter_bytes(chunk_size=1024):
+                if chunk:
+                    chunk_count += 1
+                    if first_chunk_time is None:
+                        first_chunk_time = time.time()
+                        results["time_to_first_chunk"] = first_chunk_time - start_time
+                    all_audio_data.extend(chunk)
         
         # Write as WAV file
         import wave
@@ -76,7 +68,7 @@ def measure_first_token(text: str, output_dir: str, tokens: int, run_number: int
         
         # Print debug info
         print(f"Complete audio size: {len(all_audio_data)} bytes")
-        print(f"Number of chunks received: {len(chunks)}")
+        print(f"Number of chunks received: {chunk_count}")
         print(f"Audio length: {results['audio_length']:.3f}s")
         
         return results
@@ -86,9 +78,9 @@ def measure_first_token(text: str, output_dir: str, tokens: int, run_number: int
         return results
 
 def main():
-    # Set up paths with _stream suffix
+    # Set up paths with _stream_openai suffix
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    output_dir = os.path.join(script_dir, "output_audio_stream")
+    output_dir = os.path.join(script_dir, "output_audio_stream_openai")
     output_data_dir = os.path.join(script_dir, "output_data")
     
     # Create output directories
@@ -100,7 +92,7 @@ def main():
         text = f.read()
 
     # Test specific token counts
-    token_sizes = [50, 100, 200, 500, 1000, 2000, 5000, 10000]
+    token_sizes = [50, 100, 200, 500]
     all_results = []
     
     for tokens in token_sizes:
@@ -109,9 +101,9 @@ def main():
         actual_tokens = len(enc.encode(test_text))
         print(f"Text preview: {test_text[:50]}...")
         
-        # Run test 3 times for each size to get average
+        # Run test 5 times for each size to get average
         for i in range(5):
-            print(f"Run {i+1}/3...")
+            print(f"Run {i+1}/5...")
             result = measure_first_token(test_text, output_dir, tokens, i + 1)
             result["target_tokens"] = tokens
             result["actual_tokens"] = actual_tokens
@@ -142,7 +134,7 @@ def main():
                 "num_successful_runs": len(matching_results)
             }
     
-    # Save results with _stream suffix
+    # Save results with _stream_openai suffix
     results_data = {
         "individual_runs": all_results,
         "summary": summary,
@@ -150,7 +142,7 @@ def main():
     }
     save_json_results(
         results_data,
-        os.path.join(output_data_dir, "first_token_benchmark_stream.json")
+        os.path.join(output_data_dir, "first_token_benchmark_stream_openai.json")
     )
     
     # Create plot directory if it doesn't exist
@@ -160,34 +152,33 @@ def main():
     # Create DataFrame for plotting
     df = pd.DataFrame(all_results)
     
-    # Create both plots with _stream suffix
-    # Plot correlation for both metrics
+    # Create plots with _stream_openai suffix
     plot_correlation(
         df, "target_tokens", "time_to_first_chunk",
-        "Time to First Audio vs Input Size (Streaming)",
+        "Time to First Audio vs Input Size (OpenAI Streaming)",
         "Number of Input Tokens",
         "Time to First Audio (seconds)",
-        os.path.join(output_plots_dir, "first_token_latency_stream.png")
+        os.path.join(output_plots_dir, "first_token_latency_stream_openai.png")
     )
     
     plot_correlation(
         df, "target_tokens", "total_time",
-        "Total Time vs Input Size (Streaming)",
+        "Total Time vs Input Size (OpenAI Streaming)",
         "Number of Input Tokens",
         "Total Time (seconds)",
-        os.path.join(output_plots_dir, "total_time_latency_stream.png")
+        os.path.join(output_plots_dir, "total_time_latency_stream_openai.png")
     )
     
     plot_timeline(
         df,
-        os.path.join(output_plots_dir, "first_token_timeline_stream.png", suffix="(Streaming)")
+        os.path.join(output_plots_dir, "first_token_timeline_stream_openai.png")
     )
     
     print("\nResults and plots saved to:")
-    print(f"- {os.path.join(output_data_dir, 'first_token_benchmark_stream.json')}")
-    print(f"- {os.path.join(output_plots_dir, 'first_token_latency_stream.png')}")
-    print(f"- {os.path.join(output_plots_dir, 'total_time_latency_stream.png')}")
-    print(f"- {os.path.join(output_plots_dir, 'first_token_timeline_stream.png')}")
+    print(f"- {os.path.join(output_data_dir, 'first_token_benchmark_stream_openai.json')}")
+    print(f"- {os.path.join(output_plots_dir, 'first_token_latency_stream_openai.png')}")
+    print(f"- {os.path.join(output_plots_dir, 'total_time_latency_stream_openai.png')}")
+    print(f"- {os.path.join(output_plots_dir, 'first_token_timeline_stream_openai.png')}")
 
 if __name__ == "__main__":
     main()

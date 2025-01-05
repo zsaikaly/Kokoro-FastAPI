@@ -31,6 +31,6 @@ class OpenAISpeechRequest(BaseModel):
         description="The speed of the generated audio. Select a value from 0.25 to 4.0.",
     )
     stream: bool = Field(
-        default=False,
-        description="If true, audio will be streamed as it's generated. Each chunk will be a complete sentence.",
+        default=True,  # Default to streaming for OpenAI compatibility
+        description="If true (default), audio will be streamed as it's generated. Each chunk will be a complete sentence.",
     )
