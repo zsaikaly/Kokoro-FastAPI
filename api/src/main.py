@@ -23,16 +23,25 @@ async def lifespan(app: FastAPI):
 
     # Initialize the main model with warm-up
     voicepack_count = TTSModel.setup()
-    logger.info("""
-    ███████╗█████╗█████████████████╗  ██╗██████╗██╗  ██╗██████╗ 
-    ██╔════██╔══████╔════╚══██╔══██║ ██╔██╔═══████║ ██╔██╔═══██╗
-    █████╗ ██████████████╗  ██║  █████╔╝██║   ███████╔╝██║   ██║
-    ██╔══╝ ██╔══██╚════██║  ██║  ██╔═██╗██║   ████╔═██╗██║   ██║
-    ██║    ██║  █████████║  ██║  ██║  ██╚██████╔██║  ██╚██████╔╝
-    ╚═╝    ╚═╝  ╚═╚══════╝  ╚═╝  ╚═╝  ╚═╝╚═════╝╚═╝  ╚═╝╚═════╝ """)
-    logger.info(f"Model loaded and warmed up on {TTSModel.get_device()}")
-    logger.info(f"{voicepack_count} voice packs loaded successfully")
-    logger.info("#" * 80)
+    # boundary = "█████╗"*9
+    boundary = "░" * 54
+    startup_msg =f"""
+{boundary}
+    
+                     ╔═╗┌─┐┌─┐┌┬┐
+                     ╠╣ ├─┤└─┐ │ 
+                     ╚  ┴ ┴└─┘ ┴ 
+                     ╦╔═┌─┐┬┌─┌─┐
+                     ╠╩╗│ │├┴┐│ │
+                     ╩ ╩└─┘┴ ┴└─┘
+
+{boundary}
+                """
+    startup_msg += f"\nModel loaded and warmed up on {TTSModel.get_device()}"
+    startup_msg += f"\n{voicepack_count} voice packs loaded successfully\n"
+    startup_msg += f"\n{boundary}\n"
+    logger.info(startup_msg)
+
     yield
 
 

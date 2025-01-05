@@ -2,8 +2,8 @@ from typing import List
 
 from loguru import logger
 from fastapi import Depends, Response, APIRouter, HTTPException
+from fastapi import Header
 from fastapi.responses import StreamingResponse
-
 from ..services.tts_service import TTSService
 from ..services.audio import AudioService
 from ..structures.schemas import OpenAISpeechRequest
@@ -30,9 +30,13 @@ async def stream_audio_chunks(tts_service: TTSService, request: OpenAISpeechRequ
     ):
         yield chunk
 
+
+
 @router.post("/audio/speech")
 async def create_speech(
-    request: OpenAISpeechRequest, tts_service: TTSService = Depends(get_tts_service)
+    request: OpenAISpeechRequest, 
+    tts_service: TTSService = Depends(get_tts_service),
+    x_raw_response: str = Header(None, alias="x-raw-response"),
 ):
     """OpenAI-compatible endpoint for text-to-speech"""
     try:
@@ -53,7 +57,10 @@ async def create_speech(
             "pcm": "audio/pcm",
         }.get(request.response_format, f"audio/{request.response_format}")
 
-        if request.stream:
+        # Check if streaming is requested via header
+        is_streaming = x_raw_response == "stream"
+
+        if is_streaming:
             # Stream audio chunks as they're generated
             return StreamingResponse(
                 stream_audio_chunks(tts_service, request),

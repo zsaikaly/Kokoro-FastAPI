@@ -132,24 +132,8 @@ class TTSService:
                 raise ValueError(f"Voice not found: {voice}")
             voicepack = self._load_voice(voice_path)
 
-            # Split text into smaller chunks for faster streaming
-            # Use shorter chunks for real-time delivery
-            chunks = []
-            sentences = self._split_text(text)
-            current_chunk = []
-            current_length = 0
-            target_length = 100  # Target ~100 characters per chunk for faster processing
-
-            for sentence in sentences:
-                current_chunk.append(sentence)
-                current_length += len(sentence)
-                if current_length >= target_length:
-                    chunks.append(" ".join(current_chunk))
-                    current_chunk = []
-                    current_length = 0
-            
-            if current_chunk:
-                chunks.append(" ".join(current_chunk))
+            # Split text into sentences for natural boundaries
+            chunks = self._split_text(text)
 
             # Process and stream chunks
             for i, chunk in enumerate(chunks):

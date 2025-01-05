@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import requests
-import sounddevice as sd
 import numpy as np
+import sounddevice as sd
 import time
 import os
 import wave
@@ -15,11 +15,20 @@ def play_streaming_tts(text: str, output_file: str = None, voice: str = "af"):
     # Initialize variables
     sample_rate = 24000  # Known sample rate for Kokoro
     audio_started = False
-    stream = None
     chunk_count = 0
     total_bytes = 0
     first_chunk_time = None
     all_audio_data = bytearray()  # Raw PCM audio data
+    
+    # Start sounddevice stream with buffer
+    stream = sd.OutputStream(
+        samplerate=sample_rate,
+        channels=1,
+        dtype=np.int16,
+        blocksize=1024,  # Buffer size in samples
+        latency='low'    # Request low latency
+    )
+    stream.start()
     
     # Make streaming request to API
     try:
@@ -38,8 +47,8 @@ def play_streaming_tts(text: str, output_file: str = None, voice: str = "af"):
         response.raise_for_status()
         print(f"Request started successfully after {time.time() - start_time:.2f}s")
         
-        # Process streaming response
-        for chunk in response.iter_content(chunk_size=1024):
+        # Process streaming response with smaller chunks for lower latency
+        for chunk in response.iter_content(chunk_size=512):  # 512 bytes = 256 samples at 16-bit
             if chunk:
                 chunk_count += 1
                 total_bytes += len(chunk)
@@ -49,40 +58,15 @@ def play_streaming_tts(text: str, output_file: str = None, voice: str = "af"):
                     first_chunk_time = time.time()
                     print(f"\nReceived first chunk after {first_chunk_time - start_time:.2f}s")
                     print(f"First chunk size: {len(chunk)} bytes")
-                    
-                    # Accumulate raw audio data
-                    all_audio_data.extend(chunk)
-                    
-                    # Convert PCM to float32 for playback
-                    audio_data = np.frombuffer(chunk, dtype=np.int16).astype(np.float32)
-                    # Scale to [-1, 1] range for sounddevice
-                    audio_data = audio_data / 32768.0
-                    
-                    # Start audio stream
-                    stream = sd.OutputStream(
-                        samplerate=sample_rate,
-                        channels=1,
-                        dtype=np.float32
-                    )
-                    stream.start()
                     audio_started = True
-                    print("Audio playback started")
-                    
-                    # Play first chunk
-                    if len(audio_data) > 0:
-                        stream.write(audio_data)
-                    
-                # Handle subsequent chunks
-                else:
-                    # Accumulate raw audio data
-                    all_audio_data.extend(chunk)
-                    
-                    # Convert PCM to float32 for playback
-                    audio_data = np.frombuffer(chunk, dtype=np.int16).astype(np.float32)
-                    audio_data = audio_data / 32768.0
-                    if len(audio_data) > 0:
-                        stream.write(audio_data)
-                        
+                
+                # Convert bytes to numpy array and play
+                audio_chunk = np.frombuffer(chunk, dtype=np.int16)
+                stream.write(audio_chunk)
+                
+                # Accumulate raw audio data
+                all_audio_data.extend(chunk)
+                
                 # Log progress every 10 chunks
                 if chunk_count % 10 == 0:
                     elapsed = time.time() - start_time
@@ -107,20 +91,17 @@ def play_streaming_tts(text: str, output_file: str = None, voice: str = "af"):
             print(f"Saved {len(all_audio_data)} bytes of audio data")
         
         # Clean up
-        if stream is not None:
-            stream.stop()
-            stream.close()
+        stream.stop()
+        stream.close()
             
     except requests.exceptions.ConnectionError as e:
         print(f"Connection error - Is the server running? Error: {str(e)}")
-        if stream is not None:
-            stream.stop()
-            stream.close()
+        stream.stop()
+        stream.close()
     except Exception as e:
         print(f"Error during streaming: {str(e)}")
-        if stream is not None:
-            stream.stop()
-            stream.close()
+        stream.stop()
+        stream.close()
 
 def main():
     # Load sample text from HG Wells

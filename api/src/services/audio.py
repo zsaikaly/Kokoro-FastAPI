@@ -14,17 +14,15 @@ class AudioNormalizer:
     
     def normalize(self, audio_data: np.ndarray) -> np.ndarray:
         """Normalize audio data to int16 range"""
-        # Convert to float64 for accurate scaling
-        audio_float = audio_data.astype(np.float64)
+        # Convert to float32 if not already
+        audio_float = audio_data.astype(np.float32)
         
-        # Scale to int16 range while preserving relative amplitudes
-        max_val = np.abs(audio_float).max()
-        if max_val > 0:
-            scaling = self.int16_max / max_val
-            audio_float *= scaling
-        
-        # Clip to int16 range and convert
-        return np.clip(audio_float, -self.int16_max, self.int16_max).astype(np.int16)
+        # Normalize to [-1, 1] range first
+        if np.max(np.abs(audio_float)) > 0:
+            audio_float = audio_float / np.max(np.abs(audio_float))
+            
+        # Scale to int16 range
+        return (audio_float * self.int16_max).astype(np.int16)
 
 class AudioService:
     """Service for audio format conversions"""
@@ -51,11 +49,10 @@ class AudioService:
         buffer = BytesIO()
 
         try:
-            # Normalize audio if normalizer provided, otherwise just convert to int16
-            if normalizer is not None:
-                normalized_audio = normalizer.normalize(audio_data)
-            else:
-                normalized_audio = audio_data.astype(np.int16)
+            # Always normalize audio to ensure proper amplitude scaling
+            if normalizer is None:
+                normalizer = AudioNormalizer()
+            normalized_audio = normalizer.normalize(audio_data)
 
             if output_format == "pcm":
                 logger.info("Writing PCM data...")
@@ -68,8 +65,7 @@ class AudioService:
             elif output_format in ["mp3", "aac"]:
                 logger.info(f"Converting to {output_format.upper()} format...")
                 # Use lower bitrate for streaming
-                sf.write(buffer, normalized_audio, sample_rate, format=output_format.upper(), 
-                        subtype='COMPRESSED')
+                sf.write(buffer, normalized_audio, sample_rate, format=output_format.upper())
             elif output_format == "opus":
                 logger.info("Converting to Opus format...")
                 # Use lower bitrate and smaller frame size for streaming
