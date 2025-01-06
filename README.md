@@ -250,7 +250,7 @@ Benchmarking was performed on generation via the local API using text lengths up
 </p>
 
 Key Performance Metrics:
-- Realtime Factor: Ranges between 35-49x (generation time to output audio length)
+- Realtime Speed: Ranges between 25-50x (generation time to output audio length)
 - Average Processing Rate: 137.67 tokens/second (cl100k_base)
 </details>
 <details>
@@ -263,7 +263,7 @@ docker compose up --build
 # CPU: ONNX optimized inference (~2.4x realtime speed)
 docker compose -f docker-compose.cpu.yml up --build
 ```
-
+*Note: Overall speed may have reduced somewhat with the structural changes to accomodate streaming. Looking into it* 
 </details>
 
 <details>
