@@ -56,8 +56,10 @@ services:
 
   # Gradio UI service [Comment out everything below if you don't need it]
   gradio-ui:
-    build:
-      context: ./ui
+    image: ghcr.io/remsky/kokoro-fastapi:latest-ui
+    # Uncomment below to build from source instead of using the released image
+    # build:
+    #   context: ./ui
     ports:
       - "7860:7860"
     volumes:

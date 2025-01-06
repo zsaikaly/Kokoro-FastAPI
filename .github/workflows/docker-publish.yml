@@ -35,9 +35,10 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=semver,pattern=v{{version}}
+            type=semver,pattern=v{{major}}.{{minor}}
+            type=semver,pattern=v{{major}}
+            type=raw,value=latest
 
       # Extract metadata for CPU image
       - name: Extract metadata (tags, labels) for CPU Docker
@@ -48,9 +49,10 @@ jobs:
           flavor: |
             suffix=-cpu
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=semver,pattern=v{{version}}-cpu
+            type=semver,pattern=v{{major}}.{{minor}}-cpu
+            type=semver,pattern=v{{major}}-cpu
+            type=raw,value=latest-cpu
 
       # Build and push GPU version
       - name: Build and push GPU Docker image
@@ -83,9 +85,10 @@ jobs:
           flavor: |
             suffix=-ui
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
+            type=semver,pattern=v{{version}}-ui
+            type=semver,pattern=v{{major}}.{{minor}}-ui
+            type=semver,pattern=v{{major}}-ui
+            type=raw,value=latest-ui
 
       # Build and push UI version
       - name: Build and push UI Docker image
