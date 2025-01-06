@@ -1,19 +1,30 @@
 import os
 import json
 import time
+
 import pandas as pd
-from examples.assorted_checks.lib.shared_plotting import plot_system_metrics, plot_correlation
+
 from examples.assorted_checks.lib.shared_utils import (
-    get_system_metrics, save_json_results, write_benchmark_stats
+    save_json_results,
+    get_system_metrics,
+    write_benchmark_stats,
+)
+from examples.assorted_checks.lib.shared_plotting import (
+    plot_correlation,
+    plot_system_metrics,
 )
 from examples.assorted_checks.lib.shared_benchmark_utils import (
-    get_text_for_tokens, make_tts_request, generate_token_sizes, enc
+    enc,
+    make_tts_request,
+    get_text_for_tokens,
+    generate_token_sizes,
 )
 
 
 def main():
     # Get optional prefix from first command line argument
     import sys
+
     prefix = sys.argv[1] if len(sys.argv) > 1 else ""
 
     # Set up paths relative to this file
@@ -21,7 +32,7 @@ def main():
     output_dir = os.path.join(script_dir, "output_audio")
     output_data_dir = os.path.join(script_dir, "output_data")
     output_plots_dir = os.path.join(script_dir, "output_plots")
-    
+
     # Create output directories
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(output_data_dir, exist_ok=True)
@@ -42,7 +53,6 @@ def main():
     # Get total tokens in file
     total_tokens = len(enc.encode(text))
     print(f"Total tokens in file: {total_tokens}")
-
 
     token_sizes = generate_token_sizes(total_tokens)
 
@@ -85,7 +95,7 @@ def main():
         # Save intermediate results
         save_json_results(
             {"results": results, "system_metrics": system_metrics},
-            prefix_path(output_data_dir, "benchmark_results.json")
+            prefix_path(output_data_dir, "benchmark_results.json"),
         )
 
     # Create DataFrame and calculate stats
@@ -102,53 +112,59 @@ def main():
         {
             "title": "Benchmark Statistics",
             "stats": {
-                "Total tokens processed": df['tokens'].sum(),
-                "Total audio generated (s)": df['output_length'].sum(),
-                "Total test duration (s)": df['elapsed_time'].max(),
-                "Average processing rate (tokens/s)": df['tokens_per_second'].mean(),
-                "Average realtime factor": df['realtime_factor'].mean()
-            }
+                "Total tokens processed": df["tokens"].sum(),
+                "Total audio generated (s)": df["output_length"].sum(),
+                "Total test duration (s)": df["elapsed_time"].max(),
+                "Average processing rate (tokens/s)": df["tokens_per_second"].mean(),
+                "Average realtime factor": df["realtime_factor"].mean(),
+            },
         },
         {
             "title": "Per-chunk Stats",
             "stats": {
-                "Average chunk size (tokens)": df['tokens'].mean(),
-                "Min chunk size (tokens)": df['tokens'].min(),
-                "Max chunk size (tokens)": df['tokens'].max(),
-                "Average processing time (s)": df['processing_time'].mean(),
-                "Average output length (s)": df['output_length'].mean()
-            }
+                "Average chunk size (tokens)": df["tokens"].mean(),
+                "Min chunk size (tokens)": df["tokens"].min(),
+                "Max chunk size (tokens)": df["tokens"].max(),
+                "Average processing time (s)": df["processing_time"].mean(),
+                "Average output length (s)": df["output_length"].mean(),
+            },
         },
         {
             "title": "Performance Ranges",
             "stats": {
                 "Processing rate range (tokens/s)": f"{df['tokens_per_second'].min():.2f} - {df['tokens_per_second'].max():.2f}",
-                "Realtime factor range": f"{df['realtime_factor'].min():.2f}x - {df['realtime_factor'].max():.2f}x"
-            }
-        }
+                "Realtime factor range": f"{df['realtime_factor'].min():.2f}x - {df['realtime_factor'].max():.2f}x",
+            },
+        },
     ]
     write_benchmark_stats(stats, prefix_path(output_data_dir, "benchmark_stats.txt"))
 
     # Plot Processing Time vs Token Count
     plot_correlation(
-        df, "tokens", "processing_time",
+        df,
+        "tokens",
+        "processing_time",
         "Processing Time vs Input Size",
         "Number of Input Tokens",
         "Processing Time (seconds)",
-        prefix_path(output_plots_dir, "processing_time.png")
+        prefix_path(output_plots_dir, "processing_time.png"),
     )
 
     # Plot Realtime Factor vs Token Count
     plot_correlation(
-        df, "tokens", "realtime_factor",
+        df,
+        "tokens",
+        "realtime_factor",
         "Realtime Factor vs Input Size",
         "Number of Input Tokens",
         "Realtime Factor (output length / processing time)",
-        prefix_path(output_plots_dir, "realtime_factor.png")
+        prefix_path(output_plots_dir, "realtime_factor.png"),
     )
 
     # Plot system metrics
-    plot_system_metrics(system_metrics, prefix_path(output_plots_dir, "system_usage.png"))
+    plot_system_metrics(
+        system_metrics, prefix_path(output_plots_dir, "system_usage.png")
+    )
 
     print("\nResults saved to:")
     print(f"- {prefix_path(output_data_dir, 'benchmark_results.json')}")

@@ -22,10 +22,11 @@ async def lifespan(app: FastAPI):
     logger.info("Loading TTS model and voice packs...")
 
     # Initialize the main model with warm-up
-    voicepack_count = TTSModel.setup()
+    voicepack_count = await TTSModel.setup()
     # boundary = "█████╗"*9
-    boundary = "░" * 30
+    boundary = "░" * 24
     startup_msg =f"""
+
 {boundary}
 
     ╔═╗┌─┐┌─┐┌┬┐
@@ -37,8 +38,9 @@ async def lifespan(app: FastAPI):
 
 {boundary}
                 """
-    startup_msg += f"\nModel loaded and warmed up on {TTSModel.get_device()}"
-    startup_msg += f"\n{voicepack_count} voice packs loaded successfully\n"
+    # TODO: Improve CPU warmup, threads, memory, etc
+    startup_msg += f"\nModel warmed up on {TTSModel.get_device()}"
+    startup_msg += f"\n{voicepack_count} voice packs loaded\n"
     startup_msg += f"\n{boundary}\n"
     logger.info(startup_msg)
 

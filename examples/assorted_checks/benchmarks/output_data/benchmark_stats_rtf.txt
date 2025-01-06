@@ -1,9 +1,0 @@
-=== Benchmark Statistics (with correct RTF) ===
-
-Overall Stats:
-Total tokens processed: 150850
-Total audio generated: 46786.59s
-Total test duration: 2012.90s
-Average processing rate: 104.34 tokens/second
-Average RTF: 0.03x
-

@@ -2,7 +2,7 @@ services:
   model-fetcher:
     image: datamachines/git-lfs:latest
     environment:
-      - SKIP_MODEL_FETCH=${SKIP_MODEL_FETCH:-true}
+      - SKIP_MODEL_FETCH=${SKIP_MODEL_FETCH:-false}
     volumes:
       - ./Kokoro-82M:/app/Kokoro-82M
     working_dir: /app/Kokoro-82M
@@ -32,10 +32,10 @@ services:
       start_period: 1s
 
   kokoro-tts:
-    image: ghcr.io/remsky/kokoro-fastapi:latest
+    # image: ghcr.io/remsky/kokoro-fastapi:latest
     # Uncomment below to build from source instead of using the released image
-    # build:
-    #   context: .
+    build:
+      context: .
     volumes:
       - ./api/src:/app/api/src
       - ./Kokoro-82M:/app/Kokoro-82M
@@ -54,14 +54,14 @@ services:
       model-fetcher:
         condition: service_healthy
 
-  # # Gradio UI service [Comment out everything below if you don't need it]
-  # gradio-ui:
-  #   build:
-  #     context: ./ui
-  #   ports:
-  #     - "7860:7860"
-  #   volumes:
-  #     - ./ui/data:/app/ui/data
-  #     - ./ui/app.py:/app/app.py  # Mount app.py for hot reload
-  #   environment:
-  #     - GRADIO_WATCH=True  # Enable hot reloading
+  # Gradio UI service [Comment out everything below if you don't need it]
+  gradio-ui:
+    build:
+      context: ./ui
+    ports:
+      - "7860:7860"
+    volumes:
+      - ./ui/data:/app/ui/data
+      - ./ui/app.py:/app/app.py  # Mount app.py for hot reload
+    environment:
+      - GRADIO_WATCH=True  # Enable hot reloading

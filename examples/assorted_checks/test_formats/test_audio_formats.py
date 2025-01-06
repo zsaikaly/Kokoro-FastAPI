@@ -66,26 +66,27 @@ def plot_format_comparison(stats: list, output_dir: str):
     for i, stat in enumerate(stats):
         format_name = stat["format"].upper()
         try:
-            # Handle PCM format differently
-            if stat["format"] == "pcm":
-                # Read raw PCM data (16-bit mono)
-                with open(
-                    os.path.join(output_dir, f"test_audio.{stat['format']}"), "rb"
-                ) as f:
-                    raw_data = f.read()
-                data = np.frombuffer(raw_data, dtype=np.int16)
-                data = data.astype(np.float32) / 32768.0  # Convert to float [-1, 1]
-                sr = 24000
-            else:
-                # Read other formats with soundfile
-                data, sr = sf.read(
-                    os.path.join(output_dir, f"test_audio.{stat['format']}")
-                )
+            file_path = os.path.join(output_dir, f"test_audio.{stat['format']}")
 
-            # Plot waveform
+            if stat["format"] == "wav":
+                # Use scipy.io.wavfile for WAV files
+                sr, data = wavfile.read(file_path)
+                data = data.astype(np.float32) / 32768.0  # Convert to float [-1, 1]
+            elif stat["format"] == "pcm":
+                # Read raw 16-bit signed little-endian PCM data at 24kHz
+                data = np.frombuffer(
+                    open(file_path, "rb").read(), dtype="<i2"
+                )  # '<i2' means little-endian 16-bit signed int
+                data = data.astype(np.float32) / 32768.0  # Convert to float [-1, 1]
+                sr = 24000  # Known sample rate for our endpoint
+            else:
+                # Use soundfile for other formats (mp3, opus, flac)
+                data, sr = sf.read(file_path)
+
+            # Plot waveform with consistent normalization
             ax = plt.subplot(gs_waves[i])
             time = np.arange(len(data)) / sr
-            plt.plot(time, data / np.max(np.abs(data)), linewidth=0.5, color="#ff2a6d")
+            plt.plot(time, data, linewidth=0.5, color="#ff2a6d")
             ax.set_xlabel("Time (seconds)")
             ax.set_ylabel("")
             ax.set_ylim(-1.1, 1.1)
@@ -200,41 +201,42 @@ def get_audio_stats(file_path: str) -> dict:
     """Get audio file statistics"""
     file_size = os.path.getsize(file_path)
     file_size_kb = file_size / 1024  # Convert to KB
+    format_name = Path(file_path).suffix[1:]
 
-    try:
-        # Try reading with soundfile first
+    if format_name == "wav":
+        # Use scipy.io.wavfile for WAV files
+        sample_rate, data = wavfile.read(file_path)
+        data = data.astype(np.float32) / 32768.0  # Convert to float [-1, 1]
+        duration = len(data) / sample_rate
+        channels = 1 if len(data.shape) == 1 else data.shape[1]
+    elif format_name == "pcm":
+        # For PCM, read raw 16-bit signed little-endian PCM data at 24kHz
+        data = np.frombuffer(
+            open(file_path, "rb").read(), dtype="<i2"
+        )  # '<i2' means little-endian 16-bit signed int
+        data = data.astype(np.float32) / 32768.0  # Normalize to [-1, 1]
+        sample_rate = 24000  # Known sample rate for our endpoint
+        duration = len(data) / sample_rate
+        channels = 1
+    else:
+        # Use soundfile for other formats (mp3, opus, flac)
         data, sample_rate = sf.read(file_path)
         duration = len(data) / sample_rate
         channels = 1 if len(data.shape) == 1 else data.shape[1]
 
-        # Calculate audio statistics
-        stats = {
-            "format": Path(file_path).suffix[1:],
-            "file_size_kb": round(file_size_kb, 2),
-            "duration_seconds": round(duration, 2),
-            "sample_rate": sample_rate,
-            "channels": channels,
-            "min_amplitude": float(np.min(data)),
-            "max_amplitude": float(np.max(data)),
-            "mean_amplitude": float(np.mean(np.abs(data))),
-            "rms_amplitude": float(np.sqrt(np.mean(np.square(data)))),
-        }
-        return stats
-    except:
-        # For PCM, read raw bytes and estimate duration
-        with open(file_path, "rb") as f:
-            data = f.read()
-            # Assuming 16-bit PCM mono at 24kHz
-            samples = len(data) // 2  # 2 bytes per sample
-            duration = samples / 24000
-            return {
-                "format": "pcm",
-                "file_size_kb": round(file_size_kb, 2),
-                "duration_seconds": round(duration, 2),
-                "sample_rate": 24000,
-                "channels": 1,
-                "note": "PCM stats are estimated from raw bytes",
-            }
+    # Calculate audio statistics
+    stats = {
+        "format": format_name,
+        "file_size_kb": round(file_size_kb, 2),
+        "duration_seconds": round(duration, 2),
+        "sample_rate": sample_rate,
+        "channels": channels,
+        "min_amplitude": float(np.min(data)),
+        "max_amplitude": float(np.max(data)),
+        "mean_amplitude": float(np.mean(np.abs(data))),
+        "rms_amplitude": float(np.sqrt(np.mean(np.square(data)))),
+    }
+    return stats
 
 
 def main():
@@ -254,13 +256,49 @@ def main():
 
         # Generate and save
         start_time = time.time()
-        response = client.audio.speech.create(
-            model="kokoro", voice=voice, input=SAMPLE_TEXT, response_format=fmt
+
+        # Use requests with stream=False for consistent data handling
+        response = requests.post(
+            "http://localhost:8880/v1/audio/speech",
+            json={
+                "model": "kokoro",
+                "voice": voice,
+                "input": SAMPLE_TEXT,
+                "response_format": fmt,
+                "stream": False,  # Explicitly disable streaming to get single complete chunk
+            },
+            stream=False,
+            headers={"Accept": f"audio/{fmt}"},  # Explicitly request audio format
         )
         generation_time = time.time() - start_time
 
-        with open(output_path, "wb") as f:
-            f.write(response.content)
+        print(f"\nResponse headers for {fmt}:")
+        for header, value in response.headers.items():
+            print(f"{header}: {value}")
+        print(f"Content length: {len(response.content)} bytes")
+        print(f"First few bytes: {response.content[:20].hex()}")
+
+        # Write the file and verify it was written correctly
+        try:
+            with open(output_path, "wb") as f:
+                f.write(response.content)
+
+            # Verify file was written
+            if not output_path.exists():
+                raise Exception(f"Failed to write {fmt} file")
+
+            # Check file size matches content length
+            written_size = output_path.stat().st_size
+            if written_size != len(response.content):
+                raise Exception(
+                    f"File size mismatch: expected {len(response.content)} bytes, got {written_size}"
+                )
+
+            print(f"Successfully wrote {fmt} file")
+
+        except Exception as e:
+            print(f"Error writing {fmt} file: {e}")
+            continue
 
         # Get stats
         file_stats = get_audio_stats(str(output_path))

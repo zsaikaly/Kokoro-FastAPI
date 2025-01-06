@@ -129,7 +129,7 @@ response = requests.post(
 )
 ```
 <p align="center">
-  <img src="examples/benchmarks/analysis_comparison.png" width="80%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
+  <img src="assets/voice_analysis.png" width="80%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
 </p>
 </details>
 
@@ -144,7 +144,7 @@ response = requests.post(
 - pcm
 
 <p align="center">
-<img src="examples/benchmarks/format_comparison.png" width="80%" alt="Audio Format Comparison" style="border: 2px solid #333; padding: 10px;">
+<img src="assets/format_comparison.png" width="80%" alt="Audio Format Comparison" style="border: 2px solid #333; padding: 10px;">
 </p>
 
 </details>
@@ -175,8 +175,8 @@ Benchmarking was performed on generation via the local API using text lengths up
 - H.G. Wells - The Time Machine (full text)
 
 <p align="center">
-  <img src="examples/benchmarks/processing_time.png" width="45%" alt="Processing Time" style="border: 2px solid #333; padding: 10px; margin-right: 1%;">
-  <img src="examples/benchmarks/realtime_factor.png" width="45%" alt="Realtime Factor" style="border: 2px solid #333; padding: 10px;">
+  <img src="assets/gpu_processing_time.png" width="45%" alt="Processing Time" style="border: 2px solid #333; padding: 10px; margin-right: 1%;">
+  <img src="assets/gpu_realtime_factor.png" width="45%" alt="Realtime Factor" style="border: 2px solid #333; padding: 10px;">
 </p>
 
 Key Performance Metrics:

@@ -16,13 +16,14 @@ def test_get_device_error():
     with pytest.raises(RuntimeError, match="Model not initialized"):
         TTSBaseModel.get_device()
 
+@pytest.mark.asyncio
 @patch('torch.cuda.is_available')
 @patch('os.path.exists')
 @patch('os.path.join')
 @patch('os.listdir')
 @patch('torch.load')
 @patch('torch.save')
-def test_setup_cuda_available(mock_save, mock_load, mock_listdir, mock_join, mock_exists, mock_cuda_available):
+async def test_setup_cuda_available(mock_save, mock_load, mock_listdir, mock_join, mock_exists, mock_cuda_available):
     """Test setup with CUDA available"""
     TTSBaseModel._device = None
     mock_cuda_available.return_value = True
@@ -36,17 +37,18 @@ def test_setup_cuda_available(mock_save, mock_load, mock_listdir, mock_join, moc
     TTSBaseModel.process_text = MagicMock(return_value=("dummy", [1,2,3]))
     TTSBaseModel.generate_from_tokens = MagicMock(return_value=np.zeros(1000))
     
-    voice_count = TTSBaseModel.setup()
+    voice_count = await TTSBaseModel.setup()
     assert TTSBaseModel._device == "cuda"
     assert voice_count == 2
 
+@pytest.mark.asyncio
 @patch('torch.cuda.is_available')
 @patch('os.path.exists')
 @patch('os.path.join')
 @patch('os.listdir')
 @patch('torch.load')
 @patch('torch.save')
-def test_setup_cuda_unavailable(mock_save, mock_load, mock_listdir, mock_join, mock_exists, mock_cuda_available):
+async def test_setup_cuda_unavailable(mock_save, mock_load, mock_listdir, mock_join, mock_exists, mock_cuda_available):
     """Test setup with CUDA unavailable"""
     TTSBaseModel._device = None
     mock_cuda_available.return_value = False
@@ -60,7 +62,7 @@ def test_setup_cuda_unavailable(mock_save, mock_load, mock_listdir, mock_join, m
     TTSBaseModel.process_text = MagicMock(return_value=("dummy", [1,2,3]))
     TTSBaseModel.generate_from_tokens = MagicMock(return_value=np.zeros(1000))
     
-    voice_count = TTSBaseModel.setup()
+    voice_count = await TTSBaseModel.setup()
     assert TTSBaseModel._device == "cpu"
     assert voice_count == 2
 

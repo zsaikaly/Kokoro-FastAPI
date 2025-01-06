@@ -15,7 +15,7 @@ class TTSBaseModel(ABC):
     VOICES_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "voices")
 
     @classmethod
-    def setup(cls):
+    async def setup(cls):
         """Initialize model and setup voices"""
         with cls._lock:
             # Set device
@@ -59,19 +59,23 @@ class TTSBaseModel(ABC):
                             except Exception as e:
                                 logger.error(f"Error copying voice {voice_name}: {str(e)}")
 
-            # Warm up with default voice
+            # Load warmup text
             try:
-                dummy_text = "Hello"
-                voice_path = os.path.join(cls.VOICES_DIR, "af.pt")
-                dummy_voicepack = torch.load(voice_path, map_location=cls._device, weights_only=True)
-                
-                # Process text and generate audio
-                phonemes, tokens = cls.process_text(dummy_text, "a")
-                cls.generate_from_tokens(tokens, dummy_voicepack, 1.0)
-                
-                logger.info("Model warm-up complete")
+                with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "core", "don_quixote.txt")) as f:
+                    warmup_text = f.read()
             except Exception as e:
-                logger.warning(f"Model warm-up failed: {e}")
+                logger.warning(f"Failed to load warmup text: {e}")
+                warmup_text = "This is a warmup text that will be split into chunks for processing."
+
+            # Use warmup service
+            from .warmup import WarmupService
+            warmup = WarmupService()
+            
+            # Load and warm up voices
+            loaded_voices = warmup.load_voices()
+            await warmup.warmup_voices(warmup_text, loaded_voices)
+            
+            logger.info("Model warm-up complete")
 
             # Count voices in directory
             voice_count = len([f for f in os.listdir(cls.VOICES_DIR) if f.endswith(".pt")])

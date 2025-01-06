@@ -1,7 +1,8 @@
-from unittest.mock import Mock
+from unittest.mock import Mock, AsyncMock
 
 import pytest
 import pytest_asyncio
+import asyncio
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
@@ -22,6 +23,12 @@ async def async_client():
 def mock_tts_service(monkeypatch):
     mock_service = Mock()
     mock_service._generate_audio.return_value = (bytes([0, 1, 2, 3]), 1.0)
+    
+    # Create proper async generator mock
+    async def mock_stream(*args, **kwargs):
+        for chunk in [b"chunk1", b"chunk2"]:
+            yield chunk
+    mock_service.generate_audio_stream = mock_stream
     mock_service.list_voices.return_value = [
         "af",
         "bm_lewis",
@@ -65,6 +72,7 @@ def test_openai_speech_endpoint(mock_tts_service, mock_audio_service):
         "voice": "bm_lewis",
         "response_format": "wav",
         "speed": 1.0,
+        "stream": False  # Explicitly disable streaming
     }
     response = client.post("/v1/audio/speech", json=test_request)
     assert response.status_code == 200
@@ -84,6 +92,7 @@ def test_openai_speech_invalid_voice(mock_tts_service):
         "voice": "invalid_voice",
         "response_format": "wav",
         "speed": 1.0,
+        "stream": False  # Explicitly disable streaming
     }
     response = client.post("/v1/audio/speech", json=test_request)
     assert response.status_code == 400  # Bad request
@@ -98,6 +107,7 @@ def test_openai_speech_invalid_speed(mock_tts_service):
         "voice": "af",
         "response_format": "wav",
         "speed": -1.0,  # Invalid speed
+        "stream": False  # Explicitly disable streaming
     }
     response = client.post("/v1/audio/speech", json=test_request)
     assert response.status_code == 422  # Validation error
@@ -112,6 +122,7 @@ def test_openai_speech_generation_error(mock_tts_service):
         "voice": "af",
         "response_format": "wav",
         "speed": 1.0,
+        "stream": False  # Explicitly disable streaming
     }
     response = client.post("/v1/audio/speech", json=test_request)
     assert response.status_code == 500
@@ -171,13 +182,14 @@ async def test_openai_speech_pcm_streaming(mock_tts_service, async_client):
         "input": "Hello world",
         "voice": "af",
         "response_format": "pcm",
+        "stream": True
     }
     
-    # Mock streaming response
-    async def mock_stream():
-        yield b"chunk1"
-        yield b"chunk2"
-    mock_tts_service.generate_audio_stream.return_value = mock_stream()
+    # Create streaming mock for this test
+    async def mock_stream(*args, **kwargs):
+        for chunk in [b"chunk1", b"chunk2"]:
+            yield chunk
+    mock_tts_service.generate_audio_stream = mock_stream
     
     # Add streaming header
     headers = {"x-raw-response": "stream"}
@@ -198,13 +210,14 @@ async def test_openai_speech_streaming_mp3(mock_tts_service, async_client):
         "input": "Hello world",
         "voice": "af",
         "response_format": "mp3",
+        "stream": True
     }
     
-    # Mock streaming response
-    async def mock_stream():
-        yield b"mp3header"
-        yield b"mp3data"
-    mock_tts_service.generate_audio_stream.return_value = mock_stream()
+    # Create streaming mock for this test
+    async def mock_stream(*args, **kwargs):
+        for chunk in [b"mp3header", b"mp3data"]:
+            yield chunk
+    mock_tts_service.generate_audio_stream = mock_stream
     
     # Add streaming header
     headers = {"x-raw-response": "stream"}
@@ -227,14 +240,14 @@ async def test_openai_speech_streaming_generator(mock_tts_service, async_client)
         "input": "Hello world",
         "voice": "af",
         "response_format": "pcm",
+        "stream": True
     }
     
-    # Mock streaming response
-    async def mock_stream():
-        yield b"chunk1"
-        yield b"chunk2"
-    
-    mock_tts_service.generate_audio_stream.return_value = mock_stream()
+    # Create streaming mock for this test
+    async def mock_stream(*args, **kwargs):
+        for chunk in [b"chunk1", b"chunk2"]:
+            yield chunk
+    mock_tts_service.generate_audio_stream = mock_stream
     
     # Add streaming header
     headers = {"x-raw-response": "stream"}

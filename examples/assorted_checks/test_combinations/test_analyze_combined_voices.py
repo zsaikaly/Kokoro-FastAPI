@@ -73,6 +73,7 @@ def generate_speech(
                 "voice": voice,
                 "speed": 1.0,
                 "response_format": "wav",  # Use WAV for analysis
+                "stream": False,
             },
         )
 
@@ -193,9 +194,10 @@ def plot_analysis(audio_files: Dict[str, str], output_dir: str):
     fig.patch.set_facecolor("#1a1a2e")
     num_files = len(audio_files)
 
-    # Create subplot grid with proper spacing
+    # Create subplot grid with proper spacing for waveforms and metrics
+    total_rows = num_files + 2  # Add one more row for metrics
     gs = plt.GridSpec(
-        num_files + 1, 2, height_ratios=[1.5] * num_files + [1], hspace=0.4, wspace=0.3
+        total_rows, 2, height_ratios=[1.5] * num_files + [1, 1], hspace=0.4, wspace=0.3
     )
 
     # Analyze all files first
@@ -216,48 +218,74 @@ def plot_analysis(audio_files: Dict[str, str], output_dir: str):
     # Colors for voices
     colors = ["#ff2a6d", "#05d9e8", "#d1f7ff"]
 
-    # Create two subplots for metrics with similar scales
-    # Left subplot: Brightness and Volume
-    ax1 = plt.subplot(gs[num_files, 0])
-    metrics1 = [
+    # Create metrics for each subplot
+    metrics = [
         (
-            "Brightness",
-            [chars["spectral_centroid"] / 1000 for chars in all_chars.values()],
-            "kHz",
+            plt.subplot(gs[num_files, 0]),
+            [
+                (
+                    "Volume",
+                    [chars["rms"] * 100 for chars in all_chars.values()],
+                    "RMS×100",
+                )
+            ],
         ),
-        ("Volume", [chars["rms"] * 100 for chars in all_chars.values()], "RMS×100"),
+        (
+            plt.subplot(gs[num_files, 1]),
+            [
+                (
+                    "Brightness",
+                    [chars["spectral_centroid"] / 1000 for chars in all_chars.values()],
+                    "kHz",
+                )
+            ],
+        ),
+        (
+            plt.subplot(gs[num_files + 1, 0]),
+            [
+                (
+                    "Voice Pitch",
+                    [
+                        min(chars["dominant_frequencies"])
+                        for chars in all_chars.values()
+                    ],
+                    "Hz",
+                )
+            ],
+        ),
+        (
+            plt.subplot(gs[num_files + 1, 1]),
+            [
+                (
+                    "Texture",
+                    [
+                        chars["zero_crossing_rate"] * 1000
+                        for chars in all_chars.values()
+                    ],
+                    "ZCR×1000",
+                )
+            ],
+        ),
     ]
 
-    # Right subplot: Voice Pitch and Texture
-    ax2 = plt.subplot(gs[num_files, 1])
-    metrics2 = [
-        (
-            "Voice Pitch",
-            [min(chars["dominant_frequencies"]) for chars in all_chars.values()],
-            "Hz",
-        ),
-        (
-            "Texture",
-            [chars["zero_crossing_rate"] * 1000 for chars in all_chars.values()],
-            "ZCR×1000",
-        ),
-    ]
-
-    def plot_grouped_bars(ax, metrics, show_legend=True):
-        n_groups = len(metrics)
+    # Plot each metric
+    for i, (ax, metric_data) in enumerate(metrics):
         n_voices = len(audio_files)
         bar_width = 0.25
+        indices = np.array([0])
 
-        indices = np.arange(n_groups)
+        values = metric_data[0][1]
+        max_val = max(values)
 
-        # Get max value for y-axis scaling
-        max_val = max(max(m[1]) for m in metrics)
-
-        for i, (voice, color) in enumerate(zip(audio_files.keys(), colors)):
-            values = [m[1][i] for m in metrics]
-            offset = (i - n_voices / 2 + 0.5) * bar_width
+        for j, (voice, color) in enumerate(zip(audio_files.keys(), colors)):
+            offset = (j - n_voices / 2 + 0.5) * bar_width
             bars = ax.bar(
-                indices + offset, values, bar_width, label=voice, color=color, alpha=0.8
+                indices + offset,
+                [values[j]],
+                bar_width,
+                label=voice,
+                color=color,
+                alpha=0.8,
             )
 
             # Add value labels on top of bars
@@ -274,12 +302,12 @@ def plot_analysis(audio_files: Dict[str, str], output_dir: str):
                 )
 
         ax.set_xticks(indices)
-        ax.set_xticklabels([f"{m[0]}\n({m[2]})" for m in metrics])
-
-        # Set y-axis limits with some padding
+        ax.set_xticklabels([f"{metric_data[0][0]}\n({metric_data[0][2]})"])
         ax.set_ylim(0, max_val * 1.2)
+        ax.set_ylabel("Value")
 
-        if show_legend:
+        # Only show legend on first metric plot
+        if i == 0:
             ax.legend(
                 bbox_to_anchor=(1.05, 1),
                 loc="upper left",
@@ -287,22 +315,11 @@ def plot_analysis(audio_files: Dict[str, str], output_dir: str):
                 edgecolor="#ffffff",
             )
 
-    # Plot both subplots
-    plot_grouped_bars(ax1, metrics1, show_legend=True)
-    plot_grouped_bars(ax2, metrics2, show_legend=False)
+        # Style the subplot
+        setup_plot(fig, ax, metric_data[0][0])
 
-    # Style both subplots
-    setup_plot(fig, ax1, "Brightness and Volume")
-    setup_plot(fig, ax2, "Voice Pitch and Texture")
-
-    # Add y-axis labels
-    ax1.set_ylabel("Value")
-    ax2.set_ylabel("Value")
-
-    # Adjust the figure size to accommodate the legend
-    fig.set_size_inches(15, 15)
-
-    # Add padding around the entire figure
+    # Adjust the figure size and padding
+    fig.set_size_inches(15, 20)
     plt.subplots_adjust(right=0.85, top=0.95, bottom=0.05, left=0.1)
     plt.savefig(os.path.join(output_dir, "analysis_comparison.png"), dpi=300)
     print(f"Saved analysis comparison to {output_dir}/analysis_comparison.png")
@@ -332,7 +349,7 @@ def main():
     )
     parser.add_argument("--url", default="http://localhost:8880", help="API base URL")
     parser.add_argument(
-        "--output-dir", 
+        "--output-dir",
         default="examples/assorted_checks/test_combinations/output",
         help="Output directory for audio files",
     )

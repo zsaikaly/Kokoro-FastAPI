@@ -83,8 +83,8 @@ async def create_speech(
                 audio, 
                 24000, 
                 request.response_format,
-                is_first_chunk=True
-            )
+                is_first_chunk=True,
+                stream=False)
 
             return Response(
                 content=content,
