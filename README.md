@@ -160,6 +160,8 @@ Access the interactive web UI at http://localhost:7860 after starting the servic
 If you only want the API, just comment out everything in the docker-compose.yml under and including `gradio-ui`
 
 Currently, voices created via the API are accessible here, but voice combination/creation has not yet been added
+
+*Note: Recent updates for streaming could lead to temporary glitches. If so, pull from the most recent stable release v0.0.2 to restore*
 </details>
 
 <details>
