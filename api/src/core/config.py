@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     onnx_model_path: str = "kokoro-v0_19.onnx"
     voices_dir: str = "voices"
     sample_rate: int = 24000
+    max_chunk_size: int = 300  # Maximum size of text chunks for processing
+    gap_trim_ms: int = 250  # Amount to trim from streaming chunk ends in milliseconds
     
     # ONNX Optimization Settings
     onnx_num_threads: int = 4  # Number of threads for intra-op parallelism

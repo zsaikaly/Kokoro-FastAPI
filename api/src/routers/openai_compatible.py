@@ -2,10 +2,12 @@ from typing import List
 
 from loguru import logger
 from fastapi import Depends, Response, APIRouter, HTTPException
-
+from fastapi import Header
+from fastapi.responses import StreamingResponse
 from ..services.tts_service import TTSService
 from ..services.audio import AudioService
 from ..structures.schemas import OpenAISpeechRequest
+from typing import AsyncGenerator
 
 router = APIRouter(
     tags=["OpenAI Compatible TTS"],
@@ -18,9 +20,23 @@ def get_tts_service() -> TTSService:
     return TTSService()  # Initialize TTSService with default settings
 
 
+async def stream_audio_chunks(tts_service: TTSService, request: OpenAISpeechRequest) -> AsyncGenerator[bytes, None]:
+    """Stream audio chunks as they're generated"""
+    async for chunk in tts_service.generate_audio_stream(
+        text=request.input,
+        voice=request.voice,
+        speed=request.speed,
+        output_format=request.response_format
+    ):
+        yield chunk
+
+
+
 @router.post("/audio/speech")
 async def create_speech(
-    request: OpenAISpeechRequest, tts_service: TTSService = Depends(get_tts_service)
+    request: OpenAISpeechRequest, 
+    tts_service: TTSService = Depends(get_tts_service),
+    x_raw_response: str = Header(None, alias="x-raw-response"),
 ):
     """OpenAI-compatible endpoint for text-to-speech"""
     try:
@@ -31,24 +47,53 @@ async def create_speech(
                 f"Voice '{request.voice}' not found. Available voices: {', '.join(sorted(available_voices))}"
             )
 
-        # Generate audio directly using TTSService's method
-        audio, _ = tts_service._generate_audio(
-            text=request.input,
-            voice=request.voice,
-            speed=request.speed,
-            stitch_long_output=True,
-        )
+        # Set content type based on format
+        content_type = {
+            "mp3": "audio/mpeg",
+            "opus": "audio/opus",
+            "aac": "audio/aac",
+            "flac": "audio/flac",
+            "wav": "audio/wav",
+            "pcm": "audio/pcm",
+        }.get(request.response_format, f"audio/{request.response_format}")
 
-        # Convert to requested format
-        content = AudioService.convert_audio(audio, 24000, request.response_format)
+        # Check if streaming is requested (default for OpenAI client)
+        if request.stream:
+            # Stream audio chunks as they're generated
+            return StreamingResponse(
+                stream_audio_chunks(tts_service, request),
+                media_type=content_type,
+                headers={
+                    "Content-Disposition": f"attachment; filename=speech.{request.response_format}",
+                    "X-Accel-Buffering": "no",  # Disable proxy buffering
+                    "Cache-Control": "no-cache",  # Prevent caching
+                },
+            )
+        else:
+            # Generate complete audio
+            audio, _ = tts_service._generate_audio(
+                text=request.input,
+                voice=request.voice,
+                speed=request.speed,
+                stitch_long_output=True,
+            )
 
-        return Response(
-            content=content,
-            media_type=f"audio/{request.response_format}",
-            headers={
-                "Content-Disposition": f"attachment; filename=speech.{request.response_format}"
-            },
-        )
+            # Convert to requested format
+            content = AudioService.convert_audio(
+                audio, 
+                24000, 
+                request.response_format,
+                is_first_chunk=True,
+                stream=False)
+
+            return Response(
+                content=content,
+                media_type=content_type,
+                headers={
+                    "Content-Disposition": f"attachment; filename=speech.{request.response_format}",
+                    "Cache-Control": "no-cache",  # Prevent caching
+                },
+            )
 
     except ValueError as e:
         logger.error(f"Invalid request: {str(e)}")

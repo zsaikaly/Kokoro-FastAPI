@@ -13,7 +13,7 @@ numpy==2.2.1
 scipy==1.14.1
 
 # Audio processing
-soundfile==0.12.1
+soundfile==0.13.0
 
 # Text processing
 phonemizer==3.3.0

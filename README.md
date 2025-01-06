@@ -10,10 +10,10 @@
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
 - OpenAI-compatible Speech endpoint, with voice combination functionality
 - NVIDIA GPU accelerated inference (or CPU) option
-- very fast generation time (~35x real time generation speed via 4060Ti)
+- very fast generation time (~30x real time speed via 4060Ti)
 - automatic chunking/stitching for long texts
+- streaming support w/ variable chunking to control latency
 - simple audio generation web ui utility
-
 
 
 ## Quick Start
@@ -129,7 +129,7 @@ response = requests.post(
 )
 ```
 <p align="center">
-  <img src="examples/benchmarks/analysis_comparison.png" width="80%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
+  <img src="assets/voice_analysis.png" width="80%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
 </p>
 </details>
 
@@ -144,7 +144,7 @@ response = requests.post(
 - pcm
 
 <p align="center">
-<img src="examples/benchmarks/format_comparison.png" width="80%" alt="Audio Format Comparison" style="border: 2px solid #333; padding: 10px;">
+<img src="assets/format_comparison.png" width="80%" alt="Audio Format Comparison" style="border: 2px solid #333; padding: 10px;">
 </p>
 
 </details>
@@ -162,6 +162,76 @@ If you only want the API, just comment out everything in the docker-compose.yml 
 Currently, voices created via the API are accessible here, but voice combination/creation has not yet been added
 </details>
 
+<details>
+<summary>Streaming Support</summary>
+
+```python
+# OpenAI-compatible streaming
+from openai import OpenAI
+client = OpenAI(
+    base_url="http://localhost:8880", api_key="not-needed")
+
+# Stream to file
+with client.audio.speech.with_streaming_response.create(
+    model="kokoro",
+    voice="af_bella",
+    input="Hello world!"
+) as response:
+    response.stream_to_file("output.mp3")
+
+# Stream to speakers (requires PyAudio)
+import pyaudio
+player = pyaudio.PyAudio().open(
+    format=pyaudio.paInt16, 
+    channels=1, 
+    rate=24000, 
+    output=True
+)
+
+with client.audio.speech.with_streaming_response.create(
+    model="kokoro",
+    voice="af_bella",
+    response_format="pcm",
+    input="Hello world!"
+) as response:
+    for chunk in response.iter_bytes(chunk_size=1024):
+        player.write(chunk)
+```
+
+Or via requests:
+```python
+import requests
+
+response = requests.post(
+    "http://localhost:8880/v1/audio/speech",
+    json={
+        "input": "Hello world!",
+        "voice": "af_bella",
+        "response_format": "pcm"
+    },
+    stream=True
+)
+
+for chunk in response.iter_content(chunk_size=1024):
+    if chunk:
+        # Process streaming chunks
+        pass
+```
+
+<p align="center">
+  <img src="assets/gpu_first_token_timeline_openai.png" width="45%" alt="GPU First Token Timeline" style="border: 2px solid #333; padding: 10px; margin-right: 1%;">
+  <img src="assets/cpu_first_token_timeline_stream_openai.png" width="45%" alt="CPU First Token Timeline" style="border: 2px solid #333; padding: 10px;">
+</p>
+
+Key Streaming Metrics:
+- First token latency @ chunksize
+    - ~300ms (GPU) @ 400 
+    - ~3500ms (CPU) @ 200 
+- Adjustable chunking settings for real-time playback 
+
+*Note: Artifacts in intonation can increase with smaller chunks*
+</details>
+
 ## Processing Details
 <details>
 <summary>Performance Benchmarks</summary>
@@ -175,8 +245,8 @@ Benchmarking was performed on generation via the local API using text lengths up
 - H.G. Wells - The Time Machine (full text)
 
 <p align="center">
-  <img src="examples/benchmarks/processing_time.png" width="45%" alt="Processing Time" style="border: 2px solid #333; padding: 10px; margin-right: 1%;">
-  <img src="examples/benchmarks/realtime_factor.png" width="45%" alt="Realtime Factor" style="border: 2px solid #333; padding: 10px;">
+  <img src="assets/gpu_processing_time.png" width="45%" alt="Processing Time" style="border: 2px solid #333; padding: 10px; margin-right: 1%;">
+  <img src="assets/gpu_realtime_factor.png" width="45%" alt="Realtime Factor" style="border: 2px solid #333; padding: 10px;">
 </p>
 
 Key Performance Metrics:

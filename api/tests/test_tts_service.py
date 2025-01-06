@@ -31,27 +31,6 @@ def sample_audio():
     return np.sin(2 * np.pi * frequency * t).astype(np.float32)
 
 
-def test_split_text(tts_service):
-    """Test text splitting into sentences"""
-    text = "First sentence. Second sentence! Third sentence?"
-    sentences = tts_service._split_text(text)
-    assert len(sentences) == 3
-    assert sentences[0] == "First sentence."
-    assert sentences[1] == "Second sentence!"
-    assert sentences[2] == "Third sentence?"
-
-
-def test_split_text_empty(tts_service):
-    """Test splitting empty text"""
-    assert tts_service._split_text("") == []
-
-
-def test_split_text_single_sentence(tts_service):
-    """Test splitting single sentence"""
-    text = "Just one sentence."
-    assert tts_service._split_text(text) == ["Just one sentence."]
-
-
 def test_audio_to_bytes(tts_service, sample_audio):
     """Test converting audio tensor to bytes"""
     audio_bytes = tts_service._audio_to_bytes(sample_audio)
@@ -152,7 +131,7 @@ def test_generate_audio_phonemize_error(
     mock_torch_load.return_value = torch.zeros((10, 24000))
     mock_generate.return_value = (None, None)
 
-    with pytest.raises(ValueError, match="No audio chunks were generated successfully"):
+    with pytest.raises(ValueError, match="No chunks were processed successfully"):
         tts_service._generate_audio("Test text", "af", 1.0)
 
 
@@ -185,7 +164,7 @@ def test_generate_audio_error(
     mock_exists.return_value = True
     mock_torch_load.return_value = torch.zeros((10, 24000))
 
-    with pytest.raises(ValueError, match="No audio chunks were generated successfully"):
+    with pytest.raises(ValueError, match="No chunks were processed successfully"):
         tts_service._generate_audio("Test text", "af", 1.0)
 
 
