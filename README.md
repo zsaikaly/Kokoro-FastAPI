@@ -3,17 +3,17 @@
 </p>
 
 # Kokoro TTS API
-[![Tests](https://img.shields.io/badge/tests-98%20passed-darkgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-73%25-darkgreen)]()
+[![Tests](https://img.shields.io/badge/tests-105%20passed-darkgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-74%25-darkgreen)]()
 [![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/c3b0d86e2a980e027ef71c28819ea02e351c2667) [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero)
 
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
-- OpenAI-compatible Speech endpoint, with voice combination functionality
+- OpenAI-compatible Speech endpoint, with inline voice combination functionality
 - NVIDIA GPU accelerated inference (or CPU) option
 - very fast generation time
   - ~  35x real time speed via 4060Ti, ~300ms latency
   - ~   6x real time spead via M3 Pro CPU, ~1000ms latency
-- streaming support w/ variable chunking control latency & artifacts
+- streaming support w/ variable chunking to control latency & artifacts
 - simple audio generation web ui utility
 
 
@@ -39,7 +39,7 @@ The service can be accessed through either the API endpoints or the Gradio web i
 
     response = client.audio.speech.create(
         model="kokoro", 
-        voice="af_bella",
+        voice="af_sky+af_bella", #single or multiple voicepack combo
         input="Hello world!",
         response_format="mp3"
     )
@@ -61,7 +61,7 @@ from openai import OpenAI
 client = OpenAI(base_url="http://localhost:8880", api_key="not-needed")
 response = client.audio.speech.create(
     model="kokoro",  # Not used but required for compatibility, also accepts library defaults
-    voice="af_bella",
+    voice="af_bella+af_sky",
     input="Hello world!",
     response_format="mp3"
 )
@@ -105,6 +105,7 @@ python examples/test_all_voices.py # Test all available voices
 
 - Averages model weights of any existing voicepacks
 - Saves generated voicepacks for future use
+- (new) Available through any endpoint, simply concatenate desired packs with "+"
 
 Combine voices and generate audio:
 ```python
@@ -119,12 +120,12 @@ response = requests.post(
 )
 combined_voice = response.json()["voice"]
 
-# Generate audio with combined voice
+# Generate audio with combined voice (or, simply pass multiple directly with `+` )
 response = requests.post(
     "http://localhost:8880/v1/audio/speech",
     json={
         "input": "Hello world!",
-        "voice": combined_voice,
+        "voice": combined_voice, # or skip the above step with f"{voices[0]}+{voices[1]}"
         "response_format": "mp3"
     }
 )

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Union
 
 from loguru import logger
 from fastapi import Depends, Response, APIRouter, HTTPException
@@ -20,16 +20,41 @@ def get_tts_service() -> TTSService:
     return TTSService()  # Initialize TTSService with default settings
 
 
+async def process_voices(voice_input: Union[str, List[str]], tts_service: TTSService) -> str:
+    """Process voice input into a combined voice, handling both string and list formats"""
+    # Convert input to list of voices
+    if isinstance(voice_input, str):
+        voices = [v.strip() for v in voice_input.split("+") if v.strip()]
+    else:
+        voices = voice_input
+
+    if not voices:
+        raise ValueError("No voices provided")
+
+    # Check if all voices exist
+    available_voices = await tts_service.list_voices()
+    for voice in voices:
+        if voice not in available_voices:
+            raise ValueError(f"Voice '{voice}' not found. Available voices: {', '.join(sorted(available_voices))}")
+
+    # If single voice, return it directly
+    if len(voices) == 1:
+        return voices[0]
+
+    # Otherwise combine voices
+    return await tts_service.combine_voices(voices=voices)
+
+
 async def stream_audio_chunks(tts_service: TTSService, request: OpenAISpeechRequest) -> AsyncGenerator[bytes, None]:
     """Stream audio chunks as they're generated"""
+    voice_to_use = await process_voices(request.voice, tts_service)
     async for chunk in tts_service.generate_audio_stream(
         text=request.input,
-        voice=request.voice,
+        voice=voice_to_use,
         speed=request.speed,
         output_format=request.response_format
     ):
         yield chunk
-
 
 
 @router.post("/audio/speech")
@@ -40,12 +65,8 @@ async def create_speech(
 ):
     """OpenAI-compatible endpoint for text-to-speech"""
     try:
-        # Validate voice exists
-        available_voices = tts_service.list_voices()
-        if request.voice not in available_voices:
-            raise ValueError(
-                f"Voice '{request.voice}' not found. Available voices: {', '.join(sorted(available_voices))}"
-            )
+        # Process voice combination and validate
+        voice_to_use = await process_voices(request.voice, tts_service)
 
         # Set content type based on format
         content_type = {
@@ -73,7 +94,7 @@ async def create_speech(
             # Generate complete audio
             audio, _ = tts_service._generate_audio(
                 text=request.input,
-                voice=request.voice,
+                voice=voice_to_use,
                 speed=request.speed,
                 stitch_long_output=True,
             )
@@ -111,7 +132,7 @@ async def create_speech(
 async def list_voices(tts_service: TTSService = Depends(get_tts_service)):
     """List all available voices for text-to-speech"""
     try:
-        voices = tts_service.list_voices()
+        voices = await tts_service.list_voices()
         return {"voices": voices}
     except Exception as e:
         logger.error(f"Error listing voices: {str(e)}")
@@ -120,12 +141,13 @@ async def list_voices(tts_service: TTSService = Depends(get_tts_service)):
 
 @router.post("/audio/voices/combine")
 async def combine_voices(
-    request: List[str], tts_service: TTSService = Depends(get_tts_service)
+    request: Union[str, List[str]], tts_service: TTSService = Depends(get_tts_service)
 ):
     """Combine multiple voices into a new voice.
 
     Args:
-        request: List of voice names to combine
+        request: Either a string with voices separated by + (e.g. "voice1+voice2")
+                or a list of voice names to combine
 
     Returns:
         Dict with combined voice name and list of all available voices
@@ -136,8 +158,8 @@ async def combine_voices(
             - 500: Server error (file system issues, combination failed)
     """
     try:
-        combined_voice = tts_service.combine_voices(voices=request)
-        voices = tts_service.list_voices()
+        combined_voice = await process_voices(request, tts_service)
+        voices = await tts_service.list_voices()
         return {"voices": voices, "voice": combined_voice}
 
     except ValueError as e:
@@ -146,14 +168,8 @@ async def combine_voices(
             status_code=400, detail={"error": "Invalid request", "message": str(e)}
         )
 
-    except RuntimeError as e:
+    except Exception as e:
         logger.error(f"Server error during voice combination: {str(e)}")
         raise HTTPException(
-            status_code=500, detail={"error": "Server error", "message": str(e)}
-        )
-
-    except Exception as e:
-        logger.error(f"Unexpected error during voice combination: {str(e)}")
-        raise HTTPException(
-            status_code=500, detail={"error": "Unexpected error", "message": str(e)}
+            status_code=500, detail={"error": "Server error", "message": "Server error"}
         )

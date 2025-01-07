@@ -1,9 +1,11 @@
+import aiofiles
 import io
 import os
 import re
 import time
 from typing import List, Tuple, Optional
 from functools import lru_cache
+from aiofiles import threadpool
 
 import numpy as np
 import torch
@@ -211,7 +213,7 @@ class TTSService:
         wavfile.write(buffer, 24000, audio)
         return buffer.getvalue()
 
-    def combine_voices(self, voices: List[str]) -> str:
+    async def combine_voices(self, voices: List[str]) -> str:
         """Combine multiple voices into a new voice"""
         if len(voices) < 2:
             raise ValueError("At least 2 voices are required for combination")
@@ -252,11 +254,13 @@ class TTSService:
                 raise RuntimeError(f"Error combining voices: {str(e)}")
             raise
 
-    def list_voices(self) -> List[str]:
+    async def list_voices(self) -> List[str]:
         """List all available voices"""
         voices = []
         try:
-            for file in os.listdir(TTSModel.VOICES_DIR):
+            # Use os.listdir in a thread pool
+            files = await threadpool.async_wrap(os.listdir)(TTSModel.VOICES_DIR)
+            for file in files:
                 if file.endswith(".pt"):
                     voices.append(file[:-3])  # Remove .pt extension
         except Exception as e:

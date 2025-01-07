@@ -29,7 +29,9 @@ def mock_tts_service(monkeypatch):
         for chunk in [b"chunk1", b"chunk2"]:
             yield chunk
     mock_service.generate_audio_stream = mock_stream
-    mock_service.list_voices.return_value = [
+    
+    # Create async mocks
+    mock_service.list_voices = AsyncMock(return_value=[
         "af",
         "bm_lewis",
         "bf_isabella",
@@ -39,7 +41,8 @@ def mock_tts_service(monkeypatch):
         "am_adam",
         "am_michael",
         "bm_george",
-    ]
+    ])
+    mock_service.combine_voices = AsyncMock()
     monkeypatch.setattr(
         "api.src.routers.openai_compatible.TTSService",
         lambda *args, **kwargs: mock_service,
@@ -64,7 +67,8 @@ def test_health_check():
     assert response.json() == {"status": "healthy"}
 
 
-def test_openai_speech_endpoint(mock_tts_service, mock_audio_service):
+@pytest.mark.asyncio
+async def test_openai_speech_endpoint(mock_tts_service, mock_audio_service, async_client):
     """Test the OpenAI-compatible speech endpoint"""
     test_request = {
         "model": "kokoro",
@@ -74,7 +78,7 @@ def test_openai_speech_endpoint(mock_tts_service, mock_audio_service):
         "speed": 1.0,
         "stream": False  # Explicitly disable streaming
     }
-    response = client.post("/v1/audio/speech", json=test_request)
+    response = await async_client.post("/v1/audio/speech", json=test_request)
     assert response.status_code == 200
     assert response.headers["content-type"] == "audio/wav"
     assert response.headers["content-disposition"] == "attachment; filename=speech.wav"
@@ -84,7 +88,8 @@ def test_openai_speech_endpoint(mock_tts_service, mock_audio_service):
     assert response.content == b"converted mock audio data"
 
 
-def test_openai_speech_invalid_voice(mock_tts_service):
+@pytest.mark.asyncio
+async def test_openai_speech_invalid_voice(mock_tts_service, async_client):
     """Test the OpenAI-compatible speech endpoint with invalid voice"""
     test_request = {
         "model": "kokoro",
@@ -94,12 +99,13 @@ def test_openai_speech_invalid_voice(mock_tts_service):
         "speed": 1.0,
         "stream": False  # Explicitly disable streaming
     }
-    response = client.post("/v1/audio/speech", json=test_request)
+    response = await async_client.post("/v1/audio/speech", json=test_request)
     assert response.status_code == 400  # Bad request
     assert "not found" in response.json()["detail"]["message"]
 
 
-def test_openai_speech_invalid_speed(mock_tts_service):
+@pytest.mark.asyncio
+async def test_openai_speech_invalid_speed(mock_tts_service, async_client):
     """Test the OpenAI-compatible speech endpoint with invalid speed"""
     test_request = {
         "model": "kokoro",
@@ -109,11 +115,12 @@ def test_openai_speech_invalid_speed(mock_tts_service):
         "speed": -1.0,  # Invalid speed
         "stream": False  # Explicitly disable streaming
     }
-    response = client.post("/v1/audio/speech", json=test_request)
+    response = await async_client.post("/v1/audio/speech", json=test_request)
     assert response.status_code == 422  # Validation error
 
 
-def test_openai_speech_generation_error(mock_tts_service):
+@pytest.mark.asyncio
+async def test_openai_speech_generation_error(mock_tts_service, async_client):
     """Test error handling in speech generation"""
     mock_tts_service._generate_audio.side_effect = Exception("Generation failed")
     test_request = {
@@ -124,54 +131,173 @@ def test_openai_speech_generation_error(mock_tts_service):
         "speed": 1.0,
         "stream": False  # Explicitly disable streaming
     }
-    response = client.post("/v1/audio/speech", json=test_request)
+    response = await async_client.post("/v1/audio/speech", json=test_request)
     assert response.status_code == 500
     assert "Generation failed" in response.json()["detail"]["message"]
 
 
-def test_combine_voices_success(mock_tts_service):
-    """Test successful voice combination"""
+@pytest.mark.asyncio
+async def test_combine_voices_list_success(mock_tts_service, async_client):
+    """Test successful voice combination using list format"""
     test_voices = ["af_bella", "af_sarah"]
-    mock_tts_service.combine_voices.return_value = "af_bella_af_sarah"
+    mock_tts_service.combine_voices = AsyncMock(return_value="af_bella_af_sarah")
 
-    response = client.post("/v1/audio/voices/combine", json=test_voices)
+    response = await async_client.post("/v1/audio/voices/combine", json=test_voices)
 
     assert response.status_code == 200
     assert response.json()["voice"] == "af_bella_af_sarah"
     mock_tts_service.combine_voices.assert_called_once_with(voices=test_voices)
 
 
-def test_combine_voices_single_voice(mock_tts_service):
-    """Test combining single voice returns default voice"""
+@pytest.mark.asyncio
+async def test_combine_voices_string_success(mock_tts_service, async_client):
+    """Test successful voice combination using string format with +"""
+    test_voices = "af_bella+af_sarah"
+    mock_tts_service.combine_voices = AsyncMock(return_value="af_bella_af_sarah")
+
+    response = await async_client.post("/v1/audio/voices/combine", json=test_voices)
+
+    assert response.status_code == 200
+    assert response.json()["voice"] == "af_bella_af_sarah"
+    mock_tts_service.combine_voices.assert_called_once_with(voices=["af_bella", "af_sarah"])
+
+
+@pytest.mark.asyncio
+async def test_combine_voices_single_voice(mock_tts_service, async_client):
+    """Test combining single voice returns same voice"""
     test_voices = ["af_bella"]
-    mock_tts_service.combine_voices.return_value = "af"
-
-    response = client.post("/v1/audio/voices/combine", json=test_voices)
-
+    response = await async_client.post("/v1/audio/voices/combine", json=test_voices)
     assert response.status_code == 200
-    assert response.json()["voice"] == "af"
+    assert response.json()["voice"] == "af_bella"
 
 
-def test_combine_voices_empty_list(mock_tts_service):
-    """Test combining empty voice list returns default voice"""
+@pytest.mark.asyncio
+async def test_combine_voices_empty_list(mock_tts_service, async_client):
+    """Test combining empty voice list returns error"""
     test_voices = []
-    mock_tts_service.combine_voices.return_value = "af"
-
-    response = client.post("/v1/audio/voices/combine", json=test_voices)
-
-    assert response.status_code == 200
-    assert response.json()["voice"] == "af"
+    response = await async_client.post("/v1/audio/voices/combine", json=test_voices)
+    assert response.status_code == 400
+    assert "No voices provided" in response.json()["detail"]["message"]
 
 
-def test_combine_voices_error(mock_tts_service):
+@pytest.mark.asyncio
+async def test_combine_voices_error(mock_tts_service, async_client):
     """Test error handling in voice combination"""
     test_voices = ["af_bella", "af_sarah"]
-    mock_tts_service.combine_voices.side_effect = Exception("Combination failed")
+    mock_tts_service.combine_voices = AsyncMock(side_effect=Exception("Combination failed"))
 
-    response = client.post("/v1/audio/voices/combine", json=test_voices)
-
+    response = await async_client.post("/v1/audio/voices/combine", json=test_voices)
     assert response.status_code == 500
-    assert "Combination failed" in response.json()["detail"]["message"]
+    assert "Server error" in response.json()["detail"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_speech_with_combined_voice(mock_tts_service, mock_audio_service, async_client):
+    """Test speech generation with combined voice using + syntax"""
+    mock_tts_service.combine_voices = AsyncMock(return_value="af_bella_af_sarah")
+    
+    test_request = {
+        "model": "kokoro",
+        "input": "Hello world",
+        "voice": "af_bella+af_sarah",
+        "response_format": "wav",
+        "speed": 1.0,
+        "stream": False
+    }
+    
+    response = await async_client.post("/v1/audio/speech", json=test_request)
+    
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "audio/wav"
+    mock_tts_service._generate_audio.assert_called_once_with(
+        text="Hello world", 
+        voice="af_bella_af_sarah", 
+        speed=1.0, 
+        stitch_long_output=True
+    )
+
+
+@pytest.mark.asyncio
+async def test_speech_with_whitespace_in_voice(mock_tts_service, mock_audio_service, async_client):
+    """Test speech generation with whitespace in voice combination"""
+    mock_tts_service.combine_voices = AsyncMock(return_value="af_bella_af_sarah")
+    
+    test_request = {
+        "model": "kokoro",
+        "input": "Hello world",
+        "voice": "  af_bella  +  af_sarah  ",
+        "response_format": "wav",
+        "speed": 1.0,
+        "stream": False
+    }
+    
+    response = await async_client.post("/v1/audio/speech", json=test_request)
+    
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "audio/wav"
+    mock_tts_service.combine_voices.assert_called_once_with(voices=["af_bella", "af_sarah"])
+
+
+@pytest.mark.asyncio
+async def test_speech_with_empty_voice_combination(mock_tts_service, async_client):
+    """Test speech generation with empty voice combination"""
+    test_request = {
+        "model": "kokoro",
+        "input": "Hello world",
+        "voice": "+",
+        "response_format": "wav",
+        "speed": 1.0,
+        "stream": False
+    }
+    
+    response = await async_client.post("/v1/audio/speech", json=test_request)
+    assert response.status_code == 400
+    assert "No voices provided" in response.json()["detail"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_speech_with_invalid_combined_voice(mock_tts_service, async_client):
+    """Test speech generation with invalid voice combination"""
+    test_request = {
+        "model": "kokoro",
+        "input": "Hello world",
+        "voice": "invalid+combination",
+        "response_format": "wav",
+        "speed": 1.0,
+        "stream": False
+    }
+    
+    response = await async_client.post("/v1/audio/speech", json=test_request)
+    assert response.status_code == 400
+    assert "not found" in response.json()["detail"]["message"]
+
+
+@pytest.mark.asyncio
+async def test_speech_streaming_with_combined_voice(mock_tts_service, async_client):
+    """Test streaming speech with combined voice using + syntax"""
+    mock_tts_service.combine_voices = AsyncMock(return_value="af_bella_af_sarah")
+    
+    test_request = {
+        "model": "kokoro",
+        "input": "Hello world",
+        "voice": "af_bella+af_sarah",
+        "response_format": "mp3",
+        "stream": True
+    }
+    
+    # Create streaming mock
+    async def mock_stream(*args, **kwargs):
+        for chunk in [b"mp3header", b"mp3data"]:
+            yield chunk
+    mock_tts_service.generate_audio_stream = mock_stream
+    
+    # Add streaming header
+    headers = {"x-raw-response": "stream"}
+    response = await async_client.post("/v1/audio/speech", json=test_request, headers=headers)
+    
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "audio/mpeg"
+    assert response.headers["content-disposition"] == "attachment; filename=speech.mp3"
 
 
 @pytest.mark.asyncio
@@ -195,9 +321,6 @@ async def test_openai_speech_pcm_streaming(mock_tts_service, async_client):
     headers = {"x-raw-response": "stream"}
     response = await async_client.post("/v1/audio/speech", json=test_request, headers=headers)
     
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "audio/pcm"
-    # Just verify status and content type
     assert response.status_code == 200
     assert response.headers["content-type"] == "audio/pcm"
 
@@ -226,10 +349,6 @@ async def test_openai_speech_streaming_mp3(mock_tts_service, async_client):
     assert response.status_code == 200
     assert response.headers["content-type"] == "audio/mpeg"
     assert response.headers["content-disposition"] == "attachment; filename=speech.mp3"
-    # Just verify status and content type
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "audio/mpeg"
-    assert response.headers["content-disposition"] == "attachment; filename=speech.mp3"
 
 
 @pytest.mark.asyncio
@@ -253,8 +372,5 @@ async def test_openai_speech_streaming_generator(mock_tts_service, async_client)
     headers = {"x-raw-response": "stream"}
     response = await async_client.post("/v1/audio/speech", json=test_request, headers=headers)
     
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "audio/pcm"
-    # Just verify status and content type
     assert response.status_code == 200
     assert response.headers["content-type"] == "audio/pcm"

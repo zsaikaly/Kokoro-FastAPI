@@ -1,12 +1,13 @@
 """Tests for TTSService"""
 
 import os
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, call, patch, AsyncMock
 
 import numpy as np
 import torch
 import pytest
 from onnxruntime import InferenceSession
+from aiofiles import threadpool
 
 from api.src.core.config import settings
 from api.src.services.tts_model import TTSModel
@@ -38,27 +39,33 @@ def test_audio_to_bytes(tts_service, sample_audio):
     assert len(audio_bytes) > 0
 
 
-@patch("os.listdir")
-@patch("os.path.join")
-def test_list_voices(mock_join, mock_listdir, tts_service):
+@pytest.mark.asyncio
+async def test_list_voices(tts_service):
     """Test listing available voices"""
-    mock_listdir.return_value = ["voice1.pt", "voice2.pt", "not_a_voice.txt"]
-    mock_join.return_value = "/fake/path"
+    # Mock os.listdir to return test files
+    with patch('os.listdir', return_value=["voice1.pt", "voice2.pt", "not_a_voice.txt"]):
+        # Register mock with threadpool
+        async_listdir = AsyncMock(return_value=["voice1.pt", "voice2.pt", "not_a_voice.txt"])
+        threadpool.async_wrap = MagicMock(return_value=async_listdir)
+        
+        voices = await tts_service.list_voices()
+        assert len(voices) == 2
+        assert "voice1" in voices
+        assert "voice2" in voices
+        assert "not_a_voice" not in voices
 
-    voices = tts_service.list_voices()
-    assert len(voices) == 2
-    assert "voice1" in voices
-    assert "voice2" in voices
-    assert "not_a_voice" not in voices
 
-
-@patch("os.listdir")
-def test_list_voices_error(mock_listdir, tts_service):
+@pytest.mark.asyncio
+async def test_list_voices_error(tts_service):
     """Test error handling in list_voices"""
-    mock_listdir.side_effect = Exception("Failed to list directory")
-
-    voices = tts_service.list_voices()
-    assert voices == []
+    # Mock os.listdir to raise an exception
+    with patch('os.listdir', side_effect=Exception("Failed to list directory")):
+        # Register mock with threadpool
+        async_listdir = AsyncMock(side_effect=Exception("Failed to list directory"))
+        threadpool.async_wrap = MagicMock(return_value=async_listdir)
+        
+        voices = await tts_service.list_voices()
+        assert voices == []
 
 
 def mock_model_setup(cuda_available=False):
@@ -176,7 +183,8 @@ def test_save_audio(tts_service, sample_audio, tmp_path):
     assert os.path.getsize(output_path) > 0
 
 
-def test_combine_voices(tts_service):
+@pytest.mark.asyncio
+async def test_combine_voices(tts_service):
     """Test combining multiple voices"""
     # Setup mocks for torch operations
     with patch('torch.load', return_value=torch.tensor([1.0, 2.0])), \
@@ -186,20 +194,21 @@ def test_combine_voices(tts_service):
             patch('os.path.exists', return_value=True):
         
         # Test combining two voices
-        result = tts_service.combine_voices(["voice1", "voice2"])
+        result = await tts_service.combine_voices(["voice1", "voice2"])
 
         assert result == "voice1_voice2"
 
 
-def test_combine_voices_invalid_input(tts_service):
+@pytest.mark.asyncio
+async def test_combine_voices_invalid_input(tts_service):
     """Test combining voices with invalid input"""
     # Test with empty list
     with pytest.raises(ValueError, match="At least 2 voices are required"):
-        tts_service.combine_voices([])
+        await tts_service.combine_voices([])
 
     # Test with single voice
     with pytest.raises(ValueError, match="At least 2 voices are required"):
-        tts_service.combine_voices(["voice1"])
+        await tts_service.combine_voices(["voice1"])
 
 
 @patch("api.src.services.tts_service.TTSService._get_voice_path")
