@@ -50,29 +50,44 @@ def handle_decimal(num: re.Match) -> str:
     return " point ".join([a, " ".join(b)])
 
 def handle_url(u: re.Match) -> str:
-    """Make urls speakable"""
-    symbol_to_word={":": "colon", "/":"slash",".":"dot","_":"underscore","-":"dash","?":"question mark", "=":"equals","&":"ampersand","%":"percent"}
-    
-    u=u.group(0)
-    
-    for s,w in symbol_to_word.items():
-        u=u.replace(s,f" {w} ")
-    u=u.replace("  ", " ")
-    return u
-    
-# @lru_cache(maxsize=1000)  # Cache normalized text results
-def normalize_text(text: str) -> str:
-    """Normalize text for TTS processing
-    
-    Args:
-        text: Input text to normalize
+    """Make URLs speakable by converting special characters to spoken words"""
+    if not u:
+        return ""
         
-    Returns:
-        Normalized text
-    """
-    # Handle URL's
-    text = re.sub(r"(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)", handle_url,text)
+    url = u.group(0).strip()
+    # Handle common URL prefixes
+    url = re.sub(r'^https?://', 'http ', url, flags=re.IGNORECASE)
+    url = re.sub(r'^www\.', 'www ', url, flags=re.IGNORECASE)
     
+    # Replace symbols with words
+    url = url.replace("/", " slash ")
+    url = url.replace(".", " dot ")
+    url = url.replace("@", " at ")
+    url = url.replace("?", " question mark ")
+    url = url.replace("=", " equals ")
+    url = url.replace("&", " ampersand ")
+    
+    # Clean up extra spaces
+    return re.sub(r'\s+', ' ', url).strip()
+
+
+def normalize_urls(text: str) -> str:
+    """Pre-process URLs before other text normalization"""
+    url_patterns = [
+        r"https?://[^\s]+",  # URLs with http(s)
+        r"www\.[^\s]+",      # URLs with www
+        r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}\b"  # Email addresses
+    ]
+    
+    for pattern in url_patterns:
+        text = re.sub(pattern, handle_url, text, flags=re.IGNORECASE)
+    
+    return text
+    
+def normalize_text(text: str) -> str:
+    """Normalize text for TTS processing"""
+    # Pre-process URLs first
+    text = normalize_urls(text)
     # Replace quotes and brackets
     text = text.replace(chr(8216), "'").replace(chr(8217), "'")
     text = text.replace("«", chr(8220)).replace("»", chr(8221))
