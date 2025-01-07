@@ -1,9 +1,10 @@
 import os
 import sys
 import shutil
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 import pytest
+import aiofiles.threadpool
 
 
 def cleanup_mock_dirs():
@@ -11,6 +12,15 @@ def cleanup_mock_dirs():
     mock_dir = "MagicMock"
     if os.path.exists(mock_dir):
         shutil.rmtree(mock_dir)
+
+
+@pytest.fixture(autouse=True)
+def setup_aiofiles():
+    """Setup aiofiles mock wrapper"""
+    aiofiles.threadpool.wrap.register(MagicMock)(
+        lambda *args, **kwargs: aiofiles.threadpool.AsyncBufferedIOBase(*args, **kwargs)
+    )
+    yield
 
 
 @pytest.fixture(autouse=True)

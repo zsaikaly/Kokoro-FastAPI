@@ -1,11 +1,10 @@
-import aiofiles
 import io
+import aiofiles.os
 import os
 import re
 import time
 from typing import List, Tuple, Optional
 from functools import lru_cache
-from aiofiles import threadpool
 
 import numpy as np
 import torch
@@ -258,11 +257,10 @@ class TTSService:
         """List all available voices"""
         voices = []
         try:
-            # Use os.listdir in a thread pool
-            files = await threadpool.async_wrap(os.listdir)(TTSModel.VOICES_DIR)
-            for file in files:
-                if file.endswith(".pt"):
-                    voices.append(file[:-3])  # Remove .pt extension
+            async with aiofiles.scandir(TTSModel.VOICES_DIR) as it:
+                async for entry in it:
+                    if entry.name.endswith(".pt"):
+                        voices.append(entry.name[:-3])  # Remove .pt extension
         except Exception as e:
             logger.error(f"Error listing voices: {str(e)}")
         return sorted(voices)
