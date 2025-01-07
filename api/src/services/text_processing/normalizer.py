@@ -49,6 +49,17 @@ def handle_decimal(num: re.Match) -> str:
     a, b = num.group().split(".")
     return " point ".join([a, " ".join(b)])
 
+def handle_url(u: re.Match) -> str:
+    """Make urls speakable"""
+    symbol_to_word={":": "colon", "/":"slash",".":"dot","_":"underscore","-":"dash","?":"question mark", "=":"equals","&":"ampersand","%":"percent"}
+    
+    u=u.group(0)
+    
+    for s,w in symbol_to_word.items():
+        u=u.replace(s,f" {w} ")
+    u=u.replace("  ", " ")
+    return u
+    
 # @lru_cache(maxsize=1000)  # Cache normalized text results
 def normalize_text(text: str) -> str:
     """Normalize text for TTS processing
@@ -59,6 +70,9 @@ def normalize_text(text: str) -> str:
     Returns:
         Normalized text
     """
+    # Handle URL's
+    text = re.sub(r"(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)", handle_url,text)
+    
     # Replace quotes and brackets
     text = text.replace(chr(8216), "'").replace(chr(8217), "'")
     text = text.replace("«", chr(8220)).replace("»", chr(8221))
