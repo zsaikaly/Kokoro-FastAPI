@@ -115,7 +115,9 @@ def handle_url(u: re.Match[str]) -> str:
     url = url.replace("?", " question-mark ")
     url = url.replace("=", " equals ")
     url = url.replace("&", " ampersand ")
+    url = url.replace("%", " percent ")
     url = url.replace(":", " colon ")  # Handle any remaining colons
+    url = url.replace("/", " slash ")  # Handle any remaining slashes
     
     # Clean up extra spaces
     return re.sub(r'\s+', ' ', url).strip()
