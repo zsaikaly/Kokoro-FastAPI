@@ -34,7 +34,7 @@ The service can be accessed through either the API endpoints or the Gradio web i
     ```python
     from openai import OpenAI
     client = OpenAI(
-        base_url="http://localhost:8880",
+        base_url="http://localhost:8880/v1",
         api_key="not-needed"
         )
 
@@ -59,7 +59,7 @@ The service can be accessed through either the API endpoints or the Gradio web i
 ```python
 # Using OpenAI's Python library
 from openai import OpenAI
-client = OpenAI(base_url="http://localhost:8880", api_key="not-needed")
+client = OpenAI(base_url="http://localhost:8880/v1", api_key="not-needed")
 response = client.audio.speech.create(
     model="kokoro",  # Not used but required for compatibility, also accepts library defaults
     voice="af_bella+af_sky",
@@ -96,8 +96,8 @@ with open("output.mp3", "wb") as f:
 
 Quick tests (run from another terminal):
 ```bash
-python examples/test_openai_tts.py # Test OpenAI Compatibility
-python examples/test_all_voices.py # Test all available voices
+python examples/assorted_checks/test_openai/test_openai_tts.py # Test OpenAI Compatibility
+python examples/assorted_checks/test_voices/test_all_voices.py # Test all available voices
 ```
 </details>
 
