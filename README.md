@@ -229,8 +229,9 @@ for chunk in response.iter_content(chunk_size=1024):
 
 Key Streaming Metrics:
 - First token latency @ chunksize
-    - ~300ms (GPU) @ 400 
-    - ~3500ms (CPU) @ 200 
+    - ~300ms  (GPU) @ 400 
+    - ~3500ms (CPU) @ 200 (older i7)
+    - ~<1s    (CPU) @ 200 (M3 Pro)
 - Adjustable chunking settings for real-time playback 
 
 *Note: Artifacts in intonation can increase with smaller chunks*
