@@ -252,15 +252,15 @@ class TTSService:
             if not isinstance(e, (ValueError, RuntimeError)):
                 raise RuntimeError(f"Error combining voices: {str(e)}")
             raise
-
+        
     async def list_voices(self) -> List[str]:
         """List all available voices"""
         voices = []
         try:
-            async with aiofiles.scandir(TTSModel.VOICES_DIR) as it:
-                async for entry in it:
-                    if entry.name.endswith(".pt"):
-                        voices.append(entry.name[:-3])  # Remove .pt extension
+            it = await aiofiles.os.scandir(TTSModel.VOICES_DIR)
+            for entry in it:
+                if entry.name.endswith(".pt"):
+                    voices.append(entry.name[:-3])  # Remove .pt extension
         except Exception as e:
             logger.error(f"Error listing voices: {str(e)}")
         return sorted(voices)
