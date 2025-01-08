@@ -1,6 +1,11 @@
 import re
 from functools import lru_cache
 
+valid_tlds=["com", "org", "net", "edu", "gov", "mil", "int", "biz", "info", "name",
+    "pro", "coop", "museum", "travel", "jobs", "mobi", "tel", "asia", "cat",
+    "xxx", "aero", "arpa", "bg", "br", "ca", "cn", "de", "es", "eu", "fr",
+    "in", "it", "jp", "mx", "nl", "ru", "uk", "us", "io"]
+
 def split_num(num: re.Match) -> str:
     """Handle number splitting for various formats"""
     num = num.group()
@@ -56,14 +61,18 @@ def handle_url(u: re.Match) -> str:
         
     url = u.group(0).strip()
     # Handle common URL prefixes
-    url = re.sub(r'^https?://', 'http ', url, flags=re.IGNORECASE)
+    url = re.sub(r'^https?://', lambda a : 'https ' if 'https' in a.group() else 'http', url, flags=re.IGNORECASE)
     url = re.sub(r'^www\.', 'www ', url, flags=re.IGNORECASE)
     
     # Replace symbols with words
+    
+    url = url.replace(":", " colon ")
+    url = url.replace("-", " dash ")
+    url = url.replace("_", " underscore ")
     url = url.replace("/", " slash ")
     url = url.replace(".", " dot ")
     url = url.replace("@", " at ")
-    url = url.replace("?", " question mark ")
+    url = url.replace("?", " question-mark ")
     url = url.replace("=", " equals ")
     url = url.replace("&", " ampersand ")
     
@@ -74,8 +83,7 @@ def handle_url(u: re.Match) -> str:
 def normalize_urls(text: str) -> str:
     """Pre-process URLs before other text normalization"""
     url_patterns = [
-        r"https?://[^\s]+",  # URLs with http(s)
-        r"www\.[^\s]+",      # URLs with www
+        r"(https?://|www\.|)+(localhost|[a-zA-Z0-9.-]+(\.(?:" + "|".join(valid_tlds) + "))+|[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})(:[0-9]+)?([/?][^\s]*)?",  # URLs with http(s), raw ip, www, or domain.tld
         r"\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}\b"  # Email addresses
     ]
     
@@ -87,7 +95,9 @@ def normalize_urls(text: str) -> str:
 def normalize_text(text: str) -> str:
     """Normalize text for TTS processing"""
     # Pre-process URLs first
+    
     text = normalize_urls(text)
+    
     # Replace quotes and brackets
     text = text.replace(chr(8216), "'").replace(chr(8217), "'")
     text = text.replace("«", chr(8220)).replace("»", chr(8221))
