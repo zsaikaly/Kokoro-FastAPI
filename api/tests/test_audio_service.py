@@ -1,8 +1,9 @@
 """Tests for AudioService"""
 
+from unittest.mock import patch
+
 import numpy as np
 import pytest
-from unittest.mock import patch
 
 from api.src.services.audio import AudioService, AudioNormalizer
 
@@ -10,9 +11,10 @@ from api.src.services.audio import AudioService, AudioNormalizer
 @pytest.fixture(autouse=True)
 def mock_settings():
     """Mock settings for all tests"""
-    with patch('api.src.services.audio.settings') as mock_settings:
+    with patch("api.src.services.audio.settings") as mock_settings:
         mock_settings.gap_trim_ms = 250
         yield mock_settings
+
 
 @pytest.fixture
 def sample_audio():
