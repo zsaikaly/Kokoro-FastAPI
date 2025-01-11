@@ -177,7 +177,7 @@ class TTSService:
                     )
 
                     if chunk_audio is not None:
-                        # Convert chunk with proper header handling
+                        # Convert chunk with proper streaming header handling
                         chunk_bytes = AudioService.convert_audio(
                             chunk_audio,
                             24000,
@@ -185,6 +185,7 @@ class TTSService:
                             is_first_chunk=is_first,
                             normalizer=stream_normalizer,
                             is_last_chunk=(next_chunk is None),  # Last if no next chunk
+                            stream=True  # Ensure proper streaming format handling
                         )
 
                         yield chunk_bytes

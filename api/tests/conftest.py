@@ -181,7 +181,7 @@ def mock_tts_service(monkeypatch):
     # Mock TTSModel.generate_from_tokens since we call it directly
     mock_generate = Mock(return_value=np.zeros(48000))
     monkeypatch.setattr(
-        "api.src.routers.text_processing.TTSModel.generate_from_tokens", mock_generate
+        "api.src.routers.development.TTSModel.generate_from_tokens", mock_generate
     )
 
     return mock_service
@@ -192,5 +192,5 @@ def mock_audio_service(monkeypatch):
     """Mock AudioService"""
     mock_service = Mock()
     mock_service.convert_audio.return_value = b"mock audio data"
-    monkeypatch.setattr("api.src.routers.text_processing.AudioService", mock_service)
+    monkeypatch.setattr("api.src.routers.development.AudioService", mock_service)
     return mock_service

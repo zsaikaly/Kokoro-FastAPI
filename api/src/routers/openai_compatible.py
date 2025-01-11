@@ -93,6 +93,7 @@ async def create_speech(
                     "Content-Disposition": f"attachment; filename=speech.{request.response_format}",
                     "X-Accel-Buffering": "no",  # Disable proxy buffering
                     "Cache-Control": "no-cache",  # Prevent caching
+                    "Transfer-Encoding": "chunked",  # Enable chunked transfer encoding
                 },
             )
         else:

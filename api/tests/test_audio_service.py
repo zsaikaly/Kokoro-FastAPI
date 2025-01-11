@@ -63,7 +63,7 @@ def test_convert_to_aac_raises_error(sample_audio):
     audio_data, sample_rate = sample_audio
     with pytest.raises(
         ValueError,
-        match="Format aac not supported. Supported formats are: wav, mp3, opus, flac, pcm.",
+        match="Failed to convert audio to aac: Format aac not currently supported. Supported formats are: wav, mp3, opus, flac, pcm.",
     ):
         AudioService.convert_audio(audio_data, sample_rate, "aac")
 

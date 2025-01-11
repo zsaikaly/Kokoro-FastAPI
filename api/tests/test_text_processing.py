@@ -20,8 +20,8 @@ async def async_client():
 @pytest.mark.asyncio
 async def test_phonemize_endpoint(async_client):
     """Test phoneme generation endpoint"""
-    with patch("api.src.routers.text_processing.phonemize") as mock_phonemize, patch(
-        "api.src.routers.text_processing.tokenize"
+    with patch("api.src.routers.development.phonemize") as mock_phonemize, patch(
+        "api.src.routers.development.tokenize"
     ) as mock_tokenize:
         # Setup mocks
         mock_phonemize.return_value = "həlˈoʊ"
@@ -56,7 +56,7 @@ async def test_generate_from_phonemes(
 ):
     """Test audio generation from phonemes"""
     with patch(
-        "api.src.routers.text_processing.TTSService", return_value=mock_tts_service
+        "api.src.routers.development.TTSService", return_value=mock_tts_service
     ):
         response = await async_client.post(
             "/text/generate_from_phonemes",
@@ -76,7 +76,7 @@ async def test_generate_from_phonemes_invalid_voice(async_client, mock_tts_servi
     """Test audio generation with invalid voice"""
     mock_tts_service._get_voice_path.return_value = None
     with patch(
-        "api.src.routers.text_processing.TTSService", return_value=mock_tts_service
+        "api.src.routers.development.TTSService", return_value=mock_tts_service
     ):
         response = await async_client.post(
             "/text/generate_from_phonemes",
@@ -111,7 +111,7 @@ async def test_generate_from_phonemes_invalid_speed(async_client, monkeypatch):
 async def test_generate_from_phonemes_empty_phonemes(async_client, mock_tts_service):
     """Test audio generation with empty phonemes"""
     with patch(
-        "api.src.routers.text_processing.TTSService", return_value=mock_tts_service
+        "api.src.routers.development.TTSService", return_value=mock_tts_service
     ):
         response = await async_client.post(
             "/text/generate_from_phonemes",

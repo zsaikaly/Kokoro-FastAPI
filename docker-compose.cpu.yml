@@ -26,11 +26,11 @@ services:
       start_period: 1s
 
   kokoro-tts:
-    # image: ghcr.io/remsky/kokoro-fastapi:latest-cpu
-    # Uncomment below to build from source instead of using the released image
-    build:
-      context: .
-      dockerfile: Dockerfile.cpu
+    image: ghcr.io/remsky/kokoro-fastapi:latest-cpu
+    # Uncomment below (and comment out above) to build from source instead of using the released image
+    # build:
+      # context: .
+      # dockerfile: Dockerfile.cpu
     volumes:
       - ./api/src:/app/api/src
       - ./Kokoro-82M:/app/Kokoro-82M
@@ -52,8 +52,8 @@ services:
 
   # Gradio UI service [Comment out everything below if you don't need it]
   gradio-ui:
-    # image: ghcr.io/remsky/kokoro-fastapi:latest-ui
-    # Uncomment below to build from source instead of using the released image
+    image: ghcr.io/remsky/kokoro-fastapi:latest-ui
+    # Uncomment below (and comment out above) to build from source instead of using the released image
     build:
       context: ./ui
     ports:
@@ -63,3 +63,4 @@ services:
       - ./ui/app.py:/app/app.py  # Mount app.py for hot reload
     environment:
       - GRADIO_WATCH=True  # Enable hot reloading
+      - PYTHONUNBUFFERED=1  # Ensure Python output is not buffered
