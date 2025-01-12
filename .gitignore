@@ -6,11 +6,13 @@ ui/data/*
 *.db
 *.pyc
 *.pth
+*.tar*
 
 Kokoro-82M/*
 __pycache__/
 .vscode/
 env/
+.venv/
 .Python
 
 
@@ -42,3 +44,9 @@ examples/phoneme_examples/output/example_1.wav
 examples/phoneme_examples/output/example_2.wav
 examples/phoneme_examples/output/example_3.wav
 EXTERNAL_UV_DOCUMENTATION*
+
+# Python package build artifacts
+*.egg-info/
+*.egg
+dist/
+build/

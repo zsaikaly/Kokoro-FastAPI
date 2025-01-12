@@ -1,30 +1,4 @@
 services:
-  model-fetcher:
-    image: datamachines/git-lfs:latest
-    volumes:
-      - ../../Kokoro-82M:/app/Kokoro-82M
-    working_dir: /app/Kokoro-82M
-    command: >
-      sh -c "
-        rm -f .git/index.lock;
-        if [ -z \"$(ls -A .)\" ]; then
-          git clone https://huggingface.co/hexgrad/Kokoro-82M .
-          touch .cloned;
-        else
-          rm -f .git/index.lock && \
-          git checkout main && \
-          git pull origin main && \
-          touch .cloned;
-        fi;
-        tail -f /dev/null
-      "
-    healthcheck:
-      test: ["CMD", "test", "-f", ".cloned"]
-      interval: 5s
-      timeout: 2s
-      retries: 300
-      start_period: 1s
-
   kokoro-tts:
     # image: ghcr.io/remsky/kokoro-fastapi:latest-cpu
     # Uncomment below (and comment out above) to build from source instead of using the released image
@@ -46,10 +20,6 @@ services:
       - ONNX_MEMORY_PATTERN=true
       - ONNX_ARENA_EXTEND_STRATEGY=kNextPowerOfTwo
       
-    depends_on:
-      model-fetcher:
-        condition: service_healthy
-
   # # Gradio UI service [Comment out everything below if you don't need it]
   # gradio-ui:
   #   # image: ghcr.io/remsky/kokoro-fastapi:latest-ui

@@ -4,7 +4,7 @@ import time
 import numpy as np
 import torch
 from loguru import logger
-from models import build_model
+from builds.models import build_model
 
 from .tts_base import TTSBaseModel
 from ..core.config import settings
