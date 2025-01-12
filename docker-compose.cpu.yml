@@ -54,8 +54,8 @@ services:
   gradio-ui:
     image: ghcr.io/remsky/kokoro-fastapi-ui:latest
     # Uncomment below (and comment out above) to build from source instead of using the released image
-    build:
-      context: ./ui
+    # build:
+    #   context: ./ui
     ports:
       - "7860:7860"
     volumes:
