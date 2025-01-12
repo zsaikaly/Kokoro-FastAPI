@@ -46,6 +46,6 @@ jobs:
         ruff check .
 
         
-    - name: Test with pytest
+    - name: Test API
       run: |
-        pytest --asyncio-mode=auto --cov=api --cov-report=term-missing
+        pytest api/tests/ --asyncio-mode=auto --cov=api --cov-report=term-missing

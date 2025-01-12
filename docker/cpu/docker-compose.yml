@@ -2,7 +2,7 @@ services:
   model-fetcher:
     image: datamachines/git-lfs:latest
     volumes:
-      - ./Kokoro-82M:/app/Kokoro-82M
+      - ../../Kokoro-82M:/app/Kokoro-82M
     working_dir: /app/Kokoro-82M
     command: >
       sh -c "
@@ -26,14 +26,14 @@ services:
       start_period: 1s
 
   kokoro-tts:
-    image: ghcr.io/remsky/kokoro-fastapi:latest-cpu
+    # image: ghcr.io/remsky/kokoro-fastapi:latest-cpu
     # Uncomment below (and comment out above) to build from source instead of using the released image
-    # build:
-      # context: .
-      # dockerfile: Dockerfile.cpu
+    build:
+      context: ../..
+      dockerfile: docker/cpu/Dockerfile
     volumes:
-      - ./api/src:/app/api/src
-      - ./Kokoro-82M:/app/Kokoro-82M
+      - ../../api/src:/app/api/src
+      - ../../Kokoro-82M:/app/Kokoro-82M
     ports:
       - "8880:8880"
     environment:
@@ -50,17 +50,17 @@ services:
       model-fetcher:
         condition: service_healthy
 
-  # Gradio UI service [Comment out everything below if you don't need it]
-  gradio-ui:
-    image: ghcr.io/remsky/kokoro-fastapi:latest-ui
-    # Uncomment below (and comment out above) to build from source instead of using the released image
-    build:
-      context: ./ui
-    ports:
-      - "7860:7860"
-    volumes:
-      - ./ui/data:/app/ui/data
-      - ./ui/app.py:/app/app.py  # Mount app.py for hot reload
-    environment:
-      - GRADIO_WATCH=True  # Enable hot reloading
-      - PYTHONUNBUFFERED=1  # Ensure Python output is not buffered
+  # # Gradio UI service [Comment out everything below if you don't need it]
+  # gradio-ui:
+  #   # image: ghcr.io/remsky/kokoro-fastapi:latest-ui
+  #   # Uncomment below (and comment out above) to build from source instead of using the released image
+  #   # build:
+  #   #   context: ./ui
+  #   ports:
+  #     - "7860:7860"
+  #   volumes:
+  #     - ./ui/data:/app/ui/data
+  #     - ./ui/app.py:/app/app.py  # Mount app.py for hot reload
+  #   environment:
+  #     - GRADIO_WATCH=True  # Enable hot reloading
+  #     - PYTHONUNBUFFERED=1  # Ensure Python output is not buffered

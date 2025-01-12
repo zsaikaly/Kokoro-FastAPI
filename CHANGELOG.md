@@ -2,6 +2,13 @@
 
 Notable changes to this project will be documented in this file.
 
+## [v0.0.6] - 2025-01-10
+### Fixed
+- Fixed dependency issues:
+  - Let PyTorch manage numpy version
+  - Pin aiofiles to 23.2.1 for Windows compatibility
+- Added CI workflow for testing
+
 ## [v0.0.5] - 2025-01-10
 ### Fixed
 - Stabilized issues with images tagging and structures from v0.0.4

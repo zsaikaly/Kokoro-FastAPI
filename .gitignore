@@ -26,3 +26,19 @@ examples/assorted_checks/benchmarks/output_audio_stream/*
 ui/RepoScreenshot.png
 examples/assorted_checks/benchmarks/output_audio_stream_openai/*
 
+api/src/voices/af_bella.pt
+api/src/voices/af_nicole.pt
+api/src/voices/af_sarah.pt
+api/src/voices/af_sky.pt
+api/src/voices/af.pt
+api/src/voices/am_adam.pt
+api/src/voices/am_michael.pt
+api/src/voices/bf_emma.pt
+api/src/voices/bf_isabella.pt
+api/src/voices/bm_george.pt
+api/src/voices/bm_lewis.pt
+examples/speech.mp3
+examples/phoneme_examples/output/example_1.wav
+examples/phoneme_examples/output/example_2.wav
+examples/phoneme_examples/output/example_3.wav
+EXTERNAL_UV_DOCUMENTATION*
