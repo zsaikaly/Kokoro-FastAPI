@@ -28,41 +28,31 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Extract metadata for GPU image
-      - name: Extract metadata (tags, labels) for GPU Docker
-        id: meta-gpu
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern=v{{version}}
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}
-            type=raw,value=latest
+      # Set up image names
+      - name: Set image names
+        run: |
+          echo "GPU_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-gpu" >> $GITHUB_ENV
+          echo "CPU_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-cpu" >> $GITHUB_ENV
+          echo "UI_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ui" >> $GITHUB_ENV
+          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-      # Extract metadata for CPU image
-      - name: Extract metadata (tags, labels) for CPU Docker
-        id: meta-cpu
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          flavor: |
-            suffix=-cpu
-          tags: |
-            type=semver,pattern=v{{version}}
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}
-            type=raw,value=latest
+      # Extract version tag if it exists
+      - name: Set version tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       # Build and push GPU version
       - name: Build and push GPU Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
+          file: ./docker/gpu/Dockerfile
           push: true
-          tags: ${{ steps.meta-gpu.outputs.tags }}
-          labels: ${{ steps.meta-gpu.outputs.labels }}
+          tags: |
+            ${{ env.GPU_IMAGE_NAME }}:latest
+            ${{ env.GPU_IMAGE_NAME }}:${{ env.VERSION }}
+          build-args: |
+            DOCKER_BUILDKIT=1
           platforms: linux/amd64
 
       # Build and push CPU version
@@ -70,25 +60,14 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile.cpu
+          file: ./docker/cpu/Dockerfile
           push: true
-          tags: ${{ steps.meta-cpu.outputs.tags }}
-          labels: ${{ steps.meta-cpu.outputs.labels }}
-          platforms: linux/amd64
-
-      # Extract metadata for UI image
-      - name: Extract metadata (tags, labels) for UI Docker
-        id: meta-ui
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          flavor: |
-            suffix=-ui
           tags: |
-            type=semver,pattern=v{{version}}
-            type=semver,pattern=v{{major}}.{{minor}}
-            type=semver,pattern=v{{major}}
-            type=raw,value=latest
+            ${{ env.CPU_IMAGE_NAME }}:latest
+            ${{ env.CPU_IMAGE_NAME }}:${{ env.VERSION }}
+          build-args: |
+            DOCKER_BUILDKIT=1
+          platforms: linux/amd64
 
       # Build and push UI version
       - name: Build and push UI Docker image
@@ -97,8 +76,11 @@ jobs:
           context: ./ui
           file: ./ui/Dockerfile
           push: true
-          tags: ${{ steps.meta-ui.outputs.tags }}
-          labels: ${{ steps.meta-ui.outputs.labels }}
+          tags: |
+            ${{ env.UI_IMAGE_NAME }}:latest
+            ${{ env.UI_IMAGE_NAME }}:${{ env.VERSION }}
+          build-args: |
+            DOCKER_BUILDKIT=1
           platforms: linux/amd64
 
   create-release:
@@ -114,7 +96,9 @@ jobs:
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
+        env:
+          IS_PRERELEASE: ${{ contains(github.ref, '-pre') }}
         with:
           generate_release_notes: true
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref, '-pre') }}
