@@ -28,12 +28,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Set up image names
+      # Set up image names (converting to lowercase)
       - name: Set image names
         run: |
-          echo "GPU_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-gpu" >> $GITHUB_ENV
-          echo "CPU_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-cpu" >> $GITHUB_ENV
-          echo "UI_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-ui" >> $GITHUB_ENV
+          echo "GPU_IMAGE_NAME=${{ env.REGISTRY }}/$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')-gpu" >> $GITHUB_ENV
+          echo "CPU_IMAGE_NAME=${{ env.REGISTRY }}/$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')-cpu" >> $GITHUB_ENV
+          echo "UI_IMAGE_NAME=${{ env.REGISTRY }}/$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')-ui" >> $GITHUB_ENV
           echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       # Extract version tag if it exists
