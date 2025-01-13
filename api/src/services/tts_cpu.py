@@ -41,8 +41,6 @@ class TTSCPUModel(TTSBaseModel):
             if not onnx_path:
                 return None
 
-            logger.info(f"Loading ONNX model from {onnx_path}")
-
             # Configure ONNX session for optimal performance
             session_options = SessionOptions()
 

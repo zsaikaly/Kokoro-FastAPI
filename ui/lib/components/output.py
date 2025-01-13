@@ -16,7 +16,7 @@ def create_output_column() -> Tuple[gr.Column, dict]:
             label="Previous Outputs",
             choices=files.list_output_files(),
             value=None,
-            allow_custom_value=False,
+            allow_custom_value=True,
         )
 
         play_btn = gr.Button("▶️ Play Selected", size="sm")
@@ -39,4 +39,5 @@ def create_output_column() -> Tuple[gr.Column, dict]:
         "clear_outputs": clear_outputs,
     }
 
+    return col, components
     return col, components
