@@ -58,6 +58,7 @@ services:
       model-fetcher:
         condition: service_healthy
 
+
   # Gradio UI service [Comment out everything below if you don't need it]
   gradio-ui:
     image: ghcr.io/remsky/kokoro-fastapi-ui:latest
