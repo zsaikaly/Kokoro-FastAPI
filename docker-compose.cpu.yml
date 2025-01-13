@@ -1,3 +1,4 @@
+name: kokoro-fastapi
 services:
   model-fetcher:
     image: datamachines/git-lfs:latest
@@ -28,8 +29,8 @@ services:
       start_period: 1s
 
   kokoro-tts:
-    # image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
-    # Uncomment below (and comment out above) to build from source instead of using the released image
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.0.5post1
+        # Uncomment below (and comment out above) to build from source instead of using the released image
     build:
       context: .
       dockerfile: Dockerfile.cpu
@@ -61,10 +62,10 @@ services:
 
   # Gradio UI service [Comment out everything below if you don't need it]
   gradio-ui:
-    # image: ghcr.io/remsky/kokoro-fastapi-ui:latest
+    image: ghcr.io/remsky/kokoro-fastapi-ui:v0.0.5post1
     # Uncomment below (and comment out above) to build from source instead of using the released image
-    build:
-      context: ./ui
+    # build:
+      # context: ./ui
     ports:
       - "7860:7860"
     volumes:
