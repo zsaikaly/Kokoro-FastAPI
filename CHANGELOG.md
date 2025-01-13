@@ -2,6 +2,13 @@
 
 Notable changes to this project will be documented in this file.
 
+## [v0.0.5post1] - 2025-01-11
+### Fixed
+- Docker image tagging and versioning improvements (-gpu, -cpu, -ui)
+- Minor vram management improvements
+- Gradio bugfix causing crashes and errant warnings
+- Updated GPU and UI container configurations
+
 ## [v0.0.5] - 2025-01-10
 ### Fixed
 - Stabilized issues with images tagging and structures from v0.0.4
