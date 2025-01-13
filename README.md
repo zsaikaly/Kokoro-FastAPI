@@ -29,7 +29,8 @@ The service can be accessed through either the API endpoints or the Gradio web i
         ```bash
         git clone https://github.com/remsky/Kokoro-FastAPI.git
         cd Kokoro-FastAPI
-        docker compose up --build
+        docker compose up --build # for GPU
+        #docker compose -f docker-compose.cpu.yml up --build # for CPU
         ```
 2. Run locally as an OpenAI-Compatible Speech Endpoint
     ```python
