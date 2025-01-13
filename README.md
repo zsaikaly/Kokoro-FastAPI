@@ -317,6 +317,53 @@ with open("speech.wav", "wb") as f:
 See `examples/phoneme_examples/generate_phonemes.py` for a sample script.
 </details>
 
+## Known Issues
+
+<details>
+<summary>Linux GPU Permissions</summary>
+
+Some Linux users may encounter GPU permission issues when running as non-root. 
+Can't guarantee anything, but here are some common solutions, consider your security requirements carefully
+
+### Option 1: Container Groups (Likely the best option)
+```yaml
+services:
+  kokoro-tts:
+    # ... existing config ...
+    group_add:
+      - "video"
+      - "render"
+```
+
+### Option 2: Host System Groups
+```yaml
+services:
+  kokoro-tts:
+    # ... existing config ...
+    user: "${UID}:${GID}"
+    group_add:
+      - "video"
+```
+Note: May require adding host user to groups: `sudo usermod -aG docker,video $USER` and system restart.
+
+### Option 3: Device Permissions (Use with caution)
+```yaml
+services:
+  kokoro-tts:
+    # ... existing config ...
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+```
+⚠️ Warning: Reduces system security. Use only in development environments.
+
+Prerequisites: NVIDIA GPU, drivers, and container toolkit must be properly configured.
+
+Visit [NVIDIA Container Toolkit installation](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) for more detailed information
+
+</details>
+
 ## Model and License
 
 <details open>
