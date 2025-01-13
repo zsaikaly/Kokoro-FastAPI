@@ -32,10 +32,10 @@ services:
       start_period: 1s
 
   kokoro-tts:
-    image: ghcr.io/remsky/kokoro-fastapi-gpu:latest
+    # image: ghcr.io/remsky/kokoro-fastapi-gpu:latest
     # Uncomment below (and comment out above) to build from source instead of using the released image
-    # build:
-      # context: .
+    build:
+      context: .
     volumes:
       - ./api/src:/app/api/src
       - ./Kokoro-82M:/app/Kokoro-82M
@@ -51,7 +51,7 @@ services:
               count: 1
               capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8880/v1/audio/voices"]
+      test: ["CMD", "curl", "-f", "http://localhost:8880/health"]
       interval: 10s
       timeout: 5s
       retries: 30

@@ -27,13 +27,19 @@ ENV/
 *.swo
 
 # Project specific
-examples/
+*examples/*.wav
+*examples/*.pcm
+*examples/*.mp3
+*examples/*.flac
+*examples/*.acc
+*examples/*.ogg
+
 Kokoro-82M/
-ui/
+ui/data
 tests/
 *.md
 *.txt
-!requirements.txt
+requirements.txt
 
 # Docker
 Dockerfile*
