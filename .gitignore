@@ -6,6 +6,7 @@ __pycache__
 *.pyc
 *.pyo
 *.pyd
+*.pt
 .Python
 *.py[cod]
 *$py.class
@@ -29,7 +30,8 @@ ENV/
 # Project specific
 examples/
 Kokoro-82M/
-ui/
+ui/data
+
 tests/
 *.md
 *.txt
@@ -43,3 +45,4 @@ docker-compose*
 *.pt
 *.wav
 *.tar*
+
