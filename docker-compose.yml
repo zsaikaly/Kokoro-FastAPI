@@ -8,8 +8,6 @@ services:
     working_dir: /app/Kokoro-82M
     command: >
       sh -c "
-        mkdir -p /app/Kokoro-82M;
-        cd /app/Kokoro-82M;
         if [ \"$$SKIP_MODEL_FETCH\" = \"true\" ]; then
           echo 'Skipping model fetch...' && touch .cloned;
         else
