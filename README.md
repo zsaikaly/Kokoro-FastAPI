@@ -5,7 +5,7 @@
 # Kokoro TTS API
 [![Tests](https://img.shields.io/badge/tests-117%20passed-darkgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-75%25-darkgreen)]()
-[![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/c3b0d86e2a980e027ef71c28819ea02e351c2667) [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero)
+[![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/c3b0d86e2a980e027ef71c28819ea02e351c2667) [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero) [![Buy Me A Coffee](https://img.shields.io/badge/BMC-✨☕-gray?style=flat-square)](https://www.buymeacoffee.com/remsky)
 
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
 - OpenAI-compatible Speech endpoint, with inline voice combination functionality
@@ -29,7 +29,8 @@ The service can be accessed through either the API endpoints or the Gradio web i
         ```bash
         git clone https://github.com/remsky/Kokoro-FastAPI.git
         cd Kokoro-FastAPI
-        docker compose up --build
+        docker compose up --build # for GPU
+        #docker compose -f docker-compose.cpu.yml up --build # for CPU
         ```
 2. Run locally as an OpenAI-Compatible Speech Endpoint
     ```python
@@ -315,6 +316,53 @@ with open("speech.wav", "wb") as f:
 ```
 
 See `examples/phoneme_examples/generate_phonemes.py` for a sample script.
+</details>
+
+## Known Issues
+
+<details>
+<summary>Linux GPU Permissions</summary>
+
+Some Linux users may encounter GPU permission issues when running as non-root. 
+Can't guarantee anything, but here are some common solutions, consider your security requirements carefully
+
+### Option 1: Container Groups (Likely the best option)
+```yaml
+services:
+  kokoro-tts:
+    # ... existing config ...
+    group_add:
+      - "video"
+      - "render"
+```
+
+### Option 2: Host System Groups
+```yaml
+services:
+  kokoro-tts:
+    # ... existing config ...
+    user: "${UID}:${GID}"
+    group_add:
+      - "video"
+```
+Note: May require adding host user to groups: `sudo usermod -aG docker,video $USER` and system restart.
+
+### Option 3: Device Permissions (Use with caution)
+```yaml
+services:
+  kokoro-tts:
+    # ... existing config ...
+    devices:
+      - /dev/nvidia0:/dev/nvidia0
+      - /dev/nvidiactl:/dev/nvidiactl
+      - /dev/nvidia-uvm:/dev/nvidia-uvm
+```
+⚠️ Warning: Reduces system security. Use only in development environments.
+
+Prerequisites: NVIDIA GPU, drivers, and container toolkit must be properly configured.
+
+Visit [NVIDIA Container Toolkit installation](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) for more detailed information
+
 </details>
 
 ## Model and License
