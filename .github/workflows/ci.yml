@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       UV_SYSTEM_PYTHON: 1
+      UV_PROJECT_ENVIRONMENT: 1
     strategy:
       matrix:
         python-version: ["3.10"]
@@ -36,8 +37,8 @@ jobs:
 
     - name: Lint with ruff
       run: |
-        uv run --system ruff check .
+        uv run ruff check .
 
     - name: Test API and UI
       run: |
-        uv run --system pytest api/tests/ ui/tests/ --asyncio-mode=auto --cov=api --cov=ui --cov-report=term-missing
+        uv run pytest api/tests/ ui/tests/ --asyncio-mode=auto --cov=api --cov=ui --cov-report=term-missing
