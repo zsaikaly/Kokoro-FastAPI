@@ -3,8 +3,8 @@
 from io import BytesIO
 
 import numpy as np
-import soundfile as sf
 import scipy.io.wavfile as wavfile
+import soundfile as sf
 from loguru import logger
 
 from ..core.config import settings
@@ -22,20 +22,19 @@ class AudioNormalizer:
     def normalize(
         self, audio_data: np.ndarray, is_last_chunk: bool = False
     ) -> np.ndarray:
-        """Normalize audio data to int16 range and trim chunk boundaries"""
-        # Convert to float32 if not already
+        """Convert audio data to int16 range and trim chunk boundaries"""
+        if len(audio_data) == 0:
+            raise ValueError("Audio data cannot be empty")
+            
+        # Simple float32 to int16 conversion
         audio_float = audio_data.astype(np.float32)
-
-        # Normalize to [-1, 1] range first
-        if np.max(np.abs(audio_float)) > 0:
-            audio_float = audio_float / np.max(np.abs(audio_float))
-
-        # Trim end of non-final chunks to reduce gaps
+        
+        # Trim for non-final chunks
         if not is_last_chunk and len(audio_float) > self.samples_to_trim:
-            audio_float = audio_float[: -self.samples_to_trim]
-
-        # Scale to int16 range
-        return (audio_float * self.int16_max).astype(np.int16)
+            audio_float = audio_float[:-self.samples_to_trim]
+        
+        # Direct scaling like the non-streaming version
+        return (audio_float * 32767).astype(np.int16)
 
 
 class AudioService:
