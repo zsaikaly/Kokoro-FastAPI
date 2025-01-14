@@ -1,4 +1,4 @@
-name: Docker Build and Publish
+name: Docker Build, Slim, and Publish
 
 on:
   push:
@@ -35,42 +35,64 @@ jobs:
           echo "GPU_IMAGE_NAME=${{ env.REGISTRY }}/$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')-gpu" >> $GITHUB_ENV
           echo "CPU_IMAGE_NAME=${{ env.REGISTRY }}/$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')-cpu" >> $GITHUB_ENV
           echo "UI_IMAGE_NAME=${{ env.REGISTRY }}/$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')-ui" >> $GITHUB_ENV
-          echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-      # Extract version tag if it exists
-      - name: Set version tag
-        if: startsWith(github.ref, 'refs/tags/')
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
-      # Build and push GPU version
-      - name: Build and push GPU Docker image
+      # Build GPU version
+      - name: Build GPU Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/gpu/Dockerfile
-          push: true
-          tags: |
-            ${{ env.GPU_IMAGE_NAME }}:latest
-            ${{ env.GPU_IMAGE_NAME }}:${{ env.VERSION }}
+          push: false
+          load: true
+          tags: ${{ env.GPU_IMAGE_NAME }}:v0.1.0
           build-args: |
             DOCKER_BUILDKIT=1
           platforms: linux/amd64
 
-      # Build and push CPU version
-      - name: Build and push CPU Docker image
+      # Slim GPU version
+      - name: Slim GPU Docker image
+        uses: kitabisa/docker-slim-action@v1
+        env:
+          DSLIM_HTTP_PROBE: false
+        with:
+          target: ${{ env.GPU_IMAGE_NAME }}:v0.1.0
+          tag: v0.1.0-slim
+
+      # Push GPU versions
+      - name: Push GPU Docker images
+        run: |
+          docker push ${{ env.GPU_IMAGE_NAME }}:v0.1.0
+          docker push ${{ env.GPU_IMAGE_NAME }}:v0.1.0-slim
+
+      # Build CPU version
+      - name: Build CPU Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./docker/cpu/Dockerfile
-          push: true
-          tags: |
-            ${{ env.CPU_IMAGE_NAME }}:latest
-            ${{ env.CPU_IMAGE_NAME }}:${{ env.VERSION }}
+          push: false
+          load: true
+          tags: ${{ env.CPU_IMAGE_NAME }}:v0.1.0
           build-args: |
             DOCKER_BUILDKIT=1
           platforms: linux/amd64
 
-      # Build and push UI version
+      # Slim CPU version
+      - name: Slim CPU Docker image
+        uses: kitabisa/docker-slim-action@v1
+        env:
+          DSLIM_HTTP_PROBE: false
+        with:
+          target: ${{ env.CPU_IMAGE_NAME }}:v0.1.0
+          tag: v0.1.0-slim
+
+      # Push CPU versions
+      - name: Push CPU Docker images
+        run: |
+          docker push ${{ env.CPU_IMAGE_NAME }}:v0.1.0
+          docker push ${{ env.CPU_IMAGE_NAME }}:v0.1.0-slim
+
+      # Build and push UI version (unchanged)
       - name: Build and push UI Docker image
         uses: docker/build-push-action@v5
         with:
@@ -78,8 +100,7 @@ jobs:
           file: ./ui/Dockerfile
           push: true
           tags: |
-            ${{ env.UI_IMAGE_NAME }}:latest
-            ${{ env.UI_IMAGE_NAME }}:${{ env.VERSION }}
+            ${{ env.UI_IMAGE_NAME }}:v0.1.0
           build-args: |
             DOCKER_BUILDKIT=1
           platforms: linux/amd64
