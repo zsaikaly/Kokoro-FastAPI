@@ -29,4 +29,4 @@ jobs:
 
     - name: Run Tests
       run: |
-        uv run pytest api/tests/ --asyncio-mode=auto --cov=api --cov=ui --cov-report=term-missing
+        uv run pytest api/tests/ ui/tests/ --asyncio-mode=auto --cov=api --cov=ui --cov-report=term-missing
