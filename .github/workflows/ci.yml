@@ -36,8 +36,8 @@ jobs:
 
     - name: Lint with ruff
       run: |
-        uv run ruff check .
+        uv run --system ruff check .
 
     - name: Test API and UI
       run: |
-        uv run pytest api/tests/ ui/tests/ --asyncio-mode=auto --cov=api --cov=ui --cov-report=term-missing
+        uv run --system pytest api/tests/ ui/tests/ --asyncio-mode=auto --cov=api --cov=ui --cov-report=term-missing
