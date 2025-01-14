@@ -398,6 +398,16 @@ wheels = [
 ]
 
 [[package]]
+name = "ebooklib"
+version = "0.18"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "lxml" },
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e8/1d/90bb33317d756c25b40bb55312dda30a94afb691755763fc00976250c82b/EbookLib-0.18.tar.gz", hash = "sha256:38562643a7bc94d9bf56e9930b4927e4e93b5d1d0917f697a6454db5a1c1a533", size = 115484 }
+
+[[package]]
 name = "exceptiongroup"
 version = "1.2.2"
 source = { registry = "https://pypi.org/simple" }
@@ -570,6 +580,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/f5/38/3af3d3633a34a3316
 wheels = [
     { url = "https://files.pythonhosted.org/packages/95/04/ff642e65ad6b90db43e668d70ffb6736436c7ce41fcc549f4e9472234127/h11-0.14.0-py3-none-any.whl", hash = "sha256:e3fe4ac4b851c468cc8363d500db52c2ead036020723024a109d37346efaa761", size = 58259 },
 ]
+
+[[package]]
+name = "html2text"
+version = "2024.2.26"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1a/43/e1d53588561e533212117750ee79ad0ba02a41f52a08c1df3396bd466c05/html2text-2024.2.26.tar.gz", hash = "sha256:05f8e367d15aaabc96415376776cdd11afd5127a77fce6e36afc60c563ca2c32", size = 56527 }
 
 [[package]]
 name = "httpcore"
@@ -771,7 +787,9 @@ source = { editable = "." }
 dependencies = [
     { name = "aiofiles" },
     { name = "click" },
+    { name = "ebooklib" },
     { name = "fastapi" },
+    { name = "html2text" },
     { name = "loguru" },
     { name = "munch" },
     { name = "numpy" },
@@ -806,14 +824,17 @@ test = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aiofiles", specifier = "==23.2.1" },
     { name = "click", specifier = ">=8.0.0" },
+    { name = "ebooklib", specifier = ">=0.18" },
     { name = "fastapi", specifier = "==0.115.6" },
     { name = "gradio", marker = "extra == 'test'", specifier = ">=5" },
+    { name = "html2text", specifier = ">=2024.2.26" },
     { name = "httpx", marker = "extra == 'test'", specifier = "==0.26.0" },
     { name = "loguru", specifier = "==0.7.3" },
     { name = "munch", specifier = "==4.0.0" },
@@ -830,6 +851,7 @@ requires-dist = [
     { name = "python-dotenv", specifier = "==1.0.1" },
     { name = "regex", specifier = "==2024.11.6" },
     { name = "requests", specifier = "==2.32.3" },
+    { name = "ruff", marker = "extra == 'test'", specifier = ">=0.2.2" },
     { name = "scipy", specifier = "==1.14.1" },
     { name = "soundfile", specifier = "==0.13.0" },
     { name = "sqlalchemy", specifier = "==2.0.27" },

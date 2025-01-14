@@ -24,13 +24,13 @@ services:
   gradio-ui:
     # image: ghcr.io/remsky/kokoro-fastapi:latest-ui
     # Uncomment below (and comment out above) to build from source instead of using the released image
-    # build:
-    #   context: ./ui
+    build:
+      context: ../../ui
     ports:
       - "7860:7860"
     volumes:
-      - ./ui/data:/app/ui/data
-      - ./ui/app.py:/app/app.py  # Mount app.py for hot reload
+      - ../../ui/data:/app/ui/data
+      - ../../ui/app.py:/app/app.py  # Mount app.py for hot reload
     environment:
       - GRADIO_WATCH=True  # Enable hot reloading
       - PYTHONUNBUFFERED=1  # Ensure Python output is not buffered

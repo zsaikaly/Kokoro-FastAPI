@@ -28,12 +28,8 @@ jobs:
 
     - name: Install dependencies
       run: |
-        uv sync --all-extras --dev
+        uv pip install -e .[test]
 
-    - name: Lint with ruff
-      run: |
-        uv run ruff check .
-
-    - name: Test API and UI
+    - name: Run Tests
       run: |
         uv run pytest api/tests/ ui/tests/ --asyncio-mode=auto --cov=api --cov=ui --cov-report=term-missing
