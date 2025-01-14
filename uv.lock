@@ -802,6 +802,7 @@ gpu = [
 test = [
     { name = "gradio" },
     { name = "httpx" },
+    { name = "openai" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -819,6 +820,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "onnxruntime", specifier = "==1.20.1" },
     { name = "openai", specifier = ">=1.59.6" },
+    { name = "openai", marker = "extra == 'test'", specifier = ">=1.59.6" },
     { name = "phonemizer", specifier = "==3.3.0" },
     { name = "pydantic", specifier = "==2.10.4" },
     { name = "pydantic-settings", specifier = "==2.7.0" },
