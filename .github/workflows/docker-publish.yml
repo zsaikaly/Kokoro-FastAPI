@@ -52,13 +52,24 @@ jobs:
           platforms: linux/amd64
 
       # Slim GPU version
+      - name: Install Docker Slim
+        run: |
+          curl -L -o slim.tar.gz https://downloads.dockerslim.com/releases/1.40.5/dist_linux.tar.gz
+          tar xvf slim.tar.gz
+          sudo mv dist_linux/slim /usr/local/bin/
+          rm -rf dist_linux slim.tar.gz
+
       - name: Slim GPU Docker image
-        uses: kitabisa/docker-slim-action@v1
-        env:
-          DSLIM_HTTP_PROBE: false
-        with:
-          target: ${{ env.GPU_IMAGE_NAME }}:v0.1.0
-          tag: v0.1.0-slim
+        run: |
+          slim build \
+            --target ${{ env.GPU_IMAGE_NAME }}:v0.1.0 \
+            --tag ${{ env.GPU_IMAGE_NAME }}:v0.1.0-slim \
+            --include-path=/app/api/model_files \
+            --include-path=/app/api/src/voices \
+            --include-path=/usr/local/lib/python3.10 \
+            --include-shell \
+            --include-exe=python3,python3.10 \
+            --http-probe=false
 
       # Push GPU versions
       - name: Push GPU Docker images
@@ -85,12 +96,16 @@ jobs:
 
       # Slim CPU version
       - name: Slim CPU Docker image
-        uses: kitabisa/docker-slim-action@v1
-        env:
-          DSLIM_HTTP_PROBE: false
-        with:
-          target: ${{ env.CPU_IMAGE_NAME }}:v0.1.0
-          tag: v0.1.0-slim
+        run: |
+          slim build \
+            --target ${{ env.CPU_IMAGE_NAME }}:v0.1.0 \
+            --tag ${{ env.CPU_IMAGE_NAME }}:v0.1.0-slim \
+            --include-path=/app/api/model_files \
+            --include-path=/app/api/src/voices \
+            --include-path=/usr/local/lib/python3.10 \
+            --include-shell \
+            --include-exe=python3,python3.10 \
+            --http-probe=false
 
       # Push CPU versions
       - name: Push CPU Docker images
