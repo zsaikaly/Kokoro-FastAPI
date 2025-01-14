@@ -60,9 +60,13 @@ jobs:
             --tag ${{ env.GPU_IMAGE_NAME }}:v0.1.0-slim \
             --include-path=/app/models \
             --include-path=/app/api/src/voices \
-            --include-path=/usr/local/lib/python3.10 \
+            --include-path=/app/.venv \
+            --include-bin=/usr/local/cuda/lib64 \
+            --include-bin=/usr/lib/x86_64-linux-gnu/libcudart.so \
+            --include-bin=/usr/lib/x86_64-linux-gnu/libcuda.so \
             --include-shell \
-            --include-exe=python3,python3.10 \
+            --include-exe=python3,python3.10,espeak-ng \
+            --exclude-mounts=false \
             --http-probe=false
 
       # Push GPU versions
@@ -96,9 +100,10 @@ jobs:
             --tag ${{ env.CPU_IMAGE_NAME }}:v0.1.0-slim \
             --include-path=/app/models \
             --include-path=/app/api/src/voices \
-            --include-path=/usr/local/lib/python3.10 \
+            --include-path=/app/.venv \
             --include-shell \
-            --include-exe=python3,python3.10 \
+            --include-exe=python3,python3.10,espeak-ng \
+            --exclude-mounts=false \
             --http-probe=false
 
       # Push CPU versions
