@@ -1,5 +1,7 @@
 line-length = 88
 
+exclude = ["examples"]
+
 [lint]
 select = ["I"]
 
