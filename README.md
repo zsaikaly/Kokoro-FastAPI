@@ -24,8 +24,8 @@ Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokor
 The service can be accessed through either the API endpoints or the Gradio web interface.
 
 1. Install prerequisites:
-   - Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-   - Clone the repository:
+    - Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+    - Clone the repository:
         ```bash
         git clone https://github.com/remsky/Kokoro-FastAPI.git
         cd Kokoro-FastAPI
@@ -33,22 +33,40 @@ The service can be accessed through either the API endpoints or the Gradio web i
 
 2. Start the service:
    
-   - Using Docker Compose (Full setup including UI):
+    - Using Docker Compose (Full setup including UI):
         ```bash
         cd docker/gpu # OR 
         # cd docker/cpu # Run this or the above
         docker compose up --build 
         ```
-   - OR running the API alone using Docker (model + voice packs baked in):
-        ```bash
+      Once started:
+      - The API will be available at http://localhost:8880
+      - The UI can be accessed at http://localhost:7860
 
+    - OR run the API alone using Docker (model + voice packs baked in):
+        ```bash
         docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest # CPU
         docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest # Nvidia GPU
+        
         # Minified versions are available with `:latest-slim` tag, though it is a first test and may not be functional
         ```
+  
+3. Running the UI Docker Service:
+
+    - If you only want to run the Gradio web interface separately and connect it to an existing API service:
+      ```bash
+      docker run -p 7860:7860 \
+        -e API_HOST=<api-hostname-or-ip> \
+        -e API_PORT=8880 \
+        ghcr.io/remsky/kokoro-fastapi-ui:v0.1.0
+      ```
+
+      - Replace `<api-hostname-or-ip>` with:
+        - `kokoro-tts` if the UI container is running in the same Docker Compose setup.
+        - `localhost` if the API is running on your local machine.
         
         
-2. Run locally as an OpenAI-Compatible Speech Endpoint
+4. Run locally as an OpenAI-Compatible Speech Endpoint
     ```python
     from openai import OpenAI
     client = OpenAI(
