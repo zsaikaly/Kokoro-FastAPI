@@ -33,7 +33,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        uv pip install -e "docker/cpu[test]"
+        uv sync --all-extras --dev docker/cpu
 
     - name: Lint with ruff
       run: |
