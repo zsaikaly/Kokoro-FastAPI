@@ -58,7 +58,7 @@ jobs:
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/slim build \
             --target ${{ env.GPU_IMAGE_NAME }}:v0.1.0 \
             --tag ${{ env.GPU_IMAGE_NAME }}:v0.1.0-slim \
-            --include-path=/app/api/model_files \
+            --include-path=/app/models \
             --include-path=/app/api/src/voices \
             --include-path=/usr/local/lib/python3.10 \
             --include-shell \
@@ -94,7 +94,7 @@ jobs:
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/slim build \
             --target ${{ env.CPU_IMAGE_NAME }}:v0.1.0 \
             --tag ${{ env.CPU_IMAGE_NAME }}:v0.1.0-slim \
-            --include-path=/app/api/model_files \
+            --include-path=/app/models \
             --include-path=/app/api/src/voices \
             --include-path=/usr/local/lib/python3.10 \
             --include-shell \
