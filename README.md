@@ -25,12 +25,27 @@ The service can be accessed through either the API endpoints or the Gradio web i
 
 1. Install prerequisites:
    - Install [Docker Desktop](https://www.docker.com/products/docker-desktop/) + [Git](https://git-scm.com/downloads)
-   - Clone and start the service:
+   - Clone the repository:
         ```bash
         git clone https://github.com/remsky/Kokoro-FastAPI.git
         cd Kokoro-FastAPI
+        ```
+
+2. Start the service:
+   
+   a. Using Docker Compose (recommended for full setup including UI):
+        ```bash
         docker compose up --build # for GPU
         #docker compose -f docker-compose.cpu.yml up --build # for CPU
+        ```
+   
+   b. Running the API alone using Docker:
+        ```bash
+        # For CPU version
+        docker run -p 8880:8880 kokoro-fastapi-cpu
+        
+        # For GPU version (requires NVIDIA Container Toolkit)
+        docker run --gpus all -p 8880:8880 kokoro-fastapi-gpu
         ```
 2. Run locally as an OpenAI-Compatible Speech Endpoint
     ```python

@@ -1,3 +1,4 @@
+name: kokoro-tts
 services:
   kokoro-tts:
     build:
