@@ -2,9 +2,9 @@
   <img src="githubbanner.png" alt="Kokoro TTS Banner">
 </p>
 
-# Kokoro TTS API
+# <sub><sub>_`FastKoko`_ </sub></sub>
 [![Tests](https://img.shields.io/badge/tests-117%20passed-darkgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-75%25-darkgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-60%25-grey)]()
 [![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/c3b0d86e2a980e027ef71c28819ea02e351c2667) [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero) [![Buy Me A Coffee](https://img.shields.io/badge/BMC-✨☕-gray?style=flat-square)](https://www.buymeacoffee.com/remsky)
 
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
@@ -35,8 +35,9 @@ The service can be accessed through either the API endpoints or the Gradio web i
    
    - Using Docker Compose (Full setup including UI):
         ```bash
-        docker compose up --build # for GPU
-        docker compose -f docker-compose.cpu.yml up --build # for CPU
+        cd docker/gpu # OR 
+        # cd docker/cpu # Run this or the above
+        docker compose up --build 
         ```
    - OR running the API alone using Docker (model + voice packs baked in):
         ```bash
@@ -349,6 +350,27 @@ See `examples/phoneme_examples/generate_phonemes.py` for a sample script.
 </details>
 
 ## Known Issues
+
+<details>
+<summary>Versioning & Development</summary>
+
+I'm doing what I can to keep things stable, but we are on an early and rapid set of build cycles here.
+If you run into trouble, you may have to roll back a version on the release tags if something comes up, or build up from source and/or troubleshoot + submit a PR. Will leave the branch up here for the last known stable points:
+
+`v0.0.5post1`
+
+Free and open source is a community effort, and I love working on this project, though there's only really so many hours in a day. If you'd like to support the work, feel free to open a PR, buy me a coffee, or report any bugs/features/etc you find during use.
+
+  <a href="https://www.buymeacoffee.com/remsky" target="_blank">
+    <img 
+      src="https://cdn.buymeacoffee.com/buttons/v2/default-violet.png" 
+      alt="Buy Me A Coffee" 
+      style="height: 30px !important;width: 110px !important;"
+    >
+  </a>
+
+  
+</details>
 
 <details>
 <summary>Linux GPU Permissions</summary>

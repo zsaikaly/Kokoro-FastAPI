@@ -9,7 +9,11 @@ def create_output_column(disable_local_saving: bool = False) -> Tuple[gr.Column,
     """Create the output column with audio player and file list."""
     with gr.Column(scale=1) as col:
         gr.Markdown("### Latest Output")
-        audio_output = gr.Audio(label="Generated Speech", type="filepath")
+        audio_output = gr.Audio(
+            label="Generated Speech",
+            type="filepath",
+            waveform_options={"waveform_color": "#4C87AB"}
+        )
 
         # Create file-related components with visible=False when local saving is disabled
         gr.Markdown("### Generated Files", visible=not disable_local_saving)
@@ -17,7 +21,7 @@ def create_output_column(disable_local_saving: bool = False) -> Tuple[gr.Column,
             label="Previous Outputs",
             choices=files.list_output_files() if not disable_local_saving else [],
             value=None,
-            allow_custom_value=False,
+            allow_custom_value=True,
             visible=not disable_local_saving,
         )
 

@@ -26,7 +26,7 @@ def create_interface():
         # Main interface
         with gr.Row():
             # Create columns
-            input_col, input_components = create_input_column()
+            input_col, input_components = create_input_column(disable_local_saving)
             model_col, model_components = create_model_column(
                 available_voices
             )  # Pass initial voices
@@ -40,7 +40,7 @@ def create_interface():
             }
 
             # Set up event handlers
-            setup_event_handlers(components)
+            setup_event_handlers(components, disable_local_saving)
 
         # Add periodic status check with Timer
         def update_status():
