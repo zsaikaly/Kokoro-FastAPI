@@ -1,45 +1,10 @@
 services:
-  # model-fetcher:
-  #   image: datamachines/git-lfs:latest
-  #   environment:
-  #     - SKIP_MODEL_FETCH=${SKIP_MODEL_FETCH:-false}
-  #   volumes:
-  #     - ./Kokoro-82M:/app/Kokoro-82M
-  #   working_dir: /app/Kokoro-82M
-  #   command: >
-  #     sh -c "
-  #       if [ \"$$SKIP_MODEL_FETCH\" = \"true\" ]; then
-  #         echo 'Skipping model fetch...' && touch .cloned;
-  #       else
-  #         rm -f .git/index.lock;
-  #         if [ -z \"$(ls -A .)\" ]; then
-  #           git clone https://huggingface.co/hexgrad/Kokoro-82M .
-  #           touch .cloned;
-  #         else
-  #           rm -f .git/index.lock && \
-  #           git checkout main && \
-  #           git pull origin main && \
-  #           touch .cloned;
-  #         fi;
-  #       fi;
-  #       tail -f /dev/null
-  #     "
-  #   healthcheck:
-  #     test: ["CMD", "test", "-f", ".cloned"]
-  #     interval: 5s
-  #     timeout: 2s
-  #     retries: 300
-  #     start_period: 1s
-
   kokoro-tts:
-    # image: ghcr.io/remsky/kokoro-fastapi-gpu:latest
-    # Uncomment below to build from source instead of using the released image
     build:
       context: ../..
       dockerfile: docker/gpu/Dockerfile
     volumes:
-      - ../../api/src:/app/api/src
-      - ../../Kokoro-82M:/app/Kokoro-82M
+      - ../../api/src:/app/api/src  # Mount src for development
     ports:
       - "8880:8880"
     environment:
@@ -51,21 +16,18 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    # depends_on:
-    #   model-fetcher:
-    #     condition: service_healthy
 
-  # Gradio UI service [Comment out everything below if you don't need it]
-  # gradio-ui:
+  # Gradio UI service
+  gradio-ui:
     # image: ghcr.io/remsky/kokoro-fastapi-ui:latest
     # Uncomment below to build from source instead of using the released image
-    # build:
-    #   context: ./ui
-    # ports:
-    #   - "7860:7860"
-    # volumes:
-    #   - ./ui/data:/app/ui/data
-    #   - ./ui/app.py:/app/app.py  # Mount app.py for hot reload
-    # environment:
-    #   - GRADIO_WATCH=1  # Enable hot reloading
-    #   - PYTHONUNBUFFERED=1  # Ensure Python output is not buffered
+    build:
+      context: ../../ui
+    ports:
+      - "7860:7860"
+    volumes:
+      - ../../ui/data:/app/ui/data
+      - ../../ui/app.py:/app/app.py  # Mount app.py for hot reload
+    environment:
+      - GRADIO_WATCH=1  # Enable hot reloading
+      - PYTHONUNBUFFERED=1  # Ensure Python output is not buffered

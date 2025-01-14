@@ -1,33 +1,44 @@
+# Version control
+.git
 
-output/*
-output_audio/*
-ui/data/*
-
-*.db
+# Python
+__pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.py[cod]
+*$py.class
+.Python
+.pytest_cache
+.coverage
+.coveragerc
+
+# Python package build artifacts
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Environment
+# .env
+.venv/
+env/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+# Model files
+*.pt
 *.pth
 *.tar*
 
-Kokoro-82M/*
-__pycache__/
-.vscode/
-env/
-.venv/
-.Python
-
-
-.coverage
-
-examples/assorted_checks/benchmarks/output_audio/*
-examples/assorted_checks/test_combinations/output/*
-examples/assorted_checks/test_openai/output/*
-
-examples/assorted_checks/test_voices/output/*
-examples/assorted_checks/test_formats/output/*
-examples/assorted_checks/benchmarks/output_audio_stream/*
-ui/RepoScreenshot.png
-examples/assorted_checks/benchmarks/output_audio_stream_openai/*
-
+# Voice files
 api/src/voices/af_bella.pt
 api/src/voices/af_nicole.pt
 api/src/voices/af_sarah.pt
@@ -39,14 +50,24 @@ api/src/voices/bf_emma.pt
 api/src/voices/bf_isabella.pt
 api/src/voices/bm_george.pt
 api/src/voices/bm_lewis.pt
+
+# Audio files
+examples/*.wav
+examples/*.pcm
+examples/*.mp3
+examples/*.flac
+examples/*.acc
+examples/*.ogg
 examples/speech.mp3
 examples/phoneme_examples/output/example_1.wav
 examples/phoneme_examples/output/example_2.wav
 examples/phoneme_examples/output/example_3.wav
+
+# Other project files
+Kokoro-82M/
+ui/data/
 EXTERNAL_UV_DOCUMENTATION*
 
-# Python package build artifacts
-*.egg-info/
-*.egg
-dist/
-build/
+# Docker
+Dockerfile*
+docker-compose*

@@ -2,12 +2,23 @@
 
 Notable changes to this project will be documented in this file.
 
-## [v0.0.6] - 2025-01-10
+## [v0.1.0] - 2025-01-13
+### Changed
+- Major Docker improvements:
+  - Baked model directly into Dockerfile for improved deployment reliability
+  - Switched to uv for dependency management
+  - Streamlined container builds and reduced image sizes
+- Dependency Management:
+  - Migrated from pip/poetry to uv for faster, more reliable package management
+  - Added uv.lock for deterministic builds
+  - Updated dependency resolution strategy
+
+## [v0.0.5post1] - 2025-01-11
 ### Fixed
-- Fixed dependency issues:
-  - Let PyTorch manage numpy version
-  - Pin aiofiles to 23.2.1 for Windows compatibility
-- Added CI workflow for testing
+- Docker image tagging and versioning improvements (-gpu, -cpu, -ui)
+- Minor vram management improvements
+- Gradio bugfix causing crashes and errant warnings
+- Updated GPU and UI container configurations
 
 ## [v0.0.5] - 2025-01-10
 ### Fixed
