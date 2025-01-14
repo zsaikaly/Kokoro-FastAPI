@@ -5,14 +5,14 @@ import torch
 from loguru import logger
 from onnxruntime import (
     ExecutionMode,
-    SessionOptions,
-    InferenceSession,
     GraphOptimizationLevel,
+    InferenceSession,
+    SessionOptions,
 )
 
-from .tts_base import TTSBaseModel
 from ..core.config import settings
-from .text_processing import tokenize, phonemize
+from .text_processing import phonemize, tokenize
+from .tts_base import TTSBaseModel
 
 
 class TTSCPUModel(TTSBaseModel):

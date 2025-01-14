@@ -1,12 +1,12 @@
-from typing import List, Union, AsyncGenerator
+from typing import AsyncGenerator, List, Union
 
-from loguru import logger
-from fastapi import Header, Depends, Response, APIRouter, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from fastapi.responses import StreamingResponse
+from loguru import logger
 
 from ..services.audio import AudioService
-from ..structures.schemas import OpenAISpeechRequest
 from ..services.tts_service import TTSService
+from ..structures.schemas import OpenAISpeechRequest
 
 router = APIRouter(
     tags=["OpenAI Compatible TTS"],

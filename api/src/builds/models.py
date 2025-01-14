@@ -1,16 +1,19 @@
 # https://github.com/yl4579/StyleTTS2/blob/main/models.py
-from .istftnet import AdaIN1d, Decoder
-from munch import Munch
-from pathlib import Path
-from .plbert import load_plbert
-from torch.nn.utils import weight_norm, spectral_norm
 import json
-import numpy as np
 import os
 import os.path as osp
+from pathlib import Path
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from munch import Munch
+from torch.nn.utils import spectral_norm, weight_norm
+
+from .istftnet import AdaIN1d, Decoder
+from .plbert import load_plbert
+
 
 class LinearNorm(torch.nn.Module):
     def __init__(self, in_dim, out_dim, bias=True, w_init_gain='linear'):

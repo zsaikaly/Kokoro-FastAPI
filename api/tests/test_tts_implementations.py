@@ -1,15 +1,15 @@
 """Tests for TTS model implementations"""
 
 import os
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
-import torch
 import pytest
+import torch
 
+from api.src.services.tts_base import TTSBaseModel
 from api.src.services.tts_cpu import TTSCPUModel
 from api.src.services.tts_gpu import TTSGPUModel, length_to_mask
-from api.src.services.tts_base import TTSBaseModel
 
 
 # Base Model Tests

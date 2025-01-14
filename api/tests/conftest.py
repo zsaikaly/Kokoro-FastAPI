@@ -1,11 +1,11 @@
 import os
-import sys
 import shutil
-from unittest.mock import Mock, MagicMock, patch
+import sys
+from unittest.mock import MagicMock, Mock, patch
 
+import aiofiles.threadpool
 import numpy as np
 import pytest
-import aiofiles.threadpool
 
 
 def cleanup_mock_dirs():

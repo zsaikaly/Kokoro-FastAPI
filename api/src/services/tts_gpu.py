@@ -3,12 +3,12 @@ import time
 
 import numpy as np
 import torch
-from loguru import logger
 from builds.models import build_model
+from loguru import logger
 
-from .tts_base import TTSBaseModel
 from ..core.config import settings
-from .text_processing import tokenize, phonemize
+from .text_processing import phonemize, tokenize
+from .tts_base import TTSBaseModel
 
 
 # @torch.no_grad()

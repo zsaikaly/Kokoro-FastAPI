@@ -1,11 +1,12 @@
 # https://github.com/yl4579/StyleTTS2/blob/main/Modules/istftnet.py
-from scipy.signal import get_window
-from torch.nn import Conv1d, ConvTranspose1d
-from torch.nn.utils import weight_norm, remove_weight_norm
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from scipy.signal import get_window
+from torch.nn import Conv1d, ConvTranspose1d
+from torch.nn.utils import remove_weight_norm, weight_norm
+
 
 # https://github.com/yl4579/StyleTTS2/blob/main/Modules/utils.py
 def init_weights(m, mean=0.0, std=0.01):

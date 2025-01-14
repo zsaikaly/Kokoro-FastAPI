@@ -1,6 +1,7 @@
 # https://github.com/yl4579/StyleTTS2/blob/main/Utils/PLBERT/util.py
 from transformers import AlbertConfig, AlbertModel
 
+
 class CustomAlbert(AlbertModel):
     def forward(self, *args, **kwargs):
         # Call the original forward method

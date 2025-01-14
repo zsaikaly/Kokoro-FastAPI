@@ -3,8 +3,8 @@
 from io import BytesIO
 
 import numpy as np
-import soundfile as sf
 import scipy.io.wavfile as wavfile
+import soundfile as sf
 from loguru import logger
 
 from ..core.config import settings
@@ -23,6 +23,9 @@ class AudioNormalizer:
         self, audio_data: np.ndarray, is_last_chunk: bool = False
     ) -> np.ndarray:
         """Convert audio data to int16 range and trim chunk boundaries"""
+        if len(audio_data) == 0:
+            raise ValueError("Audio data cannot be empty")
+            
         # Simple float32 to int16 conversion
         audio_float = audio_data.astype(np.float32)
         
