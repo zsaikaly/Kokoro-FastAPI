@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
     # Initialize the main model with warm-up
     voicepack_count = await TTSModel.setup()
     # boundary = "█████╗"*9
-    boundary = "░" * 24
+    boundary = "░" * 2*12
     startup_msg = f"""
 
 {boundary}
