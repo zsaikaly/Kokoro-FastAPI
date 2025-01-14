@@ -2,6 +2,8 @@ name: Docker Build, Slim, and Publish
 
 on:
   push:
+    branches:
+      - master
     tags: [ 'v*.*.*' ]
   # Allow manual trigger from GitHub UI
   workflow_dispatch:
@@ -63,6 +65,10 @@ jobs:
         run: |
           docker push ${{ env.GPU_IMAGE_NAME }}:v0.1.0
           docker push ${{ env.GPU_IMAGE_NAME }}:v0.1.0-slim
+          docker tag ${{ env.GPU_IMAGE_NAME }}:v0.1.0 ${{ env.GPU_IMAGE_NAME }}:latest
+          docker tag ${{ env.GPU_IMAGE_NAME }}:v0.1.0-slim ${{ env.GPU_IMAGE_NAME }}:latest-slim
+          docker push ${{ env.GPU_IMAGE_NAME }}:latest
+          docker push ${{ env.GPU_IMAGE_NAME }}:latest-slim
 
       # Build CPU version
       - name: Build CPU Docker image
@@ -91,8 +97,12 @@ jobs:
         run: |
           docker push ${{ env.CPU_IMAGE_NAME }}:v0.1.0
           docker push ${{ env.CPU_IMAGE_NAME }}:v0.1.0-slim
+          docker tag ${{ env.CPU_IMAGE_NAME }}:v0.1.0 ${{ env.CPU_IMAGE_NAME }}:latest
+          docker tag ${{ env.CPU_IMAGE_NAME }}:v0.1.0-slim ${{ env.CPU_IMAGE_NAME }}:latest-slim
+          docker push ${{ env.CPU_IMAGE_NAME }}:latest
+          docker push ${{ env.CPU_IMAGE_NAME }}:latest-slim
 
-      # Build and push UI version (unchanged)
+      # Build and push UI version
       - name: Build and push UI Docker image
         uses: docker/build-push-action@v5
         with:
@@ -101,6 +111,7 @@ jobs:
           push: true
           tags: |
             ${{ env.UI_IMAGE_NAME }}:v0.1.0
+            ${{ env.UI_IMAGE_NAME }}:latest
           build-args: |
             DOCKER_BUILDKIT=1
           platforms: linux/amd64

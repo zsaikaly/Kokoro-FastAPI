@@ -182,6 +182,21 @@ If you only want the API, just comment out everything in the docker-compose.yml 
 Currently, voices created via the API are accessible here, but voice combination/creation has not yet been added
 
 *Note: Recent updates for streaming could lead to temporary glitches. If so, pull from the most recent stable release v0.0.2 to restore*
+
+### Disabling Local Saving
+
+You can disable local saving of audio files and hide the file view in the UI by setting the `DISABLE_LOCAL_SAVING` environment variable to `true`. This is useful when running the service on a server where you don't want to store generated audio files locally.
+
+When using Docker Compose:
+```yaml
+environment:
+  - DISABLE_LOCAL_SAVING=true
+```
+
+When running the Docker image directly:
+```bash
+docker run -p 7860:7860 -e DISABLE_LOCAL_SAVING=true ghcr.io/remsky/kokoro-fastapi-ui:latest
+```
 </details>
 
 <details>

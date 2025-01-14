@@ -1,4 +1,5 @@
 import gradio as gr
+import os
 
 from . import api
 from .handlers import setup_event_handlers
@@ -9,6 +10,9 @@ def create_interface():
     """Create the main Gradio interface."""
     # Skip initial status check - let the timer handle it
     is_available, available_voices = False, []
+
+    # Check if local saving is disabled
+    disable_local_saving = os.getenv("DISABLE_LOCAL_SAVING", "false").lower() == "true"
 
     with gr.Blocks(title="Kokoro TTS Demo", theme=gr.themes.Monochrome()) as demo:
         gr.HTML(
@@ -26,7 +30,7 @@ def create_interface():
             model_col, model_components = create_model_column(
                 available_voices
             )  # Pass initial voices
-            output_col, output_components = create_output_column()
+            output_col, output_components = create_output_column(disable_local_saving)
 
             # Collect all components
             components = {
