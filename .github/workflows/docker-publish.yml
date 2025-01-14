@@ -67,7 +67,8 @@ jobs:
             --include-shell \
             --include-exe=python3,python3.10,espeak-ng \
             --exclude-mounts=false \
-            --http-probe=false
+            --http-probe=true \
+            --http-probe-ports=8880
 
       # Push GPU versions
       - name: Push GPU Docker images
@@ -104,7 +105,8 @@ jobs:
             --include-shell \
             --include-exe=python3,python3.10,espeak-ng \
             --exclude-mounts=false \
-            --http-probe=false
+            --http-probe=true \
+            --http-probe-ports=8880
 
       # Push CPU versions
       - name: Push CPU Docker images
