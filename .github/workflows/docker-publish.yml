@@ -52,16 +52,10 @@ jobs:
           platforms: linux/amd64
 
       # Slim GPU version
-      - name: Install Docker Slim
-        run: |
-          curl -L -o slim.tar.gz https://downloads.dockerslim.com/releases/1.40.5/dist_linux.tar.gz
-          tar xvf slim.tar.gz
-          sudo mv dist_linux/slim /usr/local/bin/
-          rm -rf dist_linux slim.tar.gz
-
       - name: Slim GPU Docker image
         run: |
-          slim build \
+          docker pull dslim/slim
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/slim build \
             --target ${{ env.GPU_IMAGE_NAME }}:v0.1.0 \
             --tag ${{ env.GPU_IMAGE_NAME }}:v0.1.0-slim \
             --include-path=/app/api/model_files \
@@ -97,7 +91,7 @@ jobs:
       # Slim CPU version
       - name: Slim CPU Docker image
         run: |
-          slim build \
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock dslim/slim build \
             --target ${{ env.CPU_IMAGE_NAME }}:v0.1.0 \
             --tag ${{ env.CPU_IMAGE_NAME }}:v0.1.0-slim \
             --include-path=/app/api/model_files \
