@@ -56,13 +56,14 @@ The service can be accessed through either the API endpoints or the Gradio web i
         api_key="not-needed"
         )
 
-    response = client.audio.speech.create(
+    with client.audio.speech.with_streaming_response.create(
         model="kokoro", 
         voice="af_sky+af_bella", #single or multiple voicepack combo
         input="Hello world!",
         response_format="mp3"
-    )
-    response.stream_to_file("output.mp3")
+    ) as response:
+        response.stream_to_file("output.mp3")
+    
     ```
 
     or visit http://localhost:7860
