@@ -44,7 +44,7 @@ The service can be accessed through either the API endpoints or the Gradio web i
 
         docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest # CPU
         docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest # Nvidia GPU
-        # Minified versions are available with `:latest-slim` tag.
+        # Minified versions are available with `:latest-slim` tag, though it is a first test and may not be functional
         ```
         
         
