@@ -16,17 +16,21 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 RUN useradd -m -u 1000 appuser
 
 # Create directories and set ownership
-RUN mkdir -p /app/api/model_files && \
+RUN mkdir -p /app/models && \
     mkdir -p /app/api/src/voices && \
     chown -R appuser:appuser /app
 
 USER appuser
 
 # Download and extract models
-WORKDIR /app/api/model_files
-RUN curl -L -o model.tar.gz https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.0.1/kokoro-82m-onnx.tar.gz && \
+WORKDIR /app/models
+RUN set -x && \
+    curl -L -o model.tar.gz https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.0.1/kokoro-82m-onnx.tar.gz && \
+    echo "Downloaded model.tar.gz:" && ls -lh model.tar.gz && \
     tar xzf model.tar.gz && \
-    rm model.tar.gz
+    echo "Contents after extraction:" && ls -lhR && \
+    rm model.tar.gz && \
+    echo "Final contents:" && ls -lhR
 
 # Download and extract voice models
 WORKDIR /app/api/src/voices
@@ -54,7 +58,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app:/app/Kokoro-82M
+ENV PYTHONPATH=/app:/app/models
 ENV PATH="/app/.venv/bin:$PATH"
 ENV UV_LINK_MODE=copy
 

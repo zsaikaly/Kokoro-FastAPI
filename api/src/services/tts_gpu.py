@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 import torch
-from builds.models import build_model
+from ..builds.models import build_model
 from loguru import logger
 
 from ..core.config import settings
