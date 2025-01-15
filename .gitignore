@@ -34,22 +34,9 @@ ENV/
 
 # Project specific
 # Model files
-*.pt
+
 *.pth
 *.tar*
-
-# Voice files
-api/src/voices/af_bella.pt
-api/src/voices/af_nicole.pt
-api/src/voices/af_sarah.pt
-api/src/voices/af_sky.pt
-api/src/voices/af.pt
-api/src/voices/am_adam.pt
-api/src/voices/am_michael.pt
-api/src/voices/bf_emma.pt
-api/src/voices/bf_isabella.pt
-api/src/voices/bm_george.pt
-api/src/voices/bm_lewis.pt
 
 # Audio files
 examples/*.wav
