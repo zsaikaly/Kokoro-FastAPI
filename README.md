@@ -23,30 +23,27 @@ Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokor
 
 The service can be accessed through either the API endpoints or the Gradio web interface.
 
-1. Install prerequisites:
+1. Install prerequisites, and start the service using Docker Compose (Full setup including UI):
    - Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
    - Clone the repository:
         ```bash
         git clone https://github.com/remsky/Kokoro-FastAPI.git
         cd Kokoro-FastAPI
-        #   * Switch to stable branch *
+        
+        #   * Switch to stable branch if any issues *
         git checkout v0.0.5post1-stable
-        ```
 
-2. Start the service:
-   
-   - Using Docker Compose (Full setup including UI):
-        ```bash
         cd docker/gpu # OR 
         # cd docker/cpu # Run this or the above
         docker compose up --build 
         ```
-   - OR running the API alone using Docker (model + voice packs baked in):
-        ```bash
-
-        docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.0post1 # CPU
-        docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.0post1 # Nvidia GPU
-        ```
+        
+  __Or__ running the API alone using Docker (model + voice packs baked in) (Most Recent):
+          
+  ```bash
+  docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.0post1 # CPU 
+  docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.0post1 # Nvidia GPU
+  ```
         
         
 2. Run locally as an OpenAI-Compatible Speech Endpoint
