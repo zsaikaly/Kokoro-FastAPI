@@ -5,19 +5,17 @@
 # <sub><sub>_`FastKoko`_ </sub></sub>
 [![Tests](https://img.shields.io/badge/tests-117%20passed-darkgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-60%25-grey)]()
-[![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/c3b0d86e2a980e027ef71c28819ea02e351c2667) [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero) [![Buy Me A Coffee](https://img.shields.io/badge/BMC-✨☕-gray?style=flat-square)](https://www.buymeacoffee.com/remsky)
+[![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/c3b0d86e2a980e027ef71c28819ea02e351c2667) [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero)
 
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
 - OpenAI-compatible Speech endpoint, with inline voice combination functionality
 - NVIDIA GPU accelerated or CPU Onnx inference 
 - very fast generation time
-  - 100x+ real time speed via HF A100
-  - 35-50x+ real time speed via 4060Ti
+  - 35x-100x+ real time speed via 4060Ti+
   - 5x+ real time speed via M3 Pro CPU
 - streaming support w/ variable chunking to control latency & artifacts
-- simple audio generation web ui utility
-- (new) phoneme endpoints for conversion and generation
-
+- phoneme, simple audio generation web ui utility
+- Runs on an 80mb-300mb model (CUDA container + 5gb on disk due to drivers)  
 
 ## Quick Start
 
