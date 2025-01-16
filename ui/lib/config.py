@@ -1,7 +1,9 @@
 import os
 
 # API Configuration
-API_URL = "http://kokoro-tts:8880"
+API_HOST = os.getenv("API_HOST", "kokoro-tts")
+API_PORT = os.getenv("API_PORT", "8880")
+API_URL = f"http://{API_HOST}:{API_PORT}"
 
 # File paths
 INPUTS_DIR = "/app/ui/data/inputs"

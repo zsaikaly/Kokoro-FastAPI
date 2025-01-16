@@ -35,3 +35,5 @@ services:
       - GRADIO_WATCH=1  # Enable hot reloading
       - PYTHONUNBUFFERED=1  # Ensure Python output is not buffered
       - DISABLE_LOCAL_SAVING=false  # Set to 'true' to disable local saving and hide file view
+      - API_HOST=kokoro-tts  # Set TTS service URL
+      - API_PORT=8880  # Set TTS service PORT
