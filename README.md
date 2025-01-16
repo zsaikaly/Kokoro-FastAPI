@@ -23,47 +23,31 @@ Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokor
 
 The service can be accessed through either the API endpoints or the Gradio web interface.
 
-1. Install prerequisites:
+1. Install prerequisites, and start the service using Docker Compose (Full setup including UI):
    - Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
    - Clone the repository:
         ```bash
         git clone https://github.com/remsky/Kokoro-FastAPI.git
         cd Kokoro-FastAPI
-        ```
+        
+        #   * Switch to stable branch if any issues *
+        git checkout v0.0.5post1-stable
 
-2. Start the service:
-   
-   - Using Docker Compose (Full setup including UI):
-        ```bash
         cd docker/gpu # OR 
         # cd docker/cpu # Run this or the above
         docker compose up --build 
         ```
+        
       Once started:
      - The API will be available at http://localhost:8880
      - The UI can be accessed at http://localhost:7860
-
-   - OR run the API alone using Docker (model + voice packs baked in):
-        ```bash
-        docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest # CPU
-        docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest # Nvidia GPU
         
-        # Minified versions are available with `:latest-slim` tag, though it is a first test and may not be functional
-        ```
-  
-3. Running the UI Docker Service:
-
-   - If you only want to run the Gradio web interface separately and connect it to an existing API service:
-      ```bash
-      docker run -p 7860:7860 \
-        -e API_HOST=<api-hostname-or-ip> \
-        -e API_PORT=8880 \
-        ghcr.io/remsky/kokoro-fastapi-ui:v0.1.0
-      ```
-
-     - Replace `<api-hostname-or-ip>` with:
-       - `kokoro-tts` if the UI container is running in the same Docker Compose setup.
-       - `localhost` if the API is running on your local machine.
+  __Or__ running the API alone using Docker (model + voice packs baked in) (Most Recent):
+          
+  ```bash
+  docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.0post1 # CPU 
+  docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.0post1 # Nvidia GPU
+  ```
         
         
 4. Run locally as an OpenAI-Compatible Speech Endpoint
@@ -74,13 +58,14 @@ The service can be accessed through either the API endpoints or the Gradio web i
         api_key="not-needed"
         )
 
-    response = client.audio.speech.create(
+    with client.audio.speech.with_streaming_response.create(
         model="kokoro", 
         voice="af_sky+af_bella", #single or multiple voicepack combo
         input="Hello world!",
         response_format="mp3"
-    )
-    response.stream_to_file("output.mp3")
+    ) as response:
+        response.stream_to_file("output.mp3")
+    
     ```
 
     or visit http://localhost:7860
@@ -200,8 +185,19 @@ If you only want the API, just comment out everything in the docker-compose.yml 
 
 Currently, voices created via the API are accessible here, but voice combination/creation has not yet been added
 
-*Note: Recent updates for streaming could lead to temporary glitches. If so, pull from the most recent stable release v0.0.2 to restore*
+Running the UI Docker Service
+   - If you only want to run the Gradio web interface separately and connect it to an existing API service:
+      ```bash
+      docker run -p 7860:7860 \
+        -e API_HOST=<api-hostname-or-ip> \
+        -e API_PORT=8880 \
+        ghcr.io/remsky/kokoro-fastapi-ui:v0.1.0
+      ```
 
+     - Replace `<api-hostname-or-ip>` with:
+       - `kokoro-tts` if the UI container is running in the same Docker Compose setup.
+       - `localhost` if the API is running on your local machine.
+  
 ### Disabling Local Saving
 
 You can disable local saving of audio files and hide the file view in the UI by setting the `DISABLE_LOCAL_SAVING` environment variable to `true`. This is useful when running the service on a server where you don't want to store generated audio files locally.

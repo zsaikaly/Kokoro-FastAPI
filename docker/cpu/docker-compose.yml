@@ -1,10 +1,10 @@
 name: kokoro-tts
 services:
   kokoro-tts:
-    image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.0
-    # build:
-    #   context: ../..
-    #   dockerfile: docker/cpu/Dockerfile
+    # image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.0
+    build:
+      context: ../..
+      dockerfile: docker/cpu/Dockerfile
     volumes:
       - ../../api/src:/app/api/src
       - ../../api/src/voices:/app/api/src/voices
