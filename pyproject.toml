@@ -40,7 +40,7 @@ gpu = [
     "torch==2.5.1+cu121",
 ]
 cpu = [
-    "torch==2.5.1+cpu",
+    "torch==2.5.1",
 ]
 test = [
     "pytest==8.0.0",

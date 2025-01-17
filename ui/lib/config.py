@@ -6,10 +6,11 @@ API_PORT = os.getenv("API_PORT", "8880")
 API_URL = f"http://{API_HOST}:{API_PORT}"
 
 # File paths
-INPUTS_DIR = "/app/ui/data/inputs"
-OUTPUTS_DIR = "/app/ui/data/outputs"
+INPUTS_DIR = "app/ui/data/inputs"
+OUTPUTS_DIR = "app/ui/data/outputs"
 
 # Create directories if they don't exist
+
 os.makedirs(INPUTS_DIR, exist_ok=True)
 os.makedirs(OUTPUTS_DIR, exist_ok=True)
 
