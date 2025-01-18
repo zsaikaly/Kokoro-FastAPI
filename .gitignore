@@ -54,6 +54,7 @@ examples/phoneme_examples/output/example_3.wav
 Kokoro-82M/
 ui/data/
 EXTERNAL_UV_DOCUMENTATION*
+app
 
 # Docker
 Dockerfile*
