@@ -6,6 +6,7 @@ import numpy as np
 import scipy.io.wavfile as wavfile
 import soundfile as sf
 from loguru import logger
+from pydub import AudioSegment
 
 from ..core.config import settings
 
@@ -51,6 +52,9 @@ class AudioService:
         },
         "flac": {
             "compression_level": 0.0,  # Light compression, still fast
+        },
+        "aac": {
+            "bitrate": "192k",  # Default AAC bitrate
         },
     }
 
@@ -144,9 +148,22 @@ class AudioService:
                     subtype="PCM_16",
                     **settings,
                 )
-            elif output_format == "aac":
-                raise ValueError(
-                    "Format aac not currently supported. Supported formats are: wav, mp3, opus, flac, pcm."
+            elif output_format == "aac":           
+                # Convert numpy array directly to AAC using pydub
+                audio_segment = AudioSegment(
+                    normalized_audio.tobytes(), 
+                    frame_rate=sample_rate,
+                    sample_width=normalized_audio.dtype.itemsize,
+                    channels=1 if len(normalized_audio.shape) == 1 else normalized_audio.shape[1]
+                )
+                
+                settings = format_settings.get("aac", {}) if format_settings else {}
+                settings = {**AudioService.DEFAULT_SETTINGS["aac"], **settings}
+                
+                audio_segment.export(
+                    buffer,
+                    format="adts",  # ADTS is a common AAC container format
+                    bitrate=settings["bitrate"]
                 )
             else:
                 raise ValueError(

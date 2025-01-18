@@ -33,6 +33,7 @@ dependencies = [
     "munch==4.0.0",
     "tiktoken==0.8.0",
     "loguru==0.7.3",
+    "pydub>=0.25.1",
 ]
 
 [project.optional-dependencies]

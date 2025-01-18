@@ -33,6 +33,7 @@ dependencies = [
     "openai>=1.59.6",
     "ebooklib>=0.18",
     "html2text>=2024.2.26",
+    "pydub>=0.25.1",
 ]
 
 [project.optional-dependencies]
