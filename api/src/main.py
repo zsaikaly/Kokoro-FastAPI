@@ -1,4 +1,3 @@
-
 """
 FastAPI OpenAI Compatible API
 """
@@ -14,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from .core.config import settings
+from .core.model_config import model_config
 from .routers.development import router as dev_router
 from .routers.openai_compatible import router as openai_router
 from .services.tts_service import TTSService
@@ -63,8 +63,8 @@ async def lifespan(app: FastAPI):
         # Get backend and initialize model
         backend = model_manager.get_backend(backend_type)
         
-        # Use model path directly from settings
-        model_file = settings.pytorch_model_file if not settings.use_onnx else settings.onnx_model_file
+        # Use model path from model_config
+        model_file = model_config.pytorch_model_file if not settings.use_onnx else model_config.onnx_model_file
         model_path = os.path.join(settings.model_dir, model_file)
         
         

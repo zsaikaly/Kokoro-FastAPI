@@ -75,20 +75,16 @@ def create_provider_options(is_gpu: bool = False) -> Dict:
     if is_gpu:
         config = model_config.onnx_gpu
         return {
-            "CUDAExecutionProvider": {
-                "device_id": config.device_id,
-                "arena_extend_strategy": config.arena_extend_strategy,
-                "gpu_mem_limit": int(config.gpu_mem_limit * torch.cuda.get_device_properties(0).total_memory),
-                "cudnn_conv_algo_search": config.cudnn_conv_algo_search,
-                "do_copy_in_default_stream": config.do_copy_in_default_stream
-            }
+            "device_id": config.device_id,
+            "arena_extend_strategy": config.arena_extend_strategy,
+            "gpu_mem_limit": int(config.gpu_mem_limit * torch.cuda.get_device_properties(0).total_memory),
+            "cudnn_conv_algo_search": config.cudnn_conv_algo_search,
+            "do_copy_in_default_stream": config.do_copy_in_default_stream
         }
     else:
         return {
-            "CPUExecutionProvider": {
-                "arena_extend_strategy": model_config.onnx_cpu.arena_extend_strategy,
-                "cpu_memory_arena_cfg": "cpu:0"
-            }
+            "arena_extend_strategy": model_config.onnx_cpu.arena_extend_strategy,
+            "cpu_memory_arena_cfg": "cpu:0"
         }
 
 

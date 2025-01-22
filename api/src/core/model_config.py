@@ -11,7 +11,7 @@ class ONNXCPUConfig(BaseModel):
     instance_timeout: int = Field(300, description="Session timeout in seconds")
     
     # Runtime settings
-    num_threads: int = Field(8, description="Number of threads for parallel operations")
+    num_threads: int = Field(4, description="Number of threads for parallel operations")
     inter_op_threads: int = Field(4, description="Number of threads for operator parallelism")
     execution_mode: str = Field("parallel", description="ONNX execution mode")
     optimization_level: str = Field("all", description="ONNX optimization level")
@@ -76,6 +76,10 @@ class ModelConfig(BaseModel):
     cache_models: bool = Field(True, description="Whether to cache loaded models")
     cache_voices: bool = Field(True, description="Whether to cache voice tensors")
     voice_cache_size: int = Field(2, description="Maximum number of cached voices")
+    
+    # Model filenames
+    pytorch_model_file: str = Field("kokoro-v0_19.pth", description="PyTorch model filename")
+    onnx_model_file: str = Field("kokoro-v0_19.onnx", description="ONNX model filename")
     
     # Backend-specific configs
     onnx_cpu: ONNXCPUConfig = Field(default_factory=ONNXCPUConfig)

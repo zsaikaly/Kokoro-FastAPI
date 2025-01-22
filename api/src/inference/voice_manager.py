@@ -73,12 +73,13 @@ class VoiceManager:
         return voice
 
     def _manage_cache(self) -> None:
-        """Manage voice cache size."""
+        """Manage voice cache size using simple LRU."""
         if len(self._voice_cache) >= self._config.cache_size:
-            # Remove oldest voice
+            # Remove least recently used voice
             oldest = next(iter(self._voice_cache))
             del self._voice_cache[oldest]
-            logger.debug(f"Removed from voice cache: {oldest}")
+            torch.cuda.empty_cache()  # Clean up GPU memory if needed
+            logger.debug(f"Removed LRU voice from cache: {oldest}")
 
     async def combine_voices(self, voices: List[str], device: str = "cpu") -> str:
         """Combine multiple voices into a new voice.

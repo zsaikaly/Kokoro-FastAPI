@@ -1,8 +1,11 @@
-FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
+FROM nvidia/cuda:12.3.2-cudnn9-runtime-ubuntu22.04
 # Set non-interactive frontend
 ENV DEBIAN_FRONTEND=noninteractive
-# Install dependencies
+
+# Install Python and other dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3.10-venv \
     espeak-ng \
     git \
     libsndfile1 \
@@ -27,15 +30,15 @@ WORKDIR /app
 # Copy dependency files
 COPY --chown=appuser:appuser pyproject.toml ./pyproject.toml
 
-# Install dependencies
+# Install dependencies with GPU extras
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv venv && \
-    uv sync --extra gpu --no-install-project
+    uv sync --extra gpu
 
 # Copy project files
 COPY --chown=appuser:appuser api ./api
 
-# Install project
+# Install project with GPU extras
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --extra gpu
 

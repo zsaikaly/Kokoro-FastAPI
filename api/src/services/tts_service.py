@@ -51,7 +51,7 @@ class TTSService:
         return service
 
     async def generate_audio(
-        self, text: str, voice: str, speed: float = 1.0
+        self, text: str, voice: str, speed: float = 1.0, stitch_long_output: bool = True
     ) -> Tuple[np.ndarray, float]:
         """Generate audio for text.
         
@@ -59,9 +59,14 @@ class TTSService:
             text: Input text
             voice: Voice name
             speed: Speed multiplier
+            stitch_long_output: Whether to stitch together long outputs
             
         Returns:
             Audio samples and processing time
+            
+        Raises:
+            ValueError: If text is empty after preprocessing or no chunks generated
+            RuntimeError: If audio generation fails
         """
         start_time = time.time()
         voice_tensor = None

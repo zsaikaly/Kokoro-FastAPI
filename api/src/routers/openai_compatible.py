@@ -130,12 +130,12 @@ async def create_speech(
                 },
             )
         else:
-            # Generate complete audio
-            audio, _ = tts_service._generate_audio(
+            # Generate complete audio using public interface
+            audio, _ = await tts_service.generate_audio(
                 text=request.input,
                 voice=voice_to_use,
                 speed=request.speed,
-                stitch_long_output=True,
+                stitch_long_output=True
             )
 
             # Convert to requested format
@@ -153,14 +153,37 @@ async def create_speech(
             )
 
     except ValueError as e:
-        logger.error(f"Invalid request: {str(e)}")
+        # Handle validation errors
+        logger.warning(f"Invalid request: {str(e)}")
         raise HTTPException(
-            status_code=400, detail={"error": "Invalid request", "message": str(e)}
+            status_code=400,
+            detail={
+                "error": "validation_error",
+                "message": str(e),
+                "type": "invalid_request_error"
+            }
+        )
+    except RuntimeError as e:
+        # Handle runtime/processing errors
+        logger.error(f"Processing error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "processing_error",
+                "message": "Failed to process audio generation request",
+                "type": "server_error"
+            }
         )
     except Exception as e:
-        logger.error(f"Error generating speech: {str(e)}")
+        # Handle unexpected errors
+        logger.error(f"Unexpected error in speech generation: {str(e)}")
         raise HTTPException(
-            status_code=500, detail={"error": "Server error", "message": str(e)}
+            status_code=500,
+            detail={
+                "error": "server_error",
+                "message": "An unexpected error occurred",
+                "type": "server_error"
+            }
         )
 
 
@@ -173,7 +196,14 @@ async def list_voices():
         return {"voices": voices}
     except Exception as e:
         logger.error(f"Error listing voices: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "server_error",
+                "message": "Failed to retrieve voice list",
+                "type": "server_error"
+            }
+        )
 
 
 @router.post("/audio/voices/combine")
@@ -199,13 +229,32 @@ async def combine_voices(request: Union[str, List[str]]):
         return {"voices": voices, "voice": combined_voice}
 
     except ValueError as e:
-        logger.error(f"Invalid voice combination request: {str(e)}")
+        logger.warning(f"Invalid voice combination request: {str(e)}")
         raise HTTPException(
-            status_code=400, detail={"error": "Invalid request", "message": str(e)}
+            status_code=400,
+            detail={
+                "error": "validation_error",
+                "message": str(e),
+                "type": "invalid_request_error"
+            }
         )
-
-    except Exception as e:
-        logger.error(f"Server error during voice combination: {str(e)}")
+    except RuntimeError as e:
+        logger.error(f"Voice combination processing error: {str(e)}")
         raise HTTPException(
-            status_code=500, detail={"error": "Server error", "message": "Server error"}
+            status_code=500,
+            detail={
+                "error": "processing_error",
+                "message": "Failed to process voice combination request",
+                "type": "server_error"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in voice combination: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "server_error",
+                "message": "An unexpected error occurred",
+                "type": "server_error"
+            }
         )

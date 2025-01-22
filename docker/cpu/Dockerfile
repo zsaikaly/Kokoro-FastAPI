@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
+# Install uv for speed and glory
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Create non-root user
@@ -44,6 +44,7 @@ ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
 ENV UV_LINK_MODE=copy
 ENV USE_GPU=false
+ENV USE_ONNX=true
 
 # Run FastAPI server
 CMD ["uv", "run", "python", "-m", "uvicorn", "api.src.main:app", "--host", "0.0.0.0", "--port", "8880", "--log-level", "debug"]

@@ -17,26 +17,27 @@ from .pytorch_gpu import PyTorchGPUBackend
 from .session_pool import CPUSessionPool, StreamingSessionPool
 
 
-# Global singleton instance and state
+# Global singleton instance and lock for thread-safe initialization
 _manager_instance = None
 _manager_lock = asyncio.Lock()
-_loaded_models = {}
-_backends = {}
-
 
 class ModelManager:
     """Manages model loading and inference across backends."""
+    
+    # Class-level state for shared resources
+    _loaded_models = {}
+    _backends = {}
     
     def __init__(self, config: Optional[ModelConfig] = None):
         """Initialize model manager.
         
         Args:
             config: Optional configuration
+            
+        Note:
+            This should not be called directly. Use get_manager() instead.
         """
         self._config = config or model_config
-        global _loaded_models, _backends
-        self._loaded_models = _loaded_models
-        self._backends = _backends
         
         # Initialize session pools
         self._session_pools = {
@@ -293,10 +294,20 @@ async def get_manager(config: Optional[ModelConfig] = None) -> ModelManager:
         
     Returns:
         ModelManager instance
+        
+    Thread Safety:
+        This function is thread-safe and ensures only one instance is created
+        even under concurrent access.
     """
     global _manager_instance
     
+    # Fast path - return existing instance without lock
+    if _manager_instance is not None:
+        return _manager_instance
+        
+    # Slow path - create new instance with lock
     async with _manager_lock:
+        # Double-check pattern
         if _manager_instance is None:
             _manager_instance = ModelManager(config)
             await _manager_instance.initialize()
