@@ -9,7 +9,7 @@ from loguru import logger
 
 from ..builds.models import build_model
 from ..core import paths
-from ..structures.model_schemas import PyTorchConfig
+from ..core.model_config import model_config
 from .base import BaseModelBackend
 
 
@@ -96,7 +96,12 @@ class PyTorchGPUBackend(BaseModelBackend):
             raise RuntimeError("CUDA not available")
         self._device = "cuda"
         self._model: Optional[torch.nn.Module] = None
-        self._config = PyTorchConfig()
+        
+        # Configure GPU settings
+        config = model_config.pytorch_gpu
+        if config.sync_cuda:
+            torch.cuda.synchronize()
+        torch.cuda.set_device(config.device_id)
 
     async def load_model(self, path: str) -> None:
         """Load PyTorch model.
@@ -154,13 +159,19 @@ class PyTorchGPUBackend(BaseModelBackend):
             
         except Exception as e:
             logger.error(f"Generation failed: {e}")
+            if model_config.pytorch_gpu.retry_on_oom and "out of memory" in str(e).lower():
+                self._clear_memory()
+                return self.generate(tokens, voice, speed)  # Retry once
             raise
+        finally:
+            if model_config.pytorch_gpu.sync_cuda:
+                torch.cuda.synchronize()
 
     def _check_memory(self) -> bool:
         """Check if memory usage is above threshold."""
         if torch.cuda.is_available():
             memory_gb = torch.cuda.memory_allocated() / 1e9
-            return memory_gb > self._config.memory_threshold
+            return memory_gb > model_config.pytorch_gpu.memory_threshold
         return False
 
     def _clear_memory(self) -> None:

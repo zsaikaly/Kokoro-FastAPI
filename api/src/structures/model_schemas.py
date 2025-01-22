@@ -1,26 +1,13 @@
-"""Model and voice configuration schemas."""
+"""Voice configuration schemas."""
 
-from pydantic import BaseModel
-
-
-class ModelConfig(BaseModel):
-    """Model configuration."""
-    optimization_level: str = "all"  # all, basic, none
-    num_threads: int = 4
-    inter_op_threads: int = 4
-    execution_mode: str = "parallel"  # parallel, sequential
-    memory_pattern: bool = True
-    arena_extend_strategy: str = "kNextPowerOfTwo"
-
-    class Config:
-        frozen = True  # Make config immutable
+from pydantic import BaseModel, Field
 
 
 class VoiceConfig(BaseModel):
     """Voice configuration."""
-    use_cache: bool = True
-    cache_size: int = 3  # Number of voices to cache
-    validate_on_load: bool = True  # Whether to validate voices when loading
+    use_cache: bool = Field(True, description="Whether to cache loaded voices")
+    cache_size: int = Field(3, description="Number of voices to cache")
+    validate_on_load: bool = Field(True, description="Whether to validate voices when loading")
 
     class Config:
         frozen = True  # Make config immutable

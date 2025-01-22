@@ -6,7 +6,6 @@ from loguru import logger
 
 from ..services.audio import AudioService
 from ..services.text_processing import phonemize, tokenize
-from ..services.tts_model import TTSModel
 from ..services.tts_service import TTSService
 from ..structures.text_schemas import (
     GenerateFromPhonemesRequest,
@@ -82,27 +81,34 @@ async def generate_from_phonemes(
             detail={"error": "Invalid request", "message": "Phonemes cannot be empty"},
         )
 
-    # Validate voice exists
-    voice_path = tts_service._get_voice_path(request.voice)
-    if not voice_path:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "error": "Invalid request",
-                "message": f"Voice not found: {request.voice}",
-            },
-        )
-
     try:
-        # Load voice
-        voicepack = tts_service._load_voice(voice_path)
+        # Ensure service is initialized
+        await tts_service.ensure_initialized()
+
+        # Validate voice exists
+        available_voices = await tts_service.list_voices()
+        if request.voice not in available_voices:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "Invalid request",
+                    "message": f"Voice not found: {request.voice}",
+                },
+            )
 
         # Convert phonemes to tokens
         tokens = tokenize(request.phonemes)
         tokens = [0] + tokens + [0]  # Add start/end tokens
 
         # Generate audio directly from tokens
-        audio = TTSModel.generate_from_tokens(tokens, voicepack, request.speed)
+        audio = await tts_service.model_manager.generate(
+            tokens,
+            request.voice,
+            speed=request.speed
+        )
+
+        if audio is None:
+            raise ValueError("Failed to generate audio")
 
         # Convert to WAV bytes
         wav_bytes = AudioService.convert_audio(

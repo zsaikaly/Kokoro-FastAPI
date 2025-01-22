@@ -13,7 +13,6 @@ from loguru import logger
 from .core.config import settings
 from .routers.development import router as dev_router
 from .routers.openai_compatible import router as openai_router
-from .services.tts_model import TTSModel
 from .services.tts_service import TTSService
 
 
@@ -44,25 +43,32 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for model initialization"""
     logger.info("Loading TTS model and voice packs...")
 
-    # Initialize the main model with warm-up
-    voicepack_count = await TTSModel.setup()
-    # boundary = "█████╗"*9
+    # Initialize service
+    service = TTSService()
+    await service.ensure_initialized()
+    
+    # Get available voices
+    voices = await service.list_voices()
+    voicepack_count = len(voices)
+
+    # Get device info from model manager
+    device = "GPU" if settings.use_gpu else "CPU"
+    model = "ONNX" if settings.use_onnx else "PyTorch"
     boundary = "░" * 2*12
     startup_msg = f"""
 
 {boundary}
 
     ╔═╗┌─┐┌─┐┌┬┐
-    ╠╣ ├─┤└─┐ │ 
-    ╚  ┴ ┴└─┘ ┴ 
+    ╠╣ ├─┤└─┐ │
+    ╚  ┴ ┴└─┘ ┴
     ╦╔═┌─┐┬┌─┌─┐
     ╠╩╗│ │├┴┐│ │
     ╩ ╩└─┘┴ ┴└─┘
 
 {boundary}
                 """
-    # TODO: Improve CPU warmup, threads, memory, etc
-    startup_msg += f"\nModel warmed up on {TTSModel.get_device()}"
+    startup_msg += f"\nModel warmed up on {device}: {model}"
     startup_msg += f"\n{voicepack_count} voice packs loaded\n"
     startup_msg += f"\n{boundary}\n"
     logger.info(startup_msg)

@@ -33,7 +33,15 @@ class VoiceManager:
         Returns:
             Path to voice file if exists, None otherwise
         """
-        voice_path = os.path.join(settings.voices_dir, f"{voice_name}.pt")
+        # Get api directory path (two levels up from inference)
+        api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        
+        # Construct voice path relative to api directory
+        voice_path = os.path.join(api_dir, settings.voices_dir, f"{voice_name}.pt")
+        
+        # Ensure voices directory exists
+        os.makedirs(os.path.dirname(voice_path), exist_ok=True)
+        
         return voice_path if os.path.exists(voice_path) else None
 
     async def load_voice(self, voice_name: str, device: str = "cpu") -> torch.Tensor:
@@ -112,8 +120,15 @@ class VoiceManager:
             combined_name = "_".join(voices)
             combined_tensor = torch.mean(torch.stack(voice_tensors), dim=0)
             
+            # Get api directory path
+            api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            voices_dir = os.path.join(api_dir, settings.voices_dir)
+            
+            # Ensure voices directory exists
+            os.makedirs(voices_dir, exist_ok=True)
+            
             # Save combined voice
-            combined_path = os.path.join(settings.voices_dir, f"{combined_name}.pt")
+            combined_path = os.path.join(voices_dir, f"{combined_name}.pt")
             try:
                 torch.save(combined_tensor, combined_path)
             except Exception as e:
@@ -132,7 +147,15 @@ class VoiceManager:
         """
         voices = []
         try:
-            for entry in os.listdir(settings.voices_dir):
+            # Get api directory path
+            api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            voices_dir = os.path.join(api_dir, settings.voices_dir)
+            
+            # Ensure voices directory exists
+            os.makedirs(voices_dir, exist_ok=True)
+            
+            # List voice files
+            for entry in os.listdir(voices_dir):
                 if entry.endswith(".pt"):
                     voices.append(entry[:-3])  # Remove .pt extension
         except Exception as e:

@@ -5,17 +5,16 @@ import os
 import time
 from typing import List, Tuple
 
-import torch
-
 import numpy as np
 import scipy.io.wavfile as wavfile
+import torch
 from loguru import logger
 
 from ..core.config import settings
 from ..inference.model_manager import get_manager as get_model_manager
 from ..inference.voice_manager import get_manager as get_voice_manager
 from .audio import AudioNormalizer, AudioService
-from .text_processing import chunker, normalize_text
+from .text_processing import chunker, normalize_text, process_text
 
 
 class TTSService:
@@ -41,16 +40,33 @@ class TTSService:
             raise self._initialization_error
 
         try:
-            # Determine model path based on hardware
+            # Get api directory path (one level up from src)
+            api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            
+            # Determine model file and backend based on hardware
             if settings.use_gpu and torch.cuda.is_available():
-                model_path = os.path.join(settings.model_dir, settings.pytorch_model_path)
+                model_file = settings.pytorch_model_file
                 backend_type = 'pytorch_gpu'
             else:
-                model_path = os.path.join(settings.model_dir, settings.onnx_model_path)
+                model_file = settings.onnx_model_file
                 backend_type = 'onnx_cpu'
             
-            # Initialize model
-            await self.model_manager.load_model(model_path, backend_type)
+            # Construct model path relative to api directory
+            model_path = os.path.join(api_dir, settings.model_dir, model_file)
+            
+            # Ensure model directory exists
+            os.makedirs(os.path.dirname(model_path), exist_ok=True)
+            
+            if not os.path.exists(model_path):
+                raise RuntimeError(f"Model file not found: {model_path}")
+            
+            # Load default voice for warmup
+            backend = self.model_manager.get_backend(backend_type)
+            warmup_voice = await self.voice_manager.load_voice(settings.default_voice, device=backend.device)
+            logger.info(f"Loaded voice {settings.default_voice} for warmup")
+            
+            # Initialize model with warmup voice
+            await self.model_manager.load_model(model_path, warmup_voice, backend_type)
             logger.info(f"Initialized model on {backend_type} backend")
             self._initialized = True
             
@@ -86,16 +102,19 @@ class TTSService:
             audio_chunks = []
             for chunk in chunker.split_text(text):
                 try:
-                    # Process text
-                    
-                    sequences = process_text(chunk)
-                    if not sequences:
+                    # Convert chunk to token IDs
+                    tokens = process_text(chunk)
+                    if not tokens:
                         continue
 
+                    # Get backend and load voice
+                    backend = self.model_manager.get_backend()
+                    voice_tensor = await self.voice_manager.load_voice(voice, device=backend.device)
+                    
                     # Generate audio
                     chunk_audio = await self.model_manager.generate(
-                        sequences[0],
-                        voice,
+                        tokens,
+                        voice_tensor,
                         speed=speed
                     )
                     if chunk_audio is not None:
@@ -154,14 +173,17 @@ class TTSService:
             while current_chunk is not None:
                 next_chunk = next(chunk_gen, None)
                 try:
-                    # Process text
-                    from ..text_processing import process_text
-                    sequences = process_text(current_chunk)
-                    if sequences:
+                    # Convert chunk to token IDs
+                    tokens = process_text(current_chunk)
+                    if tokens:
+                        # Get backend and load voice
+                        backend = self.model_manager.get_backend()
+                        voice_tensor = await self.voice_manager.load_voice(voice, device=backend.device)
+                        
                         # Generate audio
                         chunk_audio = await self.model_manager.generate(
-                            sequences[0],
-                            voice,
+                            tokens,
+                            voice_tensor,
                             speed=speed
                         )
 

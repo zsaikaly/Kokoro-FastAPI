@@ -13,8 +13,7 @@ from onnxruntime import (
 )
 
 from ..core import paths
-from ..core.config import settings
-from ..structures.model_schemas import ONNXGPUConfig
+from ..core.model_config import model_config
 from .base import BaseModelBackend
 
 
@@ -28,18 +27,11 @@ class ONNXGPUBackend(BaseModelBackend):
             raise RuntimeError("CUDA not available")
         self._device = "cuda"
         self._session: Optional[InferenceSession] = None
-        self._config = ONNXGPUConfig(
-            optimization_level=settings.onnx_optimization_level,
-            num_threads=settings.onnx_num_threads,
-            inter_op_threads=settings.onnx_inter_op_threads,
-            execution_mode=settings.onnx_execution_mode,
-            memory_pattern=settings.onnx_memory_pattern,
-            arena_extend_strategy=settings.onnx_arena_extend_strategy,
-            device_id=0,
-            gpu_mem_limit=0.7,
-            cudnn_conv_algo_search="EXHAUSTIVE",
-            do_copy_in_default_stream=True
-        )
+
+    @property
+    def is_loaded(self) -> bool:
+        """Check if model is loaded."""
+        return self._session is not None
 
     async def load_model(self, path: str) -> None:
         """Load ONNX model.
@@ -121,28 +113,29 @@ class ONNXGPUBackend(BaseModelBackend):
             Configured session options
         """
         options = SessionOptions()
+        config = model_config.onnx_gpu
         
         # Set optimization level
-        if self._config.optimization_level == "all":
+        if config.optimization_level == "all":
             options.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_ALL
-        elif self._config.optimization_level == "basic":
+        elif config.optimization_level == "basic":
             options.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_BASIC
         else:
             options.graph_optimization_level = GraphOptimizationLevel.ORT_DISABLE_ALL
         
         # Configure threading
-        options.intra_op_num_threads = self._config.num_threads
-        options.inter_op_num_threads = self._config.inter_op_threads
+        options.intra_op_num_threads = config.num_threads
+        options.inter_op_num_threads = config.inter_op_threads
         
         # Set execution mode
         options.execution_mode = (
             ExecutionMode.ORT_PARALLEL
-            if self._config.execution_mode == "parallel"
+            if config.execution_mode == "parallel"
             else ExecutionMode.ORT_SEQUENTIAL
         )
         
         # Configure memory optimization
-        options.enable_mem_pattern = self._config.memory_pattern
+        options.enable_mem_pattern = config.memory_pattern
         
         return options
 
@@ -152,12 +145,21 @@ class ONNXGPUBackend(BaseModelBackend):
         Returns:
             Provider configuration
         """
+        config = model_config.onnx_gpu
         return {
             "CUDAExecutionProvider": {
-                "device_id": self._config.device_id,
-                "arena_extend_strategy": self._config.arena_extend_strategy,
-                "gpu_mem_limit": int(self._config.gpu_mem_limit * torch.cuda.get_device_properties(0).total_memory),
-                "cudnn_conv_algo_search": self._config.cudnn_conv_algo_search,
-                "do_copy_in_default_stream": self._config.do_copy_in_default_stream
+                "device_id": config.device_id,
+                "arena_extend_strategy": config.arena_extend_strategy,
+                "gpu_mem_limit": int(config.gpu_mem_limit * torch.cuda.get_device_properties(0).total_memory),
+                "cudnn_conv_algo_search": config.cudnn_conv_algo_search,
+                "do_copy_in_default_stream": config.do_copy_in_default_stream
             }
         }
+
+    def unload(self) -> None:
+        """Unload model and free resources."""
+        if self._session is not None:
+            del self._session
+            self._session = None
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()

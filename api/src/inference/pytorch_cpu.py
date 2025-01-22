@@ -9,7 +9,7 @@ from loguru import logger
 
 from ..builds.models import build_model
 from ..core import paths
-from ..structures.model_schemas import PyTorchCPUConfig
+from ..core.model_config import model_config
 from .base import BaseModelBackend
 
 
@@ -118,12 +118,12 @@ class PyTorchCPUBackend(BaseModelBackend):
         super().__init__()
         self._device = "cpu"
         self._model: Optional[torch.nn.Module] = None
-        self._config = PyTorchCPUConfig()
 
         # Configure PyTorch CPU settings
-        if self._config.num_threads > 0:
-            torch.set_num_threads(self._config.num_threads)
-        if self._config.pin_memory:
+        config = model_config.pytorch_cpu
+        if config.num_threads > 0:
+            torch.set_num_threads(config.num_threads)
+        if config.pin_memory:
             torch.set_default_tensor_type(torch.FloatTensor)
 
     async def load_model(self, path: str) -> None:

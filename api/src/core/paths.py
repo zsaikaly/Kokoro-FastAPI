@@ -1,9 +1,10 @@
 """Async file and path operations."""
 
 import io
+import json
 import os
 from pathlib import Path
-from typing import List, Optional, AsyncIterator, Callable, Set
+from typing import List, Optional, AsyncIterator, Callable, Set, Dict, Any
 
 import aiofiles
 import aiofiles.os
@@ -87,10 +88,18 @@ async def get_model_path(model_name: str) -> str:
     Raises:
         RuntimeError: If model not found
     """
-    search_paths = [
-        settings.model_dir,
-        os.path.join(os.path.dirname(__file__), "..", "..", "..", "models")
-    ]
+    # Get api directory path (two levels up from core)
+    api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    
+    # Construct model directory path relative to api directory
+    model_dir = os.path.join(api_dir, settings.model_dir)
+    
+    # Ensure model directory exists
+    os.makedirs(model_dir, exist_ok=True)
+    
+    # Search in model directory
+    search_paths = [model_dir]
+    logger.debug(f"Searching for model in path: {model_dir}")
     
     return await _find_file(model_name, search_paths)
 
@@ -107,12 +116,20 @@ async def get_voice_path(voice_name: str) -> str:
     Raises:
         RuntimeError: If voice not found
     """
+    # Get api directory path
+    api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    
+    # Construct voice directory path relative to api directory
+    voice_dir = os.path.join(api_dir, settings.voices_dir)
+    
+    # Ensure voice directory exists
+    os.makedirs(voice_dir, exist_ok=True)
+    
     voice_file = f"{voice_name}.pt"
     
-    search_paths = [
-        os.path.join(settings.model_dir, "..", settings.voices_dir),
-        os.path.join(os.path.dirname(__file__), "..", settings.voices_dir)
-    ]
+    # Search in voice directory
+    search_paths = [voice_dir]
+    logger.debug(f"Searching for voice in path: {voice_dir}")
     
     return await _find_file(voice_file, search_paths)
 
@@ -123,10 +140,18 @@ async def list_voices() -> List[str]:
     Returns:
         List of voice names (without .pt extension)
     """
-    search_paths = [
-        os.path.join(settings.model_dir, "..", settings.voices_dir),
-        os.path.join(os.path.dirname(__file__), "..", settings.voices_dir)
-    ]
+    # Get api directory path
+    api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    
+    # Construct voice directory path relative to api directory
+    voice_dir = os.path.join(api_dir, settings.voices_dir)
+    
+    # Ensure voice directory exists
+    os.makedirs(voice_dir, exist_ok=True)
+    
+    # Search in voice directory
+    search_paths = [voice_dir]
+    logger.debug(f"Scanning for voices in path: {voice_dir}")
     
     def filter_voice_files(name: str) -> bool:
         return name.endswith('.pt')
@@ -177,6 +202,51 @@ async def save_voice_tensor(tensor: torch.Tensor, voice_path: str) -> None:
             await f.write(buffer.getvalue())
     except Exception as e:
         raise RuntimeError(f"Failed to save voice tensor to {voice_path}: {e}")
+
+
+async def load_json(path: str) -> dict:
+    """Load JSON file asynchronously.
+    
+    Args:
+        path: Path to JSON file
+        
+    Returns:
+        Parsed JSON data
+        
+    Raises:
+        RuntimeError: If file cannot be read or parsed
+    """
+    try:
+        async with aiofiles.open(path, 'r', encoding='utf-8') as f:
+            content = await f.read()
+            return json.loads(content)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load JSON file {path}: {e}")
+
+
+async def load_model_weights(path: str, device: str = "cpu") -> dict:
+    """Load model weights asynchronously.
+    
+    Args:
+        path: Path to model file (.pth or .onnx)
+        device: Device to load model to
+        
+    Returns:
+        Model weights
+        
+    Raises:
+        RuntimeError: If file cannot be read
+    """
+    try:
+        async with aiofiles.open(path, 'rb') as f:
+            data = await f.read()
+            return torch.load(
+                io.BytesIO(data),
+                map_location=device,
+                weights_only=True
+            )
+    except Exception as e:
+        raise RuntimeError(f"Failed to load model weights from {path}: {e}")
 
 
 async def read_file(path: str) -> str:
