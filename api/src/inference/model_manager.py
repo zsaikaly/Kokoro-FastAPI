@@ -1,5 +1,6 @@
 """Model management and caching."""
 
+import asyncio
 from typing import Dict, Optional
 
 import torch
@@ -13,11 +14,19 @@ from .onnx_cpu import ONNXCPUBackend
 from .onnx_gpu import ONNXGPUBackend
 from .pytorch_cpu import PyTorchCPUBackend
 from .pytorch_gpu import PyTorchGPUBackend
+from .session_pool import CPUSessionPool, StreamingSessionPool
+
+
+# Global singleton instance and state
+_manager_instance = None
+_manager_lock = asyncio.Lock()
+_loaded_models = {}
+_backends = {}
 
 
 class ModelManager:
     """Manages model loading and inference across backends."""
-
+    
     def __init__(self, config: Optional[ModelConfig] = None):
         """Initialize model manager.
         
@@ -25,65 +34,60 @@ class ModelManager:
             config: Optional configuration
         """
         self._config = config or model_config
-        self._backends: Dict[str, BaseModelBackend] = {}
-        self._current_backend: Optional[str] = None
-        self._initialize_backends()
+        global _loaded_models, _backends
+        self._loaded_models = _loaded_models
+        self._backends = _backends
+        
+        # Initialize session pools
+        self._session_pools = {
+            'onnx_cpu': CPUSessionPool(),
+            'onnx_gpu': StreamingSessionPool()
+        }
+        
+        # Initialize locks
+        self._backend_locks: Dict[str, asyncio.Lock] = {}
 
-    def _initialize_backends(self) -> None:
-        """Initialize available backends based on settings."""
-        has_gpu = settings.use_gpu and torch.cuda.is_available()
+    def _determine_device(self) -> str:
+        """Determine device based on settings."""
+        if settings.use_gpu and torch.cuda.is_available():
+            return "cuda"
+        return "cpu"
+
+    async def initialize(self) -> None:
+        """Initialize backends."""
+        if self._backends:
+            logger.debug("Using existing backend instances")
+            return
+            
+        device = self._determine_device()
         
         try:
-            if has_gpu:
+            if device == "cuda":
                 if settings.use_onnx:
-                    # ONNX GPU primary
                     self._backends['onnx_gpu'] = ONNXGPUBackend()
                     self._current_backend = 'onnx_gpu'
-                    logger.info("Initialized ONNX GPU backend")
-                    
-                    # PyTorch GPU fallback
-                    self._backends['pytorch_gpu'] = PyTorchGPUBackend()
-                    logger.info("Initialized PyTorch GPU backend")
+                    logger.info("Initialized new ONNX GPU backend")
                 else:
-                    # PyTorch GPU primary
                     self._backends['pytorch_gpu'] = PyTorchGPUBackend()
                     self._current_backend = 'pytorch_gpu'
-                    logger.info("Initialized PyTorch GPU backend")
+                    logger.info("Initialized new PyTorch GPU backend")
+            else:
+                if settings.use_onnx:
+                    self._backends['onnx_cpu'] = ONNXCPUBackend()
+                    self._current_backend = 'onnx_cpu'
+                    logger.info("Initialized new ONNX CPU backend")
+                else:
+                    self._backends['pytorch_cpu'] = PyTorchCPUBackend()
+                    self._current_backend = 'pytorch_cpu'
+                    logger.info("Initialized new PyTorch CPU backend")
                     
-                    # ONNX GPU fallback
-                    self._backends['onnx_gpu'] = ONNXGPUBackend()
-                    logger.info("Initialized ONNX GPU backend")
-            else:
-                self._initialize_cpu_backends()
-        except Exception as e:
-            logger.error(f"Failed to initialize GPU backends: {e}")
-            # Fallback to CPU if GPU fails
-            self._initialize_cpu_backends()
-
-    def _initialize_cpu_backends(self) -> None:
-        """Initialize CPU backends based on settings."""
-        try:
-            if settings.use_onnx:
-                # ONNX CPU primary
-                self._backends['onnx_cpu'] = ONNXCPUBackend()
-                self._current_backend = 'onnx_cpu'
-                logger.info("Initialized ONNX CPU backend")
+            # Initialize locks for each backend
+            for backend in self._backends:
+                self._backend_locks[backend] = asyncio.Lock()
                 
-                # PyTorch CPU fallback
-                self._backends['pytorch_cpu'] = PyTorchCPUBackend()
-                logger.info("Initialized PyTorch CPU backend")
-            else:
-                # PyTorch CPU primary
-                self._backends['pytorch_cpu'] = PyTorchCPUBackend()
-                self._current_backend = 'pytorch_cpu'
-                logger.info("Initialized PyTorch CPU backend")
-                
-                # ONNX CPU fallback
-                self._backends['onnx_cpu'] = ONNXCPUBackend()
-                logger.info("Initialized ONNX CPU backend")
         except Exception as e:
-            logger.error(f"Failed to initialize CPU backends: {e}")
-            raise RuntimeError("No backends available")
+            logger.error(f"Failed to initialize backend: {e}")
+            raise RuntimeError("Failed to initialize backend")
 
     def get_backend(self, backend_type: Optional[str] = None) -> BaseModelBackend:
         """Get specified backend.
@@ -154,19 +158,42 @@ class ModelManager:
             if backend_type is None:
                 backend_type = self._determine_backend(abs_path)
             
-            backend = self.get_backend(backend_type)
+            # Get backend lock
+            lock = self._backend_locks[backend_type]
             
-            # Load model
-            await backend.load_model(abs_path)
-            logger.info(f"Loaded model on {backend_type} backend")
-            
-            # Run warmup if voice provided
-            if warmup_voice is not None:
-                await self._warmup_inference(backend, warmup_voice)
+            async with lock:
+                backend = self.get_backend(backend_type)
+                
+                # For ONNX backends, use session pool
+                if backend_type.startswith('onnx'):
+                    pool = self._session_pools[backend_type]
+                    backend._session = await pool.get_session(abs_path)
+                    self._loaded_models[backend_type] = abs_path
+                    logger.info(f"Fetched model instance from {backend_type} pool")
+                    
+                # For PyTorch backends, load normally
+                else:
+                    # Check if model is already loaded
+                    if (backend_type in self._loaded_models and 
+                        self._loaded_models[backend_type] == abs_path and
+                        backend.is_loaded):
+                        logger.info(f"Fetching existing model instance from {backend_type}")
+                        return
+                        
+                    # Load model
+                    await backend.load_model(abs_path)
+                    self._loaded_models[backend_type] = abs_path
+                    logger.info(f"Initialized new model instance on {backend_type}")
+                
+                # Run warmup if voice provided
+                if warmup_voice is not None:
+                    await self._warmup_inference(backend, warmup_voice)
             
         except Exception as e:
+            # Clear cached path on failure
+            self._loaded_models.pop(backend_type, None)
             raise RuntimeError(f"Failed to load model: {e}")
-            
+
     async def _warmup_inference(self, backend: BaseModelBackend, voice: torch.Tensor) -> None:
         """Run warmup inference to initialize model.
         
@@ -188,7 +215,7 @@ class ModelManager:
             
             # Run inference
             backend.generate(tokens, voice, speed=1.0)
-            logger.info("Completed warmup inference")
+            logger.debug("Completed warmup inference")
             
         except Exception as e:
             logger.warning(f"Warmup inference failed: {e}")
@@ -221,16 +248,23 @@ class ModelManager:
 
         try:
             # Generate audio using provided voice tensor
+            # No lock needed here since inference is thread-safe
             return backend.generate(tokens, voice, speed)
-            
         except Exception as e:
             raise RuntimeError(f"Generation failed: {e}")
 
     def unload_all(self) -> None:
-        """Unload models from all backends."""
+        """Unload models from all backends and clear cache."""
+        # Clean up session pools
+        for pool in self._session_pools.values():
+            pool.cleanup()
+            
+        # Unload PyTorch backends
         for backend in self._backends.values():
             backend.unload()
-        logger.info("Unloaded all models")
+            
+        self._loaded_models.clear()
+        logger.info("Unloaded all models and cleared cache")
 
     @property
     def available_backends(self) -> list[str]:
@@ -251,12 +285,8 @@ class ModelManager:
         return self._current_backend
 
 
-# Module-level instance
-_manager: Optional[ModelManager] = None
-
-
-def get_manager(config: Optional[ModelConfig] = None) -> ModelManager:
-    """Get or create global model manager instance.
+async def get_manager(config: Optional[ModelConfig] = None) -> ModelManager:
+    """Get global model manager instance.
     
     Args:
         config: Optional model configuration
@@ -264,7 +294,10 @@ def get_manager(config: Optional[ModelConfig] = None) -> ModelManager:
     Returns:
         ModelManager instance
     """
-    global _manager
-    if _manager is None:
-        _manager = ModelManager(config)
-    return _manager
+    global _manager_instance
+    
+    async with _manager_lock:
+        if _manager_instance is None:
+            _manager_instance = ModelManager(config)
+            await _manager_instance.initialize()
+        return _manager_instance

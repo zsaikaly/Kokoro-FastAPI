@@ -10,7 +10,7 @@ services:
     ports:
       - "8880:8880"
     environment:
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app:/app/api
       - USE_GPU=true
       - USE_ONNX=false
       - PYTHONUNBUFFERED=1

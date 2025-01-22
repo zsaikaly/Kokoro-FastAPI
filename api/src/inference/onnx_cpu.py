@@ -1,20 +1,16 @@
 """CPU-based ONNX inference backend."""
 
-from typing import Dict, Optional
+from typing import Optional
 
 import numpy as np
 import torch
 from loguru import logger
-from onnxruntime import (
-    ExecutionMode,
-    GraphOptimizationLevel,
-    InferenceSession,
-    SessionOptions
-)
+from onnxruntime import InferenceSession
 
 from ..core import paths
 from ..core.model_config import model_config
 from .base import BaseModelBackend
+from .session_pool import create_session_options, create_provider_options
 
 
 class ONNXCPUBackend(BaseModelBackend):
@@ -47,8 +43,8 @@ class ONNXCPUBackend(BaseModelBackend):
             logger.info(f"Loading ONNX model: {model_path}")
             
             # Configure session
-            options = self._create_session_options()
-            provider_options = self._create_provider_options()
+            options = create_session_options(is_gpu=False)
+            provider_options = create_provider_options(is_gpu=False)
             
             # Create session
             self._session = InferenceSession(
@@ -84,9 +80,9 @@ class ONNXCPUBackend(BaseModelBackend):
             raise RuntimeError("Model not loaded")
 
         try:
-            # Prepare inputs
-            tokens_input = np.array([tokens], dtype=np.int64)
-            style_input = voice[len(tokens)].numpy()
+            # Prepare inputs with start/end tokens
+            tokens_input = np.array([[0, *tokens, 0]], dtype=np.int64)  # Add start/end tokens
+            style_input = voice[len(tokens) + 2].numpy()  # Adjust index for start/end tokens
             speed_input = np.full(1, speed, dtype=np.float32)
 
             # Run inference
@@ -103,52 +99,6 @@ class ONNXCPUBackend(BaseModelBackend):
             
         except Exception as e:
             raise RuntimeError(f"Generation failed: {e}")
-
-    def _create_session_options(self) -> SessionOptions:
-        """Create ONNX session options.
-        
-        Returns:
-            Configured session options
-        """
-        options = SessionOptions()
-        config = model_config.onnx_cpu
-        
-        # Set optimization level
-        if config.optimization_level == "all":
-            options.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_ALL
-        elif config.optimization_level == "basic":
-            options.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_BASIC
-        else:
-            options.graph_optimization_level = GraphOptimizationLevel.ORT_DISABLE_ALL
-        
-        # Configure threading
-        options.intra_op_num_threads = config.num_threads
-        options.inter_op_num_threads = config.inter_op_threads
-        
-        # Set execution mode
-        options.execution_mode = (
-            ExecutionMode.ORT_PARALLEL
-            if config.execution_mode == "parallel"
-            else ExecutionMode.ORT_SEQUENTIAL
-        )
-        
-        # Configure memory optimization
-        options.enable_mem_pattern = config.memory_pattern
-        
-        return options
-
-    def _create_provider_options(self) -> Dict:
-        """Create CPU provider options.
-        
-        Returns:
-            Provider configuration
-        """
-        return {
-            "CPUExecutionProvider": {
-                "arena_extend_strategy": model_config.onnx_cpu.arena_extend_strategy,
-                "cpu_memory_arena_cfg": "cpu:0"
-            }
-        }
 
     def unload(self) -> None:
         """Unload model and free resources."""

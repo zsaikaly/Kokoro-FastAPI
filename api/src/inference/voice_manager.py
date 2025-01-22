@@ -1,11 +1,10 @@
 """Voice pack management and caching."""
 
 import os
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import torch
 from loguru import logger
-from pydantic import BaseModel
 
 from ..core import paths
 from ..core.config import settings
@@ -13,7 +12,7 @@ from ..structures.model_schemas import VoiceConfig
 
 
 class VoiceManager:
-    """Manages voice loading, caching, and operations."""
+    """Manages voice loading and operations."""
 
     def __init__(self, config: Optional[VoiceConfig] = None):
         """Initialize voice manager.
@@ -33,15 +32,8 @@ class VoiceManager:
         Returns:
             Path to voice file if exists, None otherwise
         """
-        # Get api directory path (two levels up from inference)
         api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        
-        # Construct voice path relative to api directory
         voice_path = os.path.join(api_dir, settings.voices_dir, f"{voice_name}.pt")
-        
-        # Ensure voices directory exists
-        os.makedirs(os.path.dirname(voice_path), exist_ok=True)
-        
         return voice_path if os.path.exists(voice_path) else None
 
     async def load_voice(self, voice_name: str, device: str = "cpu") -> torch.Tensor:
@@ -66,20 +58,19 @@ class VoiceManager:
         if self._config.use_cache and cache_key in self._voice_cache:
             return self._voice_cache[cache_key]
 
+        # Load voice tensor
         try:
-            # Load voice tensor
             voice = await paths.load_voice_tensor(voice_path, device=device)
-
-            # Cache if enabled
-            if self._config.use_cache:
-                self._manage_cache()
-                self._voice_cache[cache_key] = voice
-                logger.debug(f"Cached voice: {voice_name} on {device}")
-
-            return voice
-
         except Exception as e:
             raise RuntimeError(f"Failed to load voice {voice_name}: {e}")
+
+        # Cache if enabled
+        if self._config.use_cache:
+            self._manage_cache()
+            self._voice_cache[cache_key] = voice
+            logger.debug(f"Cached voice: {voice_name} on {device}")
+
+        return voice
 
     def _manage_cache(self) -> None:
         """Manage voice cache size."""
@@ -123,14 +114,14 @@ class VoiceManager:
             # Get api directory path
             api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
             voices_dir = os.path.join(api_dir, settings.voices_dir)
-            
-            # Ensure voices directory exists
             os.makedirs(voices_dir, exist_ok=True)
             
             # Save combined voice
             combined_path = os.path.join(voices_dir, f"{combined_name}.pt")
             try:
                 torch.save(combined_tensor, combined_path)
+                # Cache the new combined voice
+                self._voice_cache[f"{combined_path}_{device}"] = combined_tensor
             except Exception as e:
                 raise RuntimeError(f"Failed to save combined voice: {e}")
 
@@ -147,17 +138,13 @@ class VoiceManager:
         """
         voices = []
         try:
-            # Get api directory path
             api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
             voices_dir = os.path.join(api_dir, settings.voices_dir)
-            
-            # Ensure voices directory exists
             os.makedirs(voices_dir, exist_ok=True)
             
-            # List voice files
             for entry in os.listdir(voices_dir):
                 if entry.endswith(".pt"):
-                    voices.append(entry[:-3])  # Remove .pt extension
+                    voices.append(entry[:-3])
         except Exception as e:
             logger.error(f"Error listing voices: {e}")
         return sorted(voices)
@@ -174,11 +161,8 @@ class VoiceManager:
         try:
             if not os.path.exists(voice_path):
                 return False
-            
-            # Try loading voice
             voice = torch.load(voice_path, map_location="cpu")
             return isinstance(voice, torch.Tensor)
-            
         except Exception:
             return False
 
@@ -195,12 +179,12 @@ class VoiceManager:
         }
 
 
-# Module-level instance
-_manager: Optional[VoiceManager] = None
+# Global singleton instance
+_manager_instance = None
 
 
-def get_manager(config: Optional[VoiceConfig] = None) -> VoiceManager:
-    """Get or create global voice manager instance.
+async def get_manager(config: Optional[VoiceConfig] = None) -> VoiceManager:
+    """Get global voice manager instance.
     
     Args:
         config: Optional voice configuration
@@ -208,7 +192,7 @@ def get_manager(config: Optional[VoiceConfig] = None) -> VoiceManager:
     Returns:
         VoiceManager instance
     """
-    global _manager
-    if _manager is None:
-        _manager = VoiceManager(config)
-    return _manager
+    global _manager_instance
+    if _manager_instance is None:
+        _manager_instance = VoiceManager(config)
+    return _manager_instance

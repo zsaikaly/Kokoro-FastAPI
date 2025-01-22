@@ -1,6 +1,6 @@
 from typing import AsyncGenerator, List, Union
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Response, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from loguru import logger
 
@@ -13,10 +13,28 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+# Global TTSService instance with lock
+_tts_service = None
+_init_lock = None
 
-def get_tts_service() -> TTSService:
-    """Dependency to get TTSService instance with database session"""
-    return TTSService()  # Initialize TTSService with default settings
+async def get_tts_service() -> TTSService:
+    """Get global TTSService instance"""
+    global _tts_service, _init_lock
+    
+    # Create lock if needed
+    if _init_lock is None:
+        import asyncio
+        _init_lock = asyncio.Lock()
+    
+    # Initialize service if needed
+    if _tts_service is None:
+        async with _init_lock:
+            # Double check pattern
+            if _tts_service is None:
+                _tts_service = await TTSService.create()
+                logger.info("Created global TTSService instance")
+    
+    return _tts_service
 
 
 async def process_voices(
@@ -78,11 +96,13 @@ async def stream_audio_chunks(
 async def create_speech(
     request: OpenAISpeechRequest,
     client_request: Request,
-    tts_service: TTSService = Depends(get_tts_service),
     x_raw_response: str = Header(None, alias="x-raw-response"),
 ):
     """OpenAI-compatible endpoint for text-to-speech"""
     try:
+        # Get global service instance
+        tts_service = await get_tts_service()
+        
         # Process voice combination and validate
         voice_to_use = await process_voices(request.voice, tts_service)
 
@@ -145,9 +165,10 @@ async def create_speech(
 
 
 @router.get("/audio/voices")
-async def list_voices(tts_service: TTSService = Depends(get_tts_service)):
+async def list_voices():
     """List all available voices for text-to-speech"""
     try:
+        tts_service = await get_tts_service()
         voices = await tts_service.list_voices()
         return {"voices": voices}
     except Exception as e:
@@ -156,9 +177,7 @@ async def list_voices(tts_service: TTSService = Depends(get_tts_service)):
 
 
 @router.post("/audio/voices/combine")
-async def combine_voices(
-    request: Union[str, List[str]], tts_service: TTSService = Depends(get_tts_service)
-):
+async def combine_voices(request: Union[str, List[str]]):
     """Combine multiple voices into a new voice.
 
     Args:
@@ -174,6 +193,7 @@ async def combine_voices(
             - 500: Server error (file system issues, combination failed)
     """
     try:
+        tts_service = await get_tts_service()
         combined_voice = await process_voices(request, tts_service)
         voices = await tts_service.list_voices()
         return {"voices": voices, "voice": combined_voice}

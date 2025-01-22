@@ -1,10 +1,13 @@
+
 """
 FastAPI OpenAI Compatible API
 """
 
+import os
 import sys
 from contextlib import asynccontextmanager
 
+import torch
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,19 +44,59 @@ setup_logger()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for model initialization"""
+    from .inference.model_manager import get_manager
+    from .inference.voice_manager import get_manager as get_voice_manager
+
     logger.info("Loading TTS model and voice packs...")
 
-    # Initialize service
-    service = TTSService()
-    await service.ensure_initialized()
-    
-    # Get available voices
-    voices = await service.list_voices()
-    voicepack_count = len(voices)
+    try:
+        # Initialize managers globally
+        model_manager = await get_manager()
+        voice_manager = await get_voice_manager()
 
-    # Get device info from model manager
-    device = "GPU" if settings.use_gpu else "CPU"
-    model = "ONNX" if settings.use_onnx else "PyTorch"
+        # Determine backend type based on settings
+        if settings.use_gpu and torch.cuda.is_available():
+            backend_type = 'pytorch_gpu' if not settings.use_onnx else 'onnx_gpu'
+        else:
+            backend_type = 'pytorch_cpu' if not settings.use_onnx else 'onnx_cpu'
+
+        # Get backend and initialize model
+        backend = model_manager.get_backend(backend_type)
+        
+        # Use model path directly from settings
+        model_file = settings.pytorch_model_file if not settings.use_onnx else settings.onnx_model_file
+        model_path = os.path.join(settings.model_dir, model_file)
+        
+        
+        if not os.path.exists(model_path):
+            raise RuntimeError(f"Model file not found: {model_path}")
+
+        # Pre-cache default voice and use for warmup
+        warmup_voice = await voice_manager.load_voice(settings.default_voice, device=backend.device)
+        logger.info(f"Pre-cached voice {settings.default_voice} for warmup")
+        
+        # Initialize model with warmup voice
+        await model_manager.load_model(model_path, warmup_voice, backend_type)
+
+        # Pre-cache common voices in background
+        common_voices = ['af', 'af_bella', 'af_sarah', 'af_nicole']
+        for voice_name in common_voices:
+            try:
+                await voice_manager.load_voice(voice_name, device=backend.device)
+                logger.debug(f"Pre-cached voice {voice_name}")
+            except Exception as e:
+                logger.warning(f"Failed to pre-cache voice {voice_name}: {e}")
+
+        # Get available voices for startup message
+        voices = await voice_manager.list_voices()
+        voicepack_count = len(voices)
+
+        # Get device info for startup message
+        device = "GPU" if settings.use_gpu else "CPU"
+        model = "ONNX" if settings.use_onnx else "PyTorch"
+    except Exception as e:
+        logger.error(f"Failed to initialize model: {e}")
+        raise
     boundary = "░" * 2*12
     startup_msg = f"""
 

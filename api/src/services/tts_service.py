@@ -1,9 +1,8 @@
 """TTS service using model and voice managers."""
 
 import io
-import os
 import time
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import numpy as np
 import scipy.io.wavfile as wavfile
@@ -17,8 +16,13 @@ from .audio import AudioNormalizer, AudioService
 from .text_processing import chunker, normalize_text, process_text
 
 
+import asyncio
+
 class TTSService:
     """Text-to-speech service."""
+
+    # Limit concurrent chunk processing
+    _chunk_semaphore = asyncio.Semaphore(4)
 
     def __init__(self, output_dir: str = None):
         """Initialize service.
@@ -27,53 +31,24 @@ class TTSService:
             output_dir: Optional output directory for saving audio
         """
         self.output_dir = output_dir
-        self.model_manager = get_model_manager()
-        self.voice_manager = get_voice_manager()
-        self._initialized = False
-        self._initialization_error = None
+        self.model_manager = None
+        self._voice_manager = None
 
-    async def ensure_initialized(self):
-        """Ensure model is initialized."""
-        if self._initialized:
-            return
-        if self._initialization_error:
-            raise self._initialization_error
-
-        try:
-            # Get api directory path (one level up from src)
-            api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    @classmethod
+    async def create(cls, output_dir: str = None) -> 'TTSService':
+        """Create and initialize TTSService instance.
+        
+        Args:
+            output_dir: Optional output directory for saving audio
             
-            # Determine model file and backend based on hardware
-            if settings.use_gpu and torch.cuda.is_available():
-                model_file = settings.pytorch_model_file
-                backend_type = 'pytorch_gpu'
-            else:
-                model_file = settings.onnx_model_file
-                backend_type = 'onnx_cpu'
-            
-            # Construct model path relative to api directory
-            model_path = os.path.join(api_dir, settings.model_dir, model_file)
-            
-            # Ensure model directory exists
-            os.makedirs(os.path.dirname(model_path), exist_ok=True)
-            
-            if not os.path.exists(model_path):
-                raise RuntimeError(f"Model file not found: {model_path}")
-            
-            # Load default voice for warmup
-            backend = self.model_manager.get_backend(backend_type)
-            warmup_voice = await self.voice_manager.load_voice(settings.default_voice, device=backend.device)
-            logger.info(f"Loaded voice {settings.default_voice} for warmup")
-            
-            # Initialize model with warmup voice
-            await self.model_manager.load_model(model_path, warmup_voice, backend_type)
-            logger.info(f"Initialized model on {backend_type} backend")
-            self._initialized = True
-            
-        except Exception as e:
-            logger.error(f"Failed to initialize model: {e}")
-            self._initialization_error = RuntimeError(f"Model initialization failed: {e}")
-            raise self._initialization_error
+        Returns:
+            Initialized TTSService instance
+        """
+        service = cls(output_dir)
+        # Initialize managers
+        service.model_manager = await get_model_manager()
+        service._voice_manager = await get_voice_manager()
+        return service
 
     async def generate_audio(
         self, text: str, voice: str, speed: float = 1.0
@@ -88,8 +63,8 @@ class TTSService:
         Returns:
             Audio samples and processing time
         """
-        await self.ensure_initialized()
         start_time = time.time()
+        voice_tensor = None
 
         try:
             # Normalize text
@@ -98,31 +73,40 @@ class TTSService:
                 raise ValueError("Text is empty after preprocessing")
             text = str(normalized)
 
-            # Process text into chunks
-            audio_chunks = []
-            for chunk in chunker.split_text(text):
-                try:
-                    # Convert chunk to token IDs
-                    tokens = process_text(chunk)
-                    if not tokens:
-                        continue
+            # Get backend and load voice
+            backend = self.model_manager.get_backend()
+            voice_tensor = await self._voice_manager.load_voice(voice, device=backend.device)
 
-                    # Get backend and load voice
-                    backend = self.model_manager.get_backend()
-                    voice_tensor = await self.voice_manager.load_voice(voice, device=backend.device)
-                    
-                    # Generate audio
-                    chunk_audio = await self.model_manager.generate(
-                        tokens,
-                        voice_tensor,
-                        speed=speed
-                    )
-                    if chunk_audio is not None:
-                        audio_chunks.append(chunk_audio)
-                except Exception as e:
-                    logger.error(f"Failed to process chunk: '{chunk}'. Error: {str(e)}")
-                    continue
+            # Get all chunks upfront
+            chunks = list(chunker.split_text(text))
+            if not chunks:
+                raise ValueError("No text chunks to process")
 
+            # Process chunk with concurrency control
+            async def process_chunk(chunk: str) -> Optional[np.ndarray]:
+                async with self._chunk_semaphore:
+                    try:
+                        tokens = process_text(chunk)
+                        if not tokens:
+                            return None
+                        
+                        # Generate audio
+                        return await self.model_manager.generate(
+                            tokens,
+                            voice_tensor,
+                            speed=speed
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to process chunk: '{chunk}'. Error: {str(e)}")
+                        return None
+
+            # Process all chunks concurrently
+            chunk_results = await asyncio.gather(*[
+                process_chunk(chunk) for chunk in chunks
+            ])
+
+            # Filter out None results and combine
+            audio_chunks = [chunk for chunk in chunk_results if chunk is not None]
             if not audio_chunks:
                 raise ValueError("No audio chunks were generated successfully")
 
@@ -134,6 +118,11 @@ class TTSService:
         except Exception as e:
             logger.error(f"Error in audio generation: {str(e)}")
             raise
+        finally:
+            # Always clean up voice tensor
+            if voice_tensor is not None:
+                del voice_tensor
+                torch.cuda.empty_cache()
 
     async def generate_audio_stream(
         self,
@@ -153,33 +142,34 @@ class TTSService:
         Yields:
             Audio chunks as bytes
         """
-        await self.ensure_initialized()
-
+        # Setup audio processing
+        stream_normalizer = AudioNormalizer()
+        voice_tensor = None
+        
         try:
-            # Setup audio processing
-            stream_normalizer = AudioNormalizer()
-            
             # Normalize text
             normalized = normalize_text(text)
             if not normalized:
                 raise ValueError("Text is empty after preprocessing")
             text = str(normalized)
 
-            # Process chunks
-            is_first = True
-            chunk_gen = chunker.split_text(text)
-            current_chunk = next(chunk_gen, None)
+            # Get backend and load voice
+            backend = self.model_manager.get_backend()
+            voice_tensor = await self._voice_manager.load_voice(voice, device=backend.device)
 
-            while current_chunk is not None:
-                next_chunk = next(chunk_gen, None)
-                try:
-                    # Convert chunk to token IDs
-                    tokens = process_text(current_chunk)
-                    if tokens:
-                        # Get backend and load voice
-                        backend = self.model_manager.get_backend()
-                        voice_tensor = await self.voice_manager.load_voice(voice, device=backend.device)
-                        
+            # Get all chunks upfront
+            chunks = list(chunker.split_text(text))
+            if not chunks:
+                raise ValueError("No text chunks to process")
+
+            # Process chunk with concurrency control
+            async def process_chunk(chunk: str, is_first: bool, is_last: bool) -> Optional[bytes]:
+                async with self._chunk_semaphore:
+                    try:
+                        tokens = process_text(chunk)
+                        if not tokens:
+                            return None
+
                         # Generate audio
                         chunk_audio = await self.model_manager.generate(
                             tokens,
@@ -189,26 +179,38 @@ class TTSService:
 
                         if chunk_audio is not None:
                             # Convert to bytes
-                            chunk_bytes = AudioService.convert_audio(
+                            return AudioService.convert_audio(
                                 chunk_audio,
                                 24000,
                                 output_format,
                                 is_first_chunk=is_first,
                                 normalizer=stream_normalizer,
-                                is_last_chunk=(next_chunk is None),
+                                is_last_chunk=is_last,
                                 stream=True
                             )
-                            yield chunk_bytes
-                            is_first = False
+                    except Exception as e:
+                        logger.error(f"Failed to generate audio for chunk: '{chunk}'. Error: {str(e)}")
+                        return None
 
-                except Exception as e:
-                    logger.error(f"Failed to generate audio for chunk: '{current_chunk}'. Error: {str(e)}")
+            # Create tasks for all chunks
+            tasks = [
+                process_chunk(chunk, i==0, i==len(chunks)-1)
+                for i, chunk in enumerate(chunks)
+            ]
 
-                current_chunk = next_chunk
+            # Process chunks concurrently and yield results in order
+            for chunk_bytes in await asyncio.gather(*tasks):
+                if chunk_bytes is not None:
+                    yield chunk_bytes
 
         except Exception as e:
             logger.error(f"Error in audio generation stream: {str(e)}")
             raise
+        finally:
+            # Always clean up voice tensor
+            if voice_tensor is not None:
+                del voice_tensor
+                torch.cuda.empty_cache()
 
     async def combine_voices(self, voices: List[str]) -> str:
         """Combine multiple voices.
@@ -219,8 +221,7 @@ class TTSService:
         Returns:
             Name of combined voice
         """
-        await self.ensure_initialized()
-        return await self.voice_manager.combine_voices(voices)
+        return await self._voice_manager.combine_voices(voices)
 
     async def list_voices(self) -> List[str]:
         """List available voices.
@@ -228,7 +229,7 @@ class TTSService:
         Returns:
             List of voice names
         """
-        return await self.voice_manager.list_voices()
+        return await self._voice_manager.list_voices()
 
     def _audio_to_bytes(self, audio: np.ndarray) -> bytes:
         """Convert audio to WAV bytes.

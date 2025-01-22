@@ -367,7 +367,7 @@ async def build_model(path, device):
         decoder=decoder.to(device).eval(),
         text_encoder=text_encoder.to(device).eval(),
     )
-    weights = await load_model_weights(path, device='cpu')
+    weights = await load_model_weights(path, device=device)
     for key, state_dict in weights['net'].items():
         assert key in model, key
         try:

@@ -13,8 +13,37 @@ from ..core.model_config import model_config
 from .base import BaseModelBackend
 
 
+class CUDAStreamManager:
+    """CUDA stream manager."""
+    
+    def __init__(self, num_streams: int):
+        """Initialize stream manager.
+        
+        Args:
+            num_streams: Number of CUDA streams
+        """
+        self.streams = [torch.cuda.Stream() for _ in range(num_streams)]
+        self._current = 0
+        
+    def get_next_stream(self) -> torch.cuda.Stream:
+        """Get next available stream.
+        
+        Returns:
+            CUDA stream
+        """
+        stream = self.streams[self._current]
+        self._current = (self._current + 1) % len(self.streams)
+        return stream
+
+
 @torch.no_grad()
-def forward(model: torch.nn.Module, tokens: list[int], ref_s: torch.Tensor, speed: float) -> np.ndarray:
+def forward(
+    model: torch.nn.Module,
+    tokens: list[int],
+    ref_s: torch.Tensor,
+    speed: float,
+    stream: Optional[torch.cuda.Stream] = None
+) -> np.ndarray:
     """Forward pass through model.
     
     Args:
@@ -22,59 +51,67 @@ def forward(model: torch.nn.Module, tokens: list[int], ref_s: torch.Tensor, spee
         tokens: Input tokens
         ref_s: Reference signal (shape: [1, n_features])
         speed: Speed multiplier
+        stream: Optional CUDA stream
         
     Returns:
         Generated audio
     """
     device = ref_s.device
     
-    # Initial tensor setup
-    tokens = torch.LongTensor([[0, *tokens, 0]]).to(device)
-    input_lengths = torch.LongTensor([tokens.shape[-1]]).to(device)
-    text_mask = length_to_mask(input_lengths).to(device)
+    # Use provided stream or default
+    with torch.cuda.stream(stream) if stream else torch.cuda.default_stream():
+        # Initial tensor setup
+        tokens = torch.LongTensor([[0, *tokens, 0]]).to(device)
+        input_lengths = torch.LongTensor([tokens.shape[-1]]).to(device)
+        text_mask = length_to_mask(input_lengths).to(device)
 
-    # Split reference signals (style_dim=128 from config)
-    style_dim = 128
-    s_ref = ref_s[:, :style_dim].clone().to(device)
-    s_content = ref_s[:, style_dim:].clone().to(device)
+        # Split reference signals (style_dim=128 from config)
+        style_dim = 128
+        s_ref = ref_s[:, :style_dim].clone().to(device)
+        s_content = ref_s[:, style_dim:].clone().to(device)
 
-    # BERT and encoder pass
-    bert_dur = model.bert(tokens, attention_mask=(~text_mask).int())
-    d_en = model.bert_encoder(bert_dur).transpose(-1, -2)
+        # BERT and encoder pass
+        bert_dur = model.bert(tokens, attention_mask=(~text_mask).int())
+        d_en = model.bert_encoder(bert_dur).transpose(-1, -2)
 
-    # Predictor forward pass
-    d = model.predictor.text_encoder(d_en, s_content, input_lengths, text_mask)
-    x, _ = model.predictor.lstm(d)
+        # Predictor forward pass
+        d = model.predictor.text_encoder(d_en, s_content, input_lengths, text_mask)
+        x, _ = model.predictor.lstm(d)
 
-    # Duration prediction
-    duration = model.predictor.duration_proj(x)
-    duration = torch.sigmoid(duration).sum(axis=-1) / speed
-    pred_dur = torch.round(duration).clamp(min=1).long()
-    del duration, x
+        # Duration prediction
+        duration = model.predictor.duration_proj(x)
+        duration = torch.sigmoid(duration).sum(axis=-1) / speed
+        pred_dur = torch.round(duration).clamp(min=1).long()
+        del duration, x
 
-    # Alignment matrix construction
-    pred_aln_trg = torch.zeros(input_lengths.item(), pred_dur.sum().item(), device=device)
-    c_frame = 0
-    for i in range(pred_aln_trg.size(0)):
-        pred_aln_trg[i, c_frame:c_frame + pred_dur[0, i].item()] = 1
-        c_frame += pred_dur[0, i].item()
-    pred_aln_trg = pred_aln_trg.unsqueeze(0)
+        # Alignment matrix construction
+        pred_aln_trg = torch.zeros(input_lengths.item(), pred_dur.sum().item(), device=device)
+        c_frame = 0
+        for i in range(pred_aln_trg.size(0)):
+            pred_aln_trg[i, c_frame:c_frame + pred_dur[0, i].item()] = 1
+            c_frame += pred_dur[0, i].item()
+        pred_aln_trg = pred_aln_trg.unsqueeze(0)
 
-    # Matrix multiplications
-    en = d.transpose(-1, -2) @ pred_aln_trg
-    del d
-    
-    F0_pred, N_pred = model.predictor.F0Ntrain(en, s_content)
-    del en
+        # Matrix multiplications
+        en = d.transpose(-1, -2) @ pred_aln_trg
+        del d
+        
+        F0_pred, N_pred = model.predictor.F0Ntrain(en, s_content)
+        del en
 
-    # Final text encoding and decoding
-    t_en = model.text_encoder(tokens, input_lengths, text_mask)
-    asr = t_en @ pred_aln_trg
-    del t_en
+        # Final text encoding and decoding
+        t_en = model.text_encoder(tokens, input_lengths, text_mask)
+        asr = t_en @ pred_aln_trg
+        del t_en
 
-    # Generate output
-    output = model.decoder(asr, F0_pred, N_pred, s_ref)
-    return output.squeeze().cpu().numpy()
+        # Generate output
+        output = model.decoder(asr, F0_pred, N_pred, s_ref)
+        
+        # Ensure operation completion if using custom stream
+        if stream:
+            stream.synchronize()
+            
+        return output.squeeze().cpu().numpy()
 
 
 def length_to_mask(lengths: torch.Tensor) -> torch.Tensor:
@@ -92,9 +129,10 @@ class PyTorchGPUBackend(BaseModelBackend):
     def __init__(self):
         """Initialize GPU backend."""
         super().__init__()
-        if not torch.cuda.is_available():
-            raise RuntimeError("CUDA not available")
-        self._device = "cuda"
+        from ..core.config import settings
+        if not (settings.use_gpu and torch.cuda.is_available()):
+            raise RuntimeError("GPU backend requires GPU support and use_gpu=True")
+        self._device = "cuda"  # Device is enforced by backend selection in model_manager
         self._model: Optional[torch.nn.Module] = None
         
         # Configure GPU settings
@@ -102,6 +140,9 @@ class PyTorchGPUBackend(BaseModelBackend):
         if config.sync_cuda:
             torch.cuda.synchronize()
         torch.cuda.set_device(config.device_id)
+        
+        # Initialize stream manager
+        self._stream_manager = CUDAStreamManager(config.cuda_streams)
 
     async def load_model(self, path: str) -> None:
         """Load PyTorch model.
@@ -154,8 +195,11 @@ class PyTorchGPUBackend(BaseModelBackend):
             if ref_s.dim() == 1:
                 ref_s = ref_s.unsqueeze(0)  # Add batch dimension if needed
             
-            # Generate audio
-            return forward(self._model, tokens, ref_s, speed)
+            # Get next available stream
+            stream = self._stream_manager.get_next_stream()
+            
+            # Generate audio using stream
+            return forward(self._model, tokens, ref_s, speed, stream)
             
         except Exception as e:
             logger.error(f"Generation failed: {e}")

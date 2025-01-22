@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     default_voice: str = "af"
     use_gpu: bool = False  # Whether to use GPU acceleration if available
     use_onnx: bool = True  # Whether to use ONNX runtime
-    # Paths relative to api directory
-    model_dir: str = "src/models"  # Model directory relative to api/
-    voices_dir: str = "src/voices"  # Voices directory relative to api/
+    # Container absolute paths
+    model_dir: str = "/app/api/src/models"  # Absolute path in container
+    voices_dir: str = "/app/api/src/voices"  # Absolute path in container
     
     # Model filenames
     pytorch_model_file: str = "kokoro-v0_19.pth"

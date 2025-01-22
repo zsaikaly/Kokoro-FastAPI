@@ -1,7 +1,7 @@
 from typing import List
 
 import numpy as np
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from loguru import logger
 
 from ..services.audio import AudioService
@@ -16,9 +16,9 @@ from ..structures.text_schemas import (
 router = APIRouter(tags=["text processing"])
 
 
-def get_tts_service() -> TTSService:
+async def get_tts_service() -> TTSService:
     """Dependency to get TTSService instance"""
-    return TTSService()
+    return await TTSService.create()  # Create service with properly initialized managers
 
 
 @router.post("/text/phonemize", response_model=PhonemeResponse, tags=["deprecated"])
@@ -82,9 +82,6 @@ async def generate_from_phonemes(
         )
 
     try:
-        # Ensure service is initialized
-        await tts_service.ensure_initialized()
-
         # Validate voice exists
         available_voices = await tts_service.list_voices()
         if request.voice not in available_voices:
