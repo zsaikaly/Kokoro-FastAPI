@@ -1,4 +1,4 @@
-FROM python:3.10-slim
+FROM --platform=$BUILDPLATFORM python:3.10-slim
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,10 +32,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --extra cpu --no-install-project
 
 # Copy project files including models
-COPY --chown=appuser:appuser api ./api
-COPY --chown=appuser:appuser web ./web
-
-# Copy project files
 COPY --chown=appuser:appuser api ./api
 COPY --chown=appuser:appuser web ./web
 

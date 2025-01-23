@@ -9,25 +9,28 @@ REGISTRY="ghcr.io"
 OWNER="remsky"
 REPO="kokoro-fastapi"
 
-# Build CPU image
-echo "Building CPU image..."
-docker build -t ${REGISTRY}/${OWNER}/${REPO}-cpu:${VERSION} -f docker/cpu/Dockerfile .
-docker tag ${REGISTRY}/${OWNER}/${REPO}-cpu:${VERSION} ${REGISTRY}/${OWNER}/${REPO}-cpu:latest
+# Create and use a new builder that supports multi-platform builds
+docker buildx create --name multiplatform-builder --use || true
 
-# Build GPU image
+# Build CPU image with multi-platform support
+echo "Building CPU image..."
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t ${REGISTRY}/${OWNER}/${REPO}-cpu:${VERSION} \
+  -t ${REGISTRY}/${OWNER}/${REPO}-cpu:latest \
+  -f docker/cpu/Dockerfile \
+  --push .
+
+# Build GPU image with multi-platform support
 echo "Building GPU image..."
-docker build -t ${REGISTRY}/${OWNER}/${REPO}-gpu:${VERSION} -f docker/gpu/Dockerfile .
-docker tag ${REGISTRY}/${OWNER}/${REPO}-gpu:${VERSION} ${REGISTRY}/${OWNER}/${REPO}-gpu:latest
+docker buildx build --platform linux/amd64,linux/arm64 \
+  -t ${REGISTRY}/${OWNER}/${REPO}-gpu:${VERSION} \
+  -t ${REGISTRY}/${OWNER}/${REPO}-gpu:latest \
+  -f docker/gpu/Dockerfile \
+  --push .
 
 echo "Build complete!"
 echo "Created images:"
-echo "- ${REGISTRY}/${OWNER}/${REPO}-cpu:${VERSION}"
-echo "- ${REGISTRY}/${OWNER}/${REPO}-cpu:latest"
-echo "- ${REGISTRY}/${OWNER}/${REPO}-gpu:${VERSION}"
-echo "- ${REGISTRY}/${OWNER}/${REPO}-gpu:latest"
-
-echo -e "\nTo push to GitHub Container Registry:"
-echo "docker push ${REGISTRY}/${OWNER}/${REPO}-cpu:${VERSION}"
-echo "docker push ${REGISTRY}/${OWNER}/${REPO}-cpu:latest"
-echo "docker push ${REGISTRY}/${OWNER}/${REPO}-gpu:${VERSION}"
-echo "docker push ${REGISTRY}/${OWNER}/${REPO}-gpu:latest"
+echo "- ${REGISTRY}/${OWNER}/${REPO}-cpu:${VERSION} (linux/amd64, linux/arm64)"
+echo "- ${REGISTRY}/${OWNER}/${REPO}-cpu:latest (linux/amd64, linux/arm64)"
+echo "- ${REGISTRY}/${OWNER}/${REPO}-gpu:${VERSION} (linux/amd64, linux/arm64)"
+echo "- ${REGISTRY}/${OWNER}/${REPO}-gpu:latest (linux/amd64, linux/arm64)"
