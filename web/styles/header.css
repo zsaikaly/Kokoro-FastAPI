@@ -1,6 +1,7 @@
 header {
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
     text-align: center;
+    padding-top: 0.5rem;
 }
 
 .logo-container {
@@ -8,12 +9,14 @@ header {
     align-items: center;
     justify-content: center;
     gap: 20px;
+    margin-bottom: 0.25rem;
 }
 
 h1 {
     font-size: 5rem;
     font-weight: 700;
     margin: 0;
+    line-height: 1.1;
     background: linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
     background-size: 10px 10px;
