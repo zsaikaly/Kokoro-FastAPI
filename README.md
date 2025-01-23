@@ -45,8 +45,8 @@ The service can be accessed through either the API endpoints or the Gradio web i
     __Or__ running the API alone using Docker (model + voice packs baked in) (Most Recent):
           
     ```bash
-    docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.0post1 # CPU 
-    docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.0post1 # Nvidia GPU
+    docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.2 # CPU 
+    docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.2 # Nvidia GPU
     ```
         
         
