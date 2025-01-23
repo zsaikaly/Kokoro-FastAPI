@@ -1,6 +1,7 @@
 from typing import List
 
 import numpy as np
+import torch
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from loguru import logger
 
@@ -42,10 +43,8 @@ async def phonemize_text(request: PhonemeRequest) -> PhonemeResponse:
         if not phonemes:
             raise ValueError("Failed to generate phonemes")
 
-        # Get tokens
+        # Get tokens (without adding start/end tokens to match process_text behavior)
         tokens = tokenize(phonemes)
-        tokens = [0] + tokens + [0]  # Add start/end tokens
-
         return PhonemeResponse(phonemes=phonemes, tokens=tokens)
     except ValueError as e:
         logger.error(f"Error in phoneme generation: {str(e)}")
@@ -93,23 +92,54 @@ async def generate_from_phonemes(
                 },
             )
 
-        # Convert phonemes to tokens
-        tokens = tokenize(request.phonemes)
-        tokens = [0] + tokens + [0]  # Add start/end tokens
+        # Handle both single string and list of chunks
+        phoneme_chunks = [request.phonemes] if isinstance(request.phonemes, str) else request.phonemes
+        audio_chunks = []
 
-        # Generate audio directly from tokens
-        audio = await tts_service.model_manager.generate(
-            tokens,
+        # Load voice tensor first since we'll need it for all chunks
+        voice_tensor = await tts_service._voice_manager.load_voice(
             request.voice,
-            speed=request.speed
+            device=tts_service.model_manager.get_backend().device
         )
 
-        if audio is None:
-            raise ValueError("Failed to generate audio")
+        try:
+            # Process each chunk
+            for chunk in phoneme_chunks:
+                # Convert chunk to tokens
+                tokens = tokenize(chunk)
+                tokens = [0] + tokens + [0]  # Add start/end tokens
+
+                # Validate chunk length
+                if len(tokens) > 510:  # 510 to leave room for start/end tokens
+                    raise ValueError(
+                        f"Chunk too long ({len(tokens)} tokens). Each chunk must be under 510 tokens."
+                    )
+
+                # Generate audio for chunk
+                chunk_audio = await tts_service.model_manager.generate(
+                    tokens,
+                    voice_tensor,
+                    speed=request.speed
+                )
+                if chunk_audio is not None:
+                    audio_chunks.append(chunk_audio)
+
+            # Combine chunks if needed
+            if len(audio_chunks) > 1:
+                audio = np.concatenate(audio_chunks)
+            elif len(audio_chunks) == 1:
+                audio = audio_chunks[0]
+            else:
+                raise ValueError("No audio chunks were generated")
+
+        finally:
+            # Clean up voice tensor
+            del voice_tensor
+            torch.cuda.empty_cache()
 
         # Convert to WAV bytes
         wav_bytes = AudioService.convert_audio(
-            audio, 24000, "wav", is_first_chunk=True, is_last_chunk=True, stream=False
+            audio, 24000, "wav", is_first_chunk=True, is_last_chunk=True, stream=False,
         )
 
         return Response(

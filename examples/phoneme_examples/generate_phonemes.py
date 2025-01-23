@@ -46,17 +46,29 @@ def generate_audio_from_phonemes(
         WAV audio bytes if successful, None if failed
     """
     # Create the request payload
-    payload = {"phonemes": phonemes, "voice": voice, "speed": speed}
+    payload = {
+        "phonemes": phonemes,
+        "voice": voice,
+        "speed": speed,
+        "stitch_long_content": True  # Default to false to get the error message
+    }
 
-    # Make POST request to generate audio
-    response = requests.post(
-        "http://localhost:8880/text/generate_from_phonemes", json=payload
-    )
-
-    # Raise exception for error status codes
-    response.raise_for_status()
-
-    return response.content
+    try:
+        # Make POST request to generate audio
+        response = requests.post(
+            "http://localhost:8880/text/generate_from_phonemes", json=payload
+        )
+        response.raise_for_status()
+        return response.content
+    except requests.HTTPError as e:
+        # Get the error details from the response
+        try:
+            error_details = response.json()
+            error_msg = error_details.get('detail', {}).get('message', str(e))
+            print(f"Server Error: {error_msg}")
+        except:
+            print(f"Error: {e}")
+        return None
 
 
 def main():
@@ -66,7 +78,13 @@ def main():
         "How are you today? I am doing reasonably well, thank you for asking",
         """This is a test of the phoneme generation system. Do not be alarmed.
         This is only a test. If this were a real phoneme emergency, '
-        you would be instructed to a phoneme shelter in your area.""",
+        you would be instructed to a phoneme shelter in your area. Repeat. 
+        This is a test of the phoneme generation system. Do not be alarmed.
+        This is only a test. If this were a real phoneme emergency, '
+        you would be instructed to a phoneme shelter in your area. Repeat.
+        This is a test of the phoneme generation system. Do not be alarmed.
+        This is only a test. If this were a real phoneme emergency, '
+        you would be instructed to a phoneme shelter in your area""",
     ]
 
     print("Generating phonemes and audio for example texts...\n")
@@ -85,6 +103,9 @@ def main():
 
             # Generate audio from phonemes
             print("Generating audio...")
+            if len(phonemes) > 500: # split into arrays of 500 phonemes
+                phonemes = [phonemes[i:i+500] for i in range(0, len(phonemes), 500)]
+
             audio_bytes = generate_audio_from_phonemes(phonemes)
 
             if audio_bytes:

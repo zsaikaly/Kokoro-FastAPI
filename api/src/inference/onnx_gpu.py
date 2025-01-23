@@ -87,7 +87,9 @@ class ONNXGPUBackend(BaseModelBackend):
         try:
             # Prepare inputs
             tokens_input = np.array([[0, *tokens, 0]], dtype=np.int64)  # Add start/end tokens
-            style_input = voice[len(tokens) + 2].cpu().numpy()  # Move to CPU for ONNX
+            # Use modulo to ensure index stays within voice tensor bounds
+            style_idx = (len(tokens) + 2) % voice.size(0)  # Add 2 for start/end tokens
+            style_input = voice[style_idx].cpu().numpy()  # Move to CPU for ONNX
             speed_input = np.full(1, speed, dtype=np.float32)
 
             # Run inference
