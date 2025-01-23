@@ -26,7 +26,7 @@
     <div class="overlay"></div>
     <div class="badges-container">
         <a href="https://huggingface.co/hexgrad/Kokoro-82M" target="_blank" class="badge">
-            <img src="https://img.shields.io/badge/HexGrad%2FKokoro--82M-black?logo=huggingface&logoColor=white&labelColor=black&style=for-the-badge" alt="HexGrad/Kokoro-82M on Hugging Face">
+            <img src="https://img.shields.io/badge/Powered--by--HexGrad%2FKokoro--82M-black?logo=huggingface&logoColor=white&labelColor=black&style=for-the-badge" alt="HexGrad/Kokoro-82M on Hugging Face">
         </a>
         <div class="badge">
             <a class="github-button" href="https://github.com/remsky/Kokoro-FastAPI" data-color-scheme="dark" data-size="large" data-show-count="true" aria-label="Star remsky/Kokoro-FastAPI on GitHub">Kokoro-FastAPI</a>
@@ -68,15 +68,21 @@
                         </div>
                     </div>
                     <div class="options">
-                        <label>
-                            <input type="checkbox" id="autoplay-toggle" checked>
-                            Auto-play
-                        </label>
-                        <select id="format-select" class="format-select">
-                            <option value="mp3">MP3</option>
-                            <option value="wav">WAV</option>
-                            <option value="pcm">PCM</option>
-                        </select>
+                        <div class="option-group">
+                            <label>
+                                <input type="checkbox" id="autoplay-toggle" checked>
+                                Auto-play
+                            </label>
+                            <select id="format-select" class="format-select">
+                                <option value="mp3">MP3</option>
+                                <option value="wav">WAV</option>
+                                <option value="pcm">PCM</option>
+                            </select>
+                        </div>
+                        <div class="speed-control">
+                            <label for="speed-slider">Speed: <span id="speed-value">1.0</span>x</label>
+                            <input type="range" id="speed-slider" min="0.1" max="4" step="0.1" value="1.0">
+                        </div>
                     </div>
                     <div class="button-group">
                         <button id="generate-btn">

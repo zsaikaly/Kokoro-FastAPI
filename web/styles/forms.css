@@ -129,6 +129,60 @@ textarea::placeholder {
     flex-wrap: wrap;
 }
 
+.option-group {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.speed-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.speed-control label {
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+.speed-control input[type="range"] {
+    width: 150px;
+    height: 4px;
+    -webkit-appearance: none;
+    background: rgba(99, 102, 241, 0.2);
+    border-radius: 2px;
+    outline: none;
+}
+
+.speed-control input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--fg-color);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.speed-control input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+.speed-control input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--fg-color);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.speed-control input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.1);
+}
+
 .options label {
     display: flex;
     align-items: center;

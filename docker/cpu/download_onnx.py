@@ -37,7 +37,7 @@ def main(custom_models: List[str] = None):
     # Default ONNX model if no arguments provided
     default_models = [
         "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19.onnx",
-        "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19_fp16.onnx"
+        # "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19_fp16.onnx"
     ]
     
     # Use provided models or default

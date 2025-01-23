@@ -85,17 +85,23 @@ class ONNXCPUBackend(BaseModelBackend):
             style_input = voice[len(tokens) + 2].numpy()  # Adjust index for start/end tokens
             speed_input = np.full(1, speed, dtype=np.float32)
 
-            # Run inference
-            result = self._session.run(
-                None,
-                {
-                    "tokens": tokens_input,
-                    "style": style_input,
-                    "speed": speed_input
-                }
-            )
+            # Build base inputs
+            inputs = {
+                "style": style_input,
+                "speed": speed_input
+            }
             
-            return result[0]
+            # Try both possible token input names #TODO: 
+            for token_name in ["tokens", "input_ids"]:
+                try:
+                    inputs[token_name] = tokens_input
+                    result = self._session.run(None, inputs)
+                    return result[0]
+                except Exception:
+                    del inputs[token_name]
+                    continue
+                    
+            raise RuntimeError("Model does not accept either 'tokens' or 'input_ids' as input name")
             
         except Exception as e:
             raise RuntimeError(f"Generation failed: {e}")

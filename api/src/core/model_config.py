@@ -11,7 +11,7 @@ class ONNXCPUConfig(BaseModel):
     instance_timeout: int = Field(300, description="Session timeout in seconds")
     
     # Runtime settings
-    num_threads: int = Field(4, description="Number of threads for parallel operations")
+    num_threads: int = Field(8, description="Number of threads for parallel operations")
     inter_op_threads: int = Field(4, description="Number of threads for operator parallelism")
     execution_mode: str = Field("parallel", description="ONNX execution mode")
     optimization_level: str = Field("all", description="ONNX optimization level")
@@ -55,7 +55,6 @@ class PyTorchGPUConfig(BaseModel):
     """PyTorch GPU backend configuration."""
     
     device_id: int = Field(0, description="CUDA device ID")
-    use_fp16: bool = Field(True, description="Whether to use FP16 precision")
     use_triton: bool = Field(True, description="Whether to use Triton for CUDA kernels")
     memory_threshold: float = Field(0.8, description="Memory threshold for cleanup")
     retry_on_oom: bool = Field(True, description="Whether to retry on OOM errors")

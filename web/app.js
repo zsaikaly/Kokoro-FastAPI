@@ -14,7 +14,9 @@ class KokoroPlayer {
             waveContainer: document.getElementById('wave-container'),
             timeDisplay: document.getElementById('time-display'),
             downloadBtn: document.getElementById('download-btn'),
-            status: document.getElementById('status')
+            status: document.getElementById('status'),
+            speedSlider: document.getElementById('speed-slider'),
+            speedValue: document.getElementById('speed-value')
         };
 
         this.isGenerating = false;
@@ -201,6 +203,11 @@ class KokoroPlayer {
         this.elements.playPauseBtn.addEventListener('click', () => this.togglePlayPause());
         this.elements.downloadBtn.addEventListener('click', () => this.downloadAudio());
 
+        this.elements.speedSlider.addEventListener('input', (e) => {
+            const speed = parseFloat(e.target.value);
+            this.elements.speedValue.textContent = speed.toFixed(1);
+        });
+
         document.addEventListener('click', (e) => {
             if (!this.elements.voiceSearch.contains(e.target) && 
                 !this.elements.voiceDropdown.contains(e.target)) {
@@ -329,7 +336,8 @@ class KokoroPlayer {
                 input: text,
                 voice: voice,
                 response_format: 'mp3',
-                stream: true
+                stream: true,
+                speed: parseFloat(this.elements.speedSlider.value)
             }),
             signal: this.currentController.signal
         });
@@ -418,11 +426,13 @@ class KokoroPlayer {
         if (this.audioChunks.length === 0) return;
 
         const format = this.elements.formatSelect.value;
+        const voice = Array.from(this.selectedVoiceSet).join('+');
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const blob = new Blob(this.audioChunks, { type: `audio/${format}` });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `generated-speech.${format}`;
+        a.download = `${voice}_${timestamp}.${format}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
