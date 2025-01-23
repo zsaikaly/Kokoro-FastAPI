@@ -3,55 +3,54 @@
 </p>
 
 # <sub><sub>_`FastKoko`_ </sub></sub>
-[![Tests](https://img.shields.io/badge/tests-117%20passed-darkgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-60%25-grey)]()
+[![Tests](https://img.shields.io/badge/tests-104%20passed-darkgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-49%25-grey)]()
 [![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/c3b0d86e2a980e027ef71c28819ea02e351c2667) [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero)
 
-> [!INFO]
 > Pre-release. Not fully tested
 
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
-- OpenAI-compatible Speech endpoint, with inline voice combination functionality
-- NVIDIA GPU accelerated or CPU Onnx inference 
+- OpenAI-compatible Speech endpoint, with inline voice combination, and mapped naming/models for strict systems
+- NVIDIA GPU accelerated or CPU inference (ONNX, Pytorch) (~80-300mb modelfile)
 - very fast generation time
   - 35x-100x+ real time speed via 4060Ti+
   - 5x+ real time speed via M3 Pro CPU
-- streaming support w/ variable chunking to control latency & artifacts
-- phoneme, simple audio generation web ui utility
-- Runs on an 80mb-300mb model (CUDA container + 5gb on disk due to drivers)  
+- streaming support w/ variable chunking to control latency, (new) improved concurrency
+- phoneme based dev endpoints
+- (new) Integrated web UI on localhost:8880/web
 
 ## Quick Start
 
 The service can be accessed through either the API endpoints or the Gradio web interface.
 
 1. Install prerequisites, and start the service using Docker Compose (Full setup including UI):
-   - Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+   - Install [Docker](https://www.docker.com/products/docker-desktop/)
+
    - Clone the repository:
         ```bash
         git clone https://github.com/remsky/Kokoro-FastAPI.git
         cd Kokoro-FastAPI
-        
-        #   * Switch to stable branch if any issues *
-        git checkout v0.0.5post1-stable
 
         cd docker/gpu # OR 
         # cd docker/cpu # Run this or the above
         docker compose up --build 
+        # if you are missing any models, run the .py or .sh scrips in the respective folders
         ```
         
       Once started:
      - The API will be available at http://localhost:8880
-     - The UI can be accessed at http://localhost:7860
+     - The *Web UI* can be tested at http://localhost:8880/web
+     - The Gradio UI (deprecating) can be accessed at http://localhost:7860
         
-  __Or__ running the API alone using Docker (model + voice packs baked in) (Most Recent):
+    __Or__ running the API alone using Docker (model + voice packs baked in) (Most Recent):
           
-  ```bash
-  docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.0post1 # CPU 
-  docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.0post1 # Nvidia GPU
-  ```
+    ```bash
+    docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.0post1 # CPU 
+    docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.0post1 # Nvidia GPU
+    ```
         
         
-4. Run locally as an OpenAI-Compatible Speech Endpoint
+2. Run locally as an OpenAI-Compatible Speech Endpoint
     ```python
     from openai import OpenAI
     client = OpenAI(
@@ -69,10 +68,12 @@ The service can be accessed through either the API endpoints or the Gradio web i
     
     ```
 
-    or visit http://localhost:7860
-    <p align="center">
-    <img src="ui\GradioScreenShot.png" width="80%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
-    </p>
+  <div align="center">
+    <div style="display: flex; justify-content: center; gap: 20px;">
+      <img src="assets/beta_web_ui.png" width="45%" alt="Beta Web UI" style="border: 2px solid #333; padding: 10px;">
+      <img src="ui/GradioScreenShot.png" width="45%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
+    </div>
+  </div>
 
 ## Features 
 <details>
@@ -83,8 +84,8 @@ The service can be accessed through either the API endpoints or the Gradio web i
 from openai import OpenAI
 client = OpenAI(base_url="http://localhost:8880/v1", api_key="not-needed")
 response = client.audio.speech.create(
-    model="kokoro",  # Not used but required for compatibility, also accepts library defaults
-    voice="af_bella+af_sky",
+    model="kokoro",  
+    voice="af_bella+af_sky", # see /api/src/core/openai_mappings.json to customize
     input="Hello world!",
     response_format="mp3"
 )
@@ -103,7 +104,7 @@ voices = response.json()["voices"]
 response = requests.post(
     "http://localhost:8880/v1/audio/speech",
     json={
-        "model": "kokoro",  # Not used but required for compatibility
+        "model": "kokoro",  
         "input": "Hello world!",
         "voice": "af_bella",
         "response_format": "mp3",  # Supported: mp3, wav, opus, flac

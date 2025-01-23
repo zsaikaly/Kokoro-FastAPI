@@ -23,7 +23,10 @@ class TTSStatus(str, Enum):
 
 # OpenAI-compatible schemas
 class OpenAISpeechRequest(BaseModel):
-    model: Literal["tts-1", "tts-1-hd", "kokoro"] = "kokoro"
+    model: str = Field(
+        default="kokoro",
+        description="The model to use for generation. Supported models: tts-1, tts-1-hd, kokoro"
+    )
     input: str = Field(..., description="The text to generate audio for")
     voice: str = Field(
         default="af",

@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     
     # Audio Settings
     sample_rate: int = 24000
-    max_chunk_size: int = 300  # Maximum size of text chunks for processing
+    max_chunk_size: int = 400  # Maximum size of text chunks for processing
     gap_trim_ms: int = 250  # Amount to trim from streaming chunk ends in milliseconds
 
     # Web Player Settings

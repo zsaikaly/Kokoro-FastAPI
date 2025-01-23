@@ -1,4 +1,6 @@
-from typing import AsyncGenerator, List, Union
+import json
+import os
+from typing import AsyncGenerator, Dict, List, Union
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
@@ -7,6 +9,22 @@ from loguru import logger
 from ..services.audio import AudioService
 from ..services.tts_service import TTSService
 from ..structures.schemas import OpenAISpeechRequest
+from ..core.config import settings
+
+# Load OpenAI mappings
+def load_openai_mappings() -> Dict:
+    """Load OpenAI voice and model mappings from JSON"""
+    api_dir = os.path.dirname(os.path.dirname(__file__))
+    mapping_path = os.path.join(api_dir, "core", "openai_mappings.json")
+    try:
+        with open(mapping_path, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load OpenAI mappings: {e}")
+        return {"models": {}, "voices": {}}
+
+# Global mappings
+_openai_mappings = load_openai_mappings()
 
 
 router = APIRouter(
@@ -39,15 +57,30 @@ async def get_tts_service() -> TTSService:
     return _tts_service
 
 
+def get_model_name(model: str) -> str:
+    """Get internal model name from OpenAI model name"""
+    base_name = _openai_mappings["models"].get(model)
+    if not base_name:
+        raise ValueError(f"Unsupported model: {model}")
+    # Add extension based on runtime config
+    extension = ".onnx" if settings.use_onnx else ".pth"
+    return base_name + extension
+
 async def process_voices(
     voice_input: Union[str, List[str]], tts_service: TTSService
 ) -> str:
     """Process voice input into a combined voice, handling both string and list formats"""
     # Convert input to list of voices
     if isinstance(voice_input, str):
+        # Check if it's an OpenAI voice name
+        mapped_voice = _openai_mappings["voices"].get(voice_input)
+        if mapped_voice:
+            voice_input = mapped_voice
         voices = [v.strip() for v in voice_input.split("+") if v.strip()]
     else:
-        voices = voice_input
+        # For list input, map each voice if it's an OpenAI voice name
+        voices = [_openai_mappings["voices"].get(v, v) for v in voice_input]
+        voices = [v.strip() for v in voices if v.strip()]
 
     if not voices:
         raise ValueError("No voices provided")
@@ -89,7 +122,10 @@ async def stream_audio_chunks(
             output_format=request.response_format,
         ):
             # Check if client is still connected
-            if await client_request.is_disconnected():
+            is_disconnected = client_request.is_disconnected
+            if callable(is_disconnected):
+                is_disconnected = await is_disconnected()
+            if is_disconnected:
                 logger.info("Client disconnected, stopping audio generation")
                 break
             yield chunk
@@ -106,7 +142,20 @@ async def create_speech(
     x_raw_response: str = Header(None, alias="x-raw-response"),
 ):
     """OpenAI-compatible endpoint for text-to-speech"""
+    # Validate model before processing request
+    if request.model not in _openai_mappings["models"]:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "invalid_model",
+                "message": f"Unsupported model: {request.model}",
+                "type": "invalid_request_error"
+            }
+        )
+    
     try:
+        model_name = get_model_name(request.model)
+
         # Get global service instance
         tts_service = await get_tts_service()
         
@@ -200,7 +249,7 @@ async def create_speech(
             status_code=500,
             detail={
                 "error": "processing_error",
-                "message": "Failed to process audio generation request",
+                "message": str(e),
                 "type": "server_error"
             }
         )
@@ -210,8 +259,8 @@ async def create_speech(
         raise HTTPException(
             status_code=500,
             detail={
-                "error": "server_error",
-                "message": "An unexpected error occurred",
+                "error": "processing_error",
+                "message": str(e),
                 "type": "server_error"
             }
         )

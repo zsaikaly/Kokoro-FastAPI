@@ -79,7 +79,7 @@ async def lifespan(app: FastAPI):
     
     # Add web player info if enabled
     if settings.enable_web_player:
-        startup_msg += f"\n\nWeb Player: http://{settings.host}:{settings.port}/web/"
+        startup_msg += f"\n\nBeta Web Player: http://{settings.host}:{settings.port}/web/"
     else:
         startup_msg += "\n\nWeb Player: disabled"
         
