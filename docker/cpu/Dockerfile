@@ -31,6 +31,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv venv && \
     uv sync --extra cpu --no-install-project
 
+# Copy project files including models
+COPY --chown=appuser:appuser api ./api
+COPY --chown=appuser:appuser web ./web
+
 # Copy project files
 COPY --chown=appuser:appuser api ./api
 COPY --chown=appuser:appuser web ./web
@@ -45,7 +49,7 @@ ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
 ENV UV_LINK_MODE=copy
 ENV USE_GPU=false
-ENV USE_ONNX=true
+ENV USE_ONNX=false
 
 # Run FastAPI server
 CMD ["uv", "run", "python", "-m", "uvicorn", "api.src.main:app", "--host", "0.0.0.0", "--port", "8880", "--log-level", "debug"]

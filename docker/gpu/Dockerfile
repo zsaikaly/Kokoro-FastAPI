@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv venv && \
     uv sync --extra gpu
 
-# Copy project files
+# Copy project files including models
 COPY --chown=appuser:appuser api ./api
 COPY --chown=appuser:appuser web ./web
 
