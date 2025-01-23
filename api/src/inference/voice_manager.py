@@ -49,11 +49,29 @@ class VoiceManager:
         Raises:
             RuntimeError: If voice loading fails
         """
+        # Check if it's a combined voice request
+        if "+" in voice_name:
+            voices = [v.strip() for v in voice_name.split("+") if v.strip()]
+            if len(voices) < 2:
+                raise RuntimeError(f"Invalid combined voice name: {voice_name}")
+                
+            # Load and combine voices
+            voice_tensors = []
+            for voice in voices:
+                try:
+                    voice_tensor = await self.load_voice(voice, device)
+                    voice_tensors.append(voice_tensor)
+                except Exception as e:
+                    raise RuntimeError(f"Failed to load base voice {voice}: {e}")
+                    
+            return torch.mean(torch.stack(voice_tensors), dim=0)
+
+        # Handle single voice
         voice_path = self.get_voice_path(voice_name)
         if not voice_path:
             raise RuntimeError(f"Voice not found: {voice_name}")
 
-        # Check cache first
+        # Check cache
         cache_key = f"{voice_path}_{device}"
         if self._config.use_cache and cache_key in self._voice_cache:
             return self._voice_cache[cache_key]
@@ -98,48 +116,39 @@ class VoiceManager:
         if len(voices) < 2:
             raise ValueError("At least 2 voices are required for combination")
 
-        # Load voices
-        voice_tensors: List[torch.Tensor] = []
-        for voice in voices:
-            try:
-                voice_tensor = await self.load_voice(voice, device)
-                voice_tensors.append(voice_tensor)
-            except Exception as e:
-                raise RuntimeError(f"Failed to load voice {voice}: {e}")
+        # Create combined name using + as separator
+        combined_name = "+".join(voices)
 
-        try:
-            # Combine voices
-            combined_name = "_".join(voices)
-            combined_tensor = torch.mean(torch.stack(voice_tensors), dim=0)
-            
-            # Get api directory path
-            api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            voices_dir = os.path.join(api_dir, settings.voices_dir)
-            os.makedirs(voices_dir, exist_ok=True)
-            
-            # Only save to disk if local voice saving is allowed
-            if settings.allow_local_voice_saving:
+        # If saving is enabled, try to save the combination
+        if settings.allow_local_voice_saving:
+            try:
+                # Load and combine voices
+                combined_tensor = await self.load_voice(combined_name, device)
+                
+                # Save to disk
+                api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                voices_dir = os.path.join(api_dir, settings.voices_dir)
+                os.makedirs(voices_dir, exist_ok=True)
+                
                 combined_path = os.path.join(voices_dir, f"{combined_name}.pt")
                 try:
                     torch.save(combined_tensor, combined_path)
-                    # Cache the new combined voice with disk path
+                    # Cache with path-based key
                     self._voice_cache[f"{combined_path}_{device}"] = combined_tensor
                 except Exception as e:
                     raise RuntimeError(f"Failed to save combined voice: {e}")
-            else:
-                # Just cache the combined voice in memory without saving to disk
-                self._voice_cache[f"{combined_name}_{device}"] = combined_tensor
 
-            return combined_name
+            except Exception as e:
+                logger.warning(f"Failed to save combined voice: {e}")
+                # Continue without saving - will be combined on-the-fly when needed
 
-        except Exception as e:
-            raise RuntimeError(f"Failed to combine voices: {e}")
+        return combined_name
 
     async def list_voices(self) -> List[str]:
         """List available voices.
         
         Returns:
-            List of voice names, including both disk-saved and in-memory combined voices
+            List of voice names
         """
         voices = set()  # Use set to avoid duplicates
         try:
@@ -151,14 +160,6 @@ class VoiceManager:
             for entry in os.listdir(voices_dir):
                 if entry.endswith(".pt"):
                     voices.add(entry[:-3])
-            
-            # Add in-memory combined voices from cache
-            for cache_key in self._voice_cache:
-                # Extract voice name from cache key (format: "name_device" or "path_device")
-                voice_name = cache_key.split("_")[0]
-                if "/" in voice_name:  # It's a path
-                    voice_name = os.path.basename(voice_name)[:-3]  # Remove .pt extension
-                voices.add(voice_name)
                 
         except Exception as e:
             logger.error(f"Error listing voices: {e}")

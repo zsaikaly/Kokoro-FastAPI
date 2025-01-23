@@ -8,6 +8,7 @@ from ..services.audio import AudioService
 from ..services.tts_service import TTSService
 from ..structures.schemas import OpenAISpeechRequest
 
+
 router = APIRouter(
     tags=["OpenAI Compatible TTS"],
     responses={404: {"description": "Not found"}},
@@ -16,6 +17,7 @@ router = APIRouter(
 # Global TTSService instance with lock
 _tts_service = None
 _init_lock = None
+
 
 async def get_tts_service() -> TTSService:
     """Get global TTSService instance"""
@@ -50,19 +52,24 @@ async def process_voices(
     if not voices:
         raise ValueError("No voices provided")
 
-    # Check if all voices exist
+    # If single voice, validate and return it
+    if len(voices) == 1:
+        available_voices = await tts_service.list_voices()
+        if voices[0] not in available_voices:
+            raise ValueError(
+                f"Voice '{voices[0]}' not found. Available voices: {', '.join(sorted(available_voices))}"
+            )
+        return voices[0]
+
+    # For multiple voices, validate base voices exist
     available_voices = await tts_service.list_voices()
     for voice in voices:
         if voice not in available_voices:
             raise ValueError(
-                f"Voice '{voice}' not found. Available voices: {', '.join(sorted(available_voices))}"
+                f"Base voice '{voice}' not found. Available voices: {', '.join(sorted(available_voices))}"
             )
 
-    # If single voice, return it directly
-    if len(voices) == 1:
-        return voices[0]
-
-    # Otherwise combine voices
+    # Combine voices
     return await tts_service.combine_voices(voices=voices)
 
 
