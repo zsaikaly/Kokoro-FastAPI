@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastKoko: Kokoro-based TTS Player</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Kokoro TTS</h1>
+        </header>
+        
+        <main>
+            <div class="input-section">
+                <textarea 
+                    id="text-input" 
+                    placeholder="Enter text to convert to speech..."
+                    rows="4"
+                ></textarea>
+                <div class="controls">
+                    <select id="voice-select">
+                        <option value="">Loading voices...</option>
+                    </select>
+                    <div class="options">
+                        <label>
+                            <input type="checkbox" id="stream-toggle" checked>
+                            Stream audio
+                        </label>
+                        <label>
+                            <input type="checkbox" id="autoplay-toggle" checked>
+                            Auto-play
+                        </label>
+                    </div>
+                    <button id="generate-btn" class="primary">
+                        <span class="btn-text">Generate Speech</span>
+                        <span class="loader"></span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="player-section">
+                <div id="status" class="status"></div>
+                <audio id="audio-player" controls></audio>
+            </div>
+        </main>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

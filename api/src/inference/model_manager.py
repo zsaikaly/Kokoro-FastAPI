@@ -1,7 +1,7 @@
 """Model management and caching."""
 
 import asyncio
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import torch
 from loguru import logger
@@ -23,17 +23,11 @@ _manager_lock = asyncio.Lock()
 
 class ModelManager:
     """Manages model loading and inference across backends."""
-    
     # Class-level state for shared resources
     _loaded_models = {}
     _backends = {}
-    
     def __init__(self, config: Optional[ModelConfig] = None):
         """Initialize model manager.
-        
-        Args:
-            config: Optional configuration
-            
         Note:
             This should not be called directly. Use get_manager() instead.
         """
@@ -90,16 +84,70 @@ class ModelManager:
             logger.error(f"Failed to initialize backend: {e}")
             raise RuntimeError("Failed to initialize backend")
 
+    async def initialize_with_warmup(self, voice_manager) -> tuple[str, str, int]:
+        """Initialize model with warmup and pre-cache voices.
+        Args:
+            voice_manager: Voice manager instance for loading voices
+        Returns:
+            Tuple of (device type, model type, number of loaded voices)
+        Raises:
+            RuntimeError: If initialization fails
+        """
+        try:
+            # Determine backend type based on settings
+            if settings.use_gpu and torch.cuda.is_available():
+                backend_type = 'pytorch_gpu' if not settings.use_onnx else 'onnx_gpu'
+            else:
+                backend_type = 'pytorch_cpu' if not settings.use_onnx else 'onnx_cpu'
+
+            # Get backend
+            backend = self.get_backend(backend_type)
+            
+            # Get and verify model path
+            model_file = model_config.pytorch_model_file if not settings.use_onnx else model_config.onnx_model_file
+            model_path = await paths.get_model_path(model_file)
+            
+            if not await paths.verify_model_path(model_path):
+                raise RuntimeError(f"Model file not found: {model_path}")
+
+            # Pre-cache default voice and use for warmup
+            warmup_voice = await voice_manager.load_voice(
+                settings.default_voice, device=backend.device)
+            logger.info(f"Pre-cached voice {settings.default_voice} for warmup")
+            
+            # Initialize model with warmup voice
+            await self.load_model(model_path, warmup_voice, backend_type)
+
+            # Pre-cache common voices in background
+            common_voices = ['af', 'af_bella', 'af_sky', 'af_nicole']
+            for voice_name in common_voices:
+                try:
+                    await voice_manager.load_voice(voice_name, device=backend.device)
+                    logger.debug(f"Pre-cached voice {voice_name}")
+                except Exception as e:
+                    logger.warning(f"Failed to pre-cache voice {voice_name}: {e}")
+
+            # Get available voices count
+            voices = await voice_manager.list_voices()
+            voicepack_count = len(voices)
+
+            # Get device info for return
+            device = "GPU" if settings.use_gpu else "CPU"
+            model = "ONNX" if settings.use_onnx else "PyTorch"
+
+            return device, model, voicepack_count
+
+        except Exception as e:
+            logger.error(f"Failed to initialize model with warmup: {e}")
+            raise RuntimeError(f"Failed to initialize model with warmup: {e}")
+
     def get_backend(self, backend_type: Optional[str] = None) -> BaseModelBackend:
         """Get specified backend.
-        
         Args:
             backend_type: Backend type ('pytorch_cpu', 'pytorch_gpu', 'onnx_cpu', 'onnx_gpu'),
                          uses default if None
-            
         Returns:
             Model backend instance
-            
         Raises:
             ValueError: If backend type is invalid
             RuntimeError: If no backends are available
@@ -120,10 +168,8 @@ class ModelManager:
 
     def _determine_backend(self, model_path: str) -> str:
         """Determine appropriate backend based on model file and settings.
-        
         Args:
             model_path: Path to model file
-            
         Returns:
             Backend type to use
         """
@@ -142,12 +188,10 @@ class ModelManager:
         backend_type: Optional[str] = None
     ) -> None:
         """Load model on specified backend.
-        
         Args:
             model_path: Path to model file
             warmup_voice: Optional voice tensor for warmup, skips warmup if None
             backend_type: Backend to load on, uses default if None
-            
         Raises:
             RuntimeError: If model loading fails
         """
@@ -270,34 +314,24 @@ class ModelManager:
     @property
     def available_backends(self) -> list[str]:
         """Get list of available backends.
-        
-        Returns:
-            List of backend names
         """
         return list(self._backends.keys())
 
     @property
     def current_backend(self) -> str:
         """Get current default backend.
-        
-        Returns:
-            Backend name
         """
         return self._current_backend
 
 
 async def get_manager(config: Optional[ModelConfig] = None) -> ModelManager:
     """Get global model manager instance.
-    
     Args:
         config: Optional model configuration
-        
     Returns:
         ModelManager instance
-        
     Thread Safety:
-        This function is thread-safe and ensures only one instance is created
-        even under concurrent access.
+        This function should be thread-safe. Lemme know if it unravels on you
     """
     global _manager_instance
     

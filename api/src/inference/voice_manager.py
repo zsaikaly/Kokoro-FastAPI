@@ -117,14 +117,18 @@ class VoiceManager:
             voices_dir = os.path.join(api_dir, settings.voices_dir)
             os.makedirs(voices_dir, exist_ok=True)
             
-            # Save combined voice
-            combined_path = os.path.join(voices_dir, f"{combined_name}.pt")
-            try:
-                torch.save(combined_tensor, combined_path)
-                # Cache the new combined voice
-                self._voice_cache[f"{combined_path}_{device}"] = combined_tensor
-            except Exception as e:
-                raise RuntimeError(f"Failed to save combined voice: {e}")
+            # Only save to disk if local voice saving is allowed
+            if settings.allow_local_voice_saving:
+                combined_path = os.path.join(voices_dir, f"{combined_name}.pt")
+                try:
+                    torch.save(combined_tensor, combined_path)
+                    # Cache the new combined voice with disk path
+                    self._voice_cache[f"{combined_path}_{device}"] = combined_tensor
+                except Exception as e:
+                    raise RuntimeError(f"Failed to save combined voice: {e}")
+            else:
+                # Just cache the combined voice in memory without saving to disk
+                self._voice_cache[f"{combined_name}_{device}"] = combined_tensor
 
             return combined_name
 
@@ -135,20 +139,30 @@ class VoiceManager:
         """List available voices.
         
         Returns:
-            List of voice names
+            List of voice names, including both disk-saved and in-memory combined voices
         """
-        voices = []
+        voices = set()  # Use set to avoid duplicates
         try:
+            # Get voices from disk
             api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
             voices_dir = os.path.join(api_dir, settings.voices_dir)
             os.makedirs(voices_dir, exist_ok=True)
             
             for entry in os.listdir(voices_dir):
                 if entry.endswith(".pt"):
-                    voices.append(entry[:-3])
+                    voices.add(entry[:-3])
+            
+            # Add in-memory combined voices from cache
+            for cache_key in self._voice_cache:
+                # Extract voice name from cache key (format: "name_device" or "path_device")
+                voice_name = cache_key.split("_")[0]
+                if "/" in voice_name:  # It's a path
+                    voice_name = os.path.basename(voice_name)[:-3]  # Remove .pt extension
+                voices.add(voice_name)
+                
         except Exception as e:
             logger.error(f"Error listing voices: {e}")
-        return sorted(voices)
+        return sorted(list(voices))
 
     def validate_voice(self, voice_path: str) -> bool:
         """Validate voice file.

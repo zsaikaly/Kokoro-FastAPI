@@ -266,3 +266,75 @@ async def read_file(path: str) -> str:
             return await f.read()
     except Exception as e:
         raise RuntimeError(f"Failed to read file {path}: {e}")
+
+
+async def read_bytes(path: str) -> bytes:
+    """Read file as bytes asynchronously.
+    
+    Args:
+        path: Path to file
+        
+    Returns:
+        File contents as bytes
+        
+    Raises:
+        RuntimeError: If file cannot be read
+    """
+    try:
+        async with aiofiles.open(path, 'rb') as f:
+            return await f.read()
+    except Exception as e:
+        raise RuntimeError(f"Failed to read file {path}: {e}")
+
+
+async def get_web_file_path(filename: str) -> str:
+    """Get path to web static file.
+    
+    Args:
+        filename: Name of file in web directory
+        
+    Returns:
+        Absolute path to file
+        
+    Raises:
+        RuntimeError: If file not found
+    """
+    # Get project root directory (four levels up from core to get to project root)
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    
+    # Construct web directory path relative to project root
+    web_dir = os.path.join("/app", settings.web_player_path)
+    
+    # Search in web directory
+    search_paths = [web_dir]
+    logger.debug(f"Searching for web file in path: {web_dir}")
+    
+    return await _find_file(filename, search_paths)
+
+
+async def get_content_type(path: str) -> str:
+    """Get content type for file.
+    
+    Args:
+        path: Path to file
+        
+    Returns:
+        Content type string
+    """
+    ext = os.path.splitext(path)[1].lower()
+    return {
+        '.html': 'text/html',
+        '.js': 'application/javascript',
+        '.css': 'text/css',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+    }.get(ext, 'application/octet-stream')
+
+
+async def verify_model_path(model_path: str) -> bool:
+    """Verify model file exists at path."""
+    return await aiofiles.os.path.exists(model_path)

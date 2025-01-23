@@ -1,0 +1,176 @@
+:root {
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --background: #ffffff;
+    --surface: #f8f9fa;
+    --text: #212529;
+    --text-light: #6c757d;
+    --border: #dee2e6;
+    --error: #dc3545;
+    --success: #28a745;
+    --font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    line-height: 1.6;
+    color: var(--text);
+    background: var(--background);
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+h1 {
+    color: var(--primary-color);
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+.input-section {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+    resize: vertical;
+    margin-bottom: 1rem;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+select {
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 1rem;
+    min-width: 200px;
+}
+
+.options {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: background-color 0.2s;
+}
+
+button.primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+button.primary:hover {
+    background: var(--primary-hover);
+}
+
+button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.loader {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading .loader {
+    display: inline-block;
+}
+
+.loading .btn-text {
+    display: none;
+}
+
+.player-section {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: 8px;
+}
+
+.status {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    display: none;
+}
+
+.status.error {
+    display: block;
+    background: rgba(220, 53, 69, 0.1);
+    color: var(--error);
+}
+
+.status.success {
+    display: block;
+    background: rgba(40, 167, 69, 0.1);
+    color: var(--success);
+}
+
+audio {
+    width: 100%;
+}
+
+@media (max-width: 600px) {
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    select, button {
+        width: 100%;
+    }
+}

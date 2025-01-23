@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
-from pydantic import validator
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Union, Optional
+
 
 class PhonemeRequest(BaseModel):
     text: str
@@ -24,11 +24,13 @@ class StitchOptions(BaseModel):
         description="Milliseconds to trim from chunk boundaries when using static_trim"
     )
 
-    @validator('gap_method')
-    def validate_gap_method(cls, v):
+    @field_validator('gap_method')
+    @classmethod
+    def validate_gap_method(cls, v: str) -> str:
         if v != 'static_trim':
             raise ValueError("Currently only 'static_trim' gap method is supported")
         return v
+
 
 class GenerateFromPhonemesRequest(BaseModel):
     phonemes: Union[str, List[str]] = Field(

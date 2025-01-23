@@ -118,9 +118,32 @@ async def create_speech(
 
         # Check if streaming is requested (default for OpenAI client)
         if request.stream:
+            # Create generator but don't start it yet
+            generator = stream_audio_chunks(tts_service, request, client_request)
+            
+            # Test the generator by attempting to get first chunk
+            try:
+                first_chunk = await anext(generator)
+            except StopAsyncIteration:
+                first_chunk = b""  # Empty audio case
+            except Exception as e:
+                # Re-raise any errors to be caught by the outer try-except
+                raise RuntimeError(f"Failed to initialize audio stream: {str(e)}") from e
+            
+            # If we got here, streaming can begin
+            async def safe_stream():
+                yield first_chunk
+                try:
+                    async for chunk in generator:
+                        yield chunk
+                except Exception as e:
+                    # Log the error but don't yield anything - the connection will close
+                    logger.error(f"Error during streaming: {str(e)}")
+                    raise
+            
             # Stream audio chunks as they're generated
             return StreamingResponse(
-                stream_audio_chunks(tts_service, request, client_request),
+                safe_stream(),
                 media_type=content_type,
                 headers={
                     "Content-Disposition": f"attachment; filename=speech.{request.response_format}",

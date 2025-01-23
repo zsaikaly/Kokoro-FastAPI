@@ -33,6 +33,7 @@ dependencies = [
     "ebooklib>=0.18",
     "html2text>=2024.2.26",
     "pydub>=0.25.1",
+    "matplotlib>=3.10.0",
 ]
 
 [project.optional-dependencies]

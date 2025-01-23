@@ -37,6 +37,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # Copy project files
 COPY --chown=appuser:appuser api ./api
+COPY --chown=appuser:appuser web ./web
 
 # Install project with GPU extras
 RUN --mount=type=cache,target=/root/.cache/uv \
