@@ -82,8 +82,11 @@ class TTSService:
             backend = self.model_manager.get_backend()
             voice_tensor = await self._voice_manager.load_voice(voice, device=backend.device)
 
-            # Get all chunks upfront
-            chunks = list(chunker.split_text(text))
+            # Get chunks using async generator
+            chunks = []
+            async for chunk in chunker.split_text(text):
+                chunks.append(chunk)
+                
             if not chunks:
                 raise ValueError("No text chunks to process")
 
@@ -162,8 +165,11 @@ class TTSService:
             backend = self.model_manager.get_backend()
             voice_tensor = await self._voice_manager.load_voice(voice, device=backend.device)
 
-            # Get all chunks upfront
-            chunks = list(chunker.split_text(text))
+            # Get chunks using async generator
+            chunks = []
+            async for chunk in chunker.split_text(text):
+                chunks.append(chunk)
+                
             if not chunks:
                 raise ValueError("No text chunks to process")
 
@@ -184,7 +190,7 @@ class TTSService:
 
                         if chunk_audio is not None:
                             # Convert to bytes
-                            return AudioService.convert_audio(
+                            return await AudioService.convert_audio(
                                 chunk_audio,
                                 24000,
                                 output_format,

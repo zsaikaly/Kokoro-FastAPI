@@ -1,53 +1,74 @@
-"""Text chunking service"""
+"""Text chunking module for TTS processing"""
 
-import re
+from typing import List, AsyncGenerator
+from . import semchunk_slim
 
-from ...core.config import settings
+async def fallback_split(text: str, max_chars: int = 400) -> List[str]:
+    """Emergency length control - only used if chunks are too long"""
+    words = text.split()
+    chunks = []
+    current = []
+    current_len = 0
+    
+    for word in words:
+        # Always include at least one word per chunk
+        if not current:
+            current.append(word)
+            current_len = len(word)
+            continue
+            
+        # Check if adding word would exceed limit
+        if current_len + len(word) + 1 <= max_chars:
+            current.append(word)
+            current_len += len(word) + 1
+        else:
+            chunks.append(" ".join(current))
+            current = [word]
+            current_len = len(word)
+    
+    if current:
+        chunks.append(" ".join(current))
+    
+    return chunks
 
-
-def split_text(text: str, max_chunk=None):
-    """Split text into chunks on natural pause points
-
+async def split_text(text: str, max_chunk: int = None) -> AsyncGenerator[str, None]:
+    """Split text into TTS-friendly chunks
+    
     Args:
         text: Text to split into chunks
-        max_chunk: Maximum chunk size (defaults to settings.max_chunk_size)
+        max_chunk: Maximum chunk size (defaults to 400)
+        
+    Yields:
+        Text chunks suitable for TTS processing
     """
     if max_chunk is None:
-        max_chunk = settings.max_chunk_size
-
+        max_chunk = 400
+        
     if not isinstance(text, str):
         text = str(text) if text is not None else ""
-
+        
     text = text.strip()
     if not text:
         return
-
-    # First split into sentences
-    sentences = re.split(r"(?<=[.!?])\s+", text)
-
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence:
+        
+    # Initialize chunker targeting ~300 chars to allow for expansion
+    chunker = semchunk_slim.chunkerify(
+        lambda t: len(t) // 5,  # Simple length-based target
+        chunk_size=60  # Target ~300 chars
+    )
+    
+    # Get initial chunks
+    chunks = chunker(text)
+    
+    # Process chunks
+    for chunk in chunks:
+        chunk = chunk.strip()
+        if not chunk:
             continue
-
-        # For medium-length sentences, split on punctuation
-        if len(sentence) > max_chunk:  # Lower threshold for more consistent sizes
-            # First try splitting on semicolons and colons
-            parts = re.split(r"(?<=[;:])\s+", sentence)
-
-            for part in parts:
-                part = part.strip()
-                if not part:
-                    continue
-
-                # If part is still long, split on commas
-                if len(part) > max_chunk:
-                    subparts = re.split(r"(?<=,)\s+", part)
-                    for subpart in subparts:
-                        subpart = subpart.strip()
-                        if subpart:
-                            yield subpart
-                else:
-                    yield part
+            
+        # Use fallback for any chunks that are too long
+        if len(chunk) > max_chunk:
+            for subchunk in await fallback_split(chunk, max_chunk):
+                yield subchunk
         else:
-            yield sentence
+            yield chunk

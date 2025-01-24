@@ -138,7 +138,7 @@ async def generate_from_phonemes(
             torch.cuda.empty_cache()
 
         # Convert to WAV bytes
-        wav_bytes = AudioService.convert_audio(
+        wav_bytes = await AudioService.convert_audio(
             audio, 24000, "wav", is_first_chunk=True, is_last_chunk=True, stream=False,
         )
 

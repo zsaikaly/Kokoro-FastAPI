@@ -77,7 +77,7 @@ class ModelConfig(BaseModel):
     voice_cache_size: int = Field(2, description="Maximum number of cached voices")
     
     # Model filenames
-    pytorch_model_file: str = Field("kokoro-v0_19.pth", description="PyTorch model filename")
+    pytorch_model_file: str = Field("kokoro-v0_19-half.pth", description="PyTorch model filename")
     onnx_model_file: str = Field("kokoro-v0_19.onnx", description="ONNX model filename")
     
     # Backend-specific configs

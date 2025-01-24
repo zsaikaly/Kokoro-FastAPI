@@ -218,7 +218,7 @@ async def create_speech(
             )
 
             # Convert to requested format
-            content = AudioService.convert_audio(
+            content = await AudioService.convert_audio(
                 audio, 24000, request.response_format, is_first_chunk=True, stream=False
             )
 

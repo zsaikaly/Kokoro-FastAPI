@@ -20,21 +20,26 @@ class AudioNormalizer:
         self.sample_rate = 24000  # Sample rate of the audio
         self.samples_to_trim = int(self.chunk_trim_ms * self.sample_rate / 1000)
 
-    def normalize(
-        self, audio_data: np.ndarray, is_last_chunk: bool = False
-    ) -> np.ndarray:
-        """Convert audio data to int16 range and trim chunk boundaries"""
+    async def normalize(self, audio_data: np.ndarray) -> np.ndarray:
+        """Convert audio data to int16 range and trim silence from start and end
+        
+        Args:
+            audio_data: Input audio data as numpy array
+            
+        Returns:
+            Normalized and trimmed audio data
+        """
         if len(audio_data) == 0:
             raise ValueError("Audio data cannot be empty")
             
-        # Simple float32 to int16 conversion
+        # Convert to float32 for processing
         audio_float = audio_data.astype(np.float32)
         
-        # Trim for non-final chunks
-        if not is_last_chunk and len(audio_float) > self.samples_to_trim:
-            audio_float = audio_float[:-self.samples_to_trim]
+        # Trim start and end if enough samples
+        if len(audio_float) > (2 * self.samples_to_trim):
+            audio_float = audio_float[self.samples_to_trim:-self.samples_to_trim]
         
-        # Direct scaling like the non-streaming version
+        # Scale to int16 range
         return (audio_float * 32767).astype(np.int16)
 
 
@@ -59,7 +64,7 @@ class AudioService:
     }
 
     @staticmethod
-    def convert_audio(
+    async def convert_audio(
         audio_data: np.ndarray,
         sample_rate: int,
         output_format: str,
@@ -99,9 +104,7 @@ class AudioService:
             # Always normalize audio to ensure proper amplitude scaling
             if normalizer is None:
                 normalizer = AudioNormalizer()
-            normalized_audio = normalizer.normalize(
-                audio_data, is_last_chunk=is_last_chunk
-            )
+            normalized_audio = await normalizer.normalize(audio_data)
 
             if output_format == "pcm":
                 # Raw 16-bit PCM samples, no header
