@@ -17,6 +17,17 @@ Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokor
 - phoneme, simple audio generation web ui utility
 - Runs on an 80mb-300mb model (CUDA container + 5gb on disk due to drivers)  
 
+> [!Tip]
+> You can try the new beta version from the `v0.1.2-pre` branch now:
+> - integrated web UI (on localhost:8880/web)
+> - better concurrency handling, baked in models and voices
+> - voice name/model mappings to OAI standard with:
+> 
+> ```bash
+> docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest # CPU
+> docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest # Nvidia GPU
+> ```
+
 ## Quick Start
 
 The service can be accessed through either the API endpoints or the Gradio web interface.
