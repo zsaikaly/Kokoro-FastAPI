@@ -41,7 +41,7 @@ class KokoroPlayer {
             container: this.elements.waveContainer,
             width: this.elements.waveContainer.clientWidth,
             height: 80,
-            style: '"ios9"',
+            style: 'ios9',
             // color: '#6366f1',    
             speed: 0.02,
             amplitude: 0.7,

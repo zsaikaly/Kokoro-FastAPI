@@ -195,8 +195,9 @@ class VoiceManager:
         }
 
 
-# Global singleton instance
+# Global singleton instance and lock
 _manager_instance = None
+_manager_lock = asyncio.Lock()
 
 
 async def get_manager(config: Optional[VoiceConfig] = None) -> VoiceManager:
@@ -209,6 +210,14 @@ async def get_manager(config: Optional[VoiceConfig] = None) -> VoiceManager:
         VoiceManager instance
     """
     global _manager_instance
-    if _manager_instance is None:
-        _manager_instance = VoiceManager(config)
-    return _manager_instance
+    
+    # Fast path - return existing instance
+    if _manager_instance is not None:
+        return _manager_instance
+        
+    # Slow path - create new instance with lock
+    async with _manager_lock:
+        # Double-check pattern
+        if _manager_instance is None:
+            _manager_instance = VoiceManager(config)
+        return _manager_instance

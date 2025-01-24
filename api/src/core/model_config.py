@@ -8,7 +8,7 @@ class ONNXCPUConfig(BaseModel):
     
     # Session pooling
     max_instances: int = Field(4, description="Maximum concurrent model instances")
-    instance_timeout: int = Field(300, description="Session timeout in seconds")
+    instance_timeout: int = Field(60, description="Session timeout in seconds")
     
     # Runtime settings
     num_threads: int = Field(8, description="Number of threads for parallel operations")
@@ -27,7 +27,7 @@ class ONNXGPUConfig(ONNXCPUConfig):
     
     # CUDA settings
     device_id: int = Field(0, description="CUDA device ID")
-    gpu_mem_limit: float = Field(0.7, description="Fraction of GPU memory to use")
+    gpu_mem_limit: float = Field(0.5, description="Fraction of GPU memory to use")
     cudnn_conv_algo_search: str = Field("EXHAUSTIVE", description="CuDNN convolution algorithm search")
     
     # Stream management

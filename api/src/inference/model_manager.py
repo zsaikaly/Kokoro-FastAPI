@@ -118,14 +118,8 @@ class ModelManager:
             # Initialize model with warmup voice
             await self.load_model(model_path, warmup_voice, backend_type)
 
-            # Pre-cache common voices in background
-            common_voices = ['af', 'af_bella', 'af_sky', 'af_nicole']
-            for voice_name in common_voices:
-                try:
-                    await voice_manager.load_voice(voice_name, device=backend.device)
-                    logger.debug(f"Pre-cached voice {voice_name}")
-                except Exception as e:
-                    logger.warning(f"Failed to pre-cache voice {voice_name}: {e}")
+            # Only pre-cache default voice to avoid memory bloat
+            logger.info(f"Using {settings.default_voice} as warmup voice")
 
             # Get available voices count
             voices = await voice_manager.list_voices()
