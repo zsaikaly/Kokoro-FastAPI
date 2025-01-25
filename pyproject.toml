@@ -34,7 +34,8 @@ dependencies = [
     "html2text>=2024.2.26",
     "pydub>=0.25.1",
     "matplotlib>=3.10.0",
-    "semchunk>=3.0.1"
+    "semchunk>=3.0.1",
+    "mutagen>=1.47.0",
 ]
 
 [project.optional-dependencies]
