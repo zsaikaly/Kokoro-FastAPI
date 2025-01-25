@@ -19,16 +19,27 @@ Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokor
 
 > [!Tip]
 > You can try the new beta version from the `v0.1.2-pre` branch now:
-> - integrated web UI (on localhost:8880/web)
-> - better concurrency handling, baked in models and voices
-> - voice name/model mappings to OAI standard with:
-> 
-> ```bash
-> docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest # CPU
-> docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest # Nvidia GPU
-> ```
+<table>
+  <tr>
+    <td>
+      <img src="https://github.com/user-attachments/assets/440162eb-1918-4999-ab2b-e2730990efd0" width="100%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 5px;">
+    </td>
+    <td>
+      <ul>
+        <li>Integrated web UI (on localhost:8880/web)</li>
+        <li>Better concurrency handling, baked in models and voices</li>
+        <li>Voice name/model mappings to OAI standard</li>
+        <pre> # with:
+docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest # CPU
+docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest # Nvidia GPU
+        </pre>
+      </ul>
+    </td>
+  </tr>
+</table>
 
-## Quick Start
+<details open>
+<summary>Quick Start</summary>
 
 The service can be accessed through either the API endpoints or the Gradio web interface.
 
@@ -81,6 +92,8 @@ The service can be accessed through either the API endpoints or the Gradio web i
     <p align="center">
     <img src="ui\GradioScreenShot.png" width="80%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
     </p>
+    
+</details>
 
 ## Features 
 <details>
