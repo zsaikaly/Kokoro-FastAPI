@@ -2,7 +2,7 @@
 
 import io
 import time
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, AsyncGenerator, Union
 
 import numpy as np
 import scipy.io.wavfile as wavfile
@@ -25,112 +25,63 @@ class TTSService:
     _chunk_semaphore = asyncio.Semaphore(4)
 
     def __init__(self, output_dir: str = None):
-        """Initialize service.
-        
-        Args:
-            output_dir: Optional output directory for saving audio
-        """
+        """Initialize service."""
         self.output_dir = output_dir
         self.model_manager = None
         self._voice_manager = None
 
     @classmethod
     async def create(cls, output_dir: str = None) -> 'TTSService':
-        """Create and initialize TTSService instance.
-        
-        Args:
-            output_dir: Optional output directory for saving audio
-            
-        Returns:
-            Initialized TTSService instance
-        """
+        """Create and initialize TTSService instance."""
         service = cls(output_dir)
-        # Initialize managers
         service.model_manager = await get_model_manager()
         service._voice_manager = await get_voice_manager()
         return service
 
-    async def generate_audio(
-        self, text: str, voice: str, speed: float = 1.0, stitch_long_output: bool = True
-    ) -> Tuple[np.ndarray, float]:
-        """Generate audio for text.
-        
-        Args:
-            text: Input text
-            voice: Voice name
-            speed: Speed multiplier
-            stitch_long_output: Whether to stitch together long outputs
-            
-        Returns:
-            Audio samples and processing time
-            
-        Raises:
-            ValueError: If text is empty after preprocessing or no chunks generated
-            RuntimeError: If audio generation fails
-        """
-        start_time = time.time()
-        voice_tensor = None
-
-        try:
-            # Normalize text
-            normalized = normalize_text(text)
-            if not normalized:
-                raise ValueError("Text is empty after preprocessing")
-            text = str(normalized)
-
-            # Get backend and load voice
-            backend = self.model_manager.get_backend()
-            voice_tensor = await self._voice_manager.load_voice(voice, device=backend.device)
-
-            # Get chunks using async generator
-            chunks = []
-            async for chunk in chunker.split_text(text):
-                chunks.append(chunk)
+    async def _process_chunk(
+        self,
+        chunk: str,
+        voice_tensor: torch.Tensor,
+        speed: float,
+        output_format: Optional[str] = None,
+        is_first: bool = False,
+        is_last: bool = False,
+        normalizer: Optional[AudioNormalizer] = None,
+    ) -> Optional[Union[np.ndarray, bytes]]:
+        """Process a single text chunk into audio."""
+        async with self._chunk_semaphore:
+            try:
+                tokens = process_text(chunk)
+                if not tokens:
+                    return None
                 
-            if not chunks:
-                raise ValueError("No text chunks to process")
-
-            # Process chunk with concurrency control
-            async def process_chunk(chunk: str) -> Optional[np.ndarray]:
-                async with self._chunk_semaphore:
-                    try:
-                        tokens = process_text(chunk)
-                        if not tokens:
-                            return None
-                        
-                        # Generate audio
-                        return await self.model_manager.generate(
-                            tokens,
-                            voice_tensor,
-                            speed=speed
-                        )
-                    except Exception as e:
-                        logger.error(f"Failed to process chunk: '{chunk}'. Error: {str(e)}")
-                        return None
-
-            # Process all chunks concurrently
-            chunk_results = await asyncio.gather(*[
-                process_chunk(chunk) for chunk in chunks
-            ])
-
-            # Filter out None results and combine
-            audio_chunks = [chunk for chunk in chunk_results if chunk is not None]
-            if not audio_chunks:
-                raise ValueError("No audio chunks were generated successfully")
-
-            # Combine chunks
-            audio = np.concatenate(audio_chunks) if len(audio_chunks) > 1 else audio_chunks[0]
-            processing_time = time.time() - start_time
-            return audio, processing_time
-
-        except Exception as e:
-            logger.error(f"Error in audio generation: {str(e)}")
-            raise
-        finally:
-            # Always clean up voice tensor
-            if voice_tensor is not None:
-                del voice_tensor
-                torch.cuda.empty_cache()
+                # Generate audio using pre-warmed model
+                chunk_audio = await self.model_manager.generate(
+                    tokens,
+                    voice_tensor,
+                    speed=speed
+                )
+                
+                if chunk_audio is None:
+                    return None
+                    
+                # For streaming, convert to bytes
+                if output_format:
+                    return await AudioService.convert_audio(
+                        chunk_audio,
+                        24000,
+                        output_format,
+                        is_first_chunk=is_first,
+                        normalizer=normalizer,
+                        is_last_chunk=is_last,
+                        stream=True
+                    )
+                    
+                return chunk_audio
+                
+            except Exception as e:
+                logger.error(f"Failed to process chunk: '{chunk}'. Error: {str(e)}")
+                return None
 
     async def generate_audio_stream(
         self,
@@ -138,21 +89,12 @@ class TTSService:
         voice: str,
         speed: float = 1.0,
         output_format: str = "wav",
-    ):
-        """Generate and stream audio chunks.
-        
-        Args:
-            text: Input text
-            voice: Voice name
-            speed: Speed multiplier
-            output_format: Output audio format
-            
-        Yields:
-            Audio chunks as bytes
-        """
-        # Setup audio processing
+    ) -> AsyncGenerator[bytes, None]:
+        """Generate and stream audio chunks."""
         stream_normalizer = AudioNormalizer()
         voice_tensor = None
+        pending_results = {}
+        next_index = 0
         
         try:
             # Normalize text
@@ -161,11 +103,11 @@ class TTSService:
                 raise ValueError("Text is empty after preprocessing")
             text = str(normalized)
 
-            # Get backend and load voice
+            # Get backend and load voice (should be fast if cached)
             backend = self.model_manager.get_backend()
             voice_tensor = await self._voice_manager.load_voice(voice, device=backend.device)
 
-            # Get chunks using async generator
+            # Process chunks with semaphore limiting concurrency
             chunks = []
             async for chunk in chunker.split_text(text):
                 chunks.append(chunk)
@@ -173,84 +115,80 @@ class TTSService:
             if not chunks:
                 raise ValueError("No text chunks to process")
 
-            # Process chunk with concurrency control
-            async def process_chunk(chunk: str, is_first: bool, is_last: bool) -> Optional[bytes]:
-                async with self._chunk_semaphore:
-                    try:
-                        tokens = process_text(chunk)
-                        if not tokens:
-                            return None
-
-                        # Generate audio
-                        chunk_audio = await self.model_manager.generate(
-                            tokens,
-                            voice_tensor,
-                            speed=speed
-                        )
-
-                        if chunk_audio is not None:
-                            # Convert to bytes
-                            return await AudioService.convert_audio(
-                                chunk_audio,
-                                24000,
-                                output_format,
-                                is_first_chunk=is_first,
-                                normalizer=stream_normalizer,
-                                is_last_chunk=is_last,
-                                stream=True
-                            )
-                    except Exception as e:
-                        logger.error(f"Failed to generate audio for chunk: '{chunk}'. Error: {str(e)}")
-                        return None
-
             # Create tasks for all chunks
             tasks = [
-                process_chunk(chunk, i==0, i==len(chunks)-1)
+                asyncio.create_task(
+                    self._process_chunk(
+                        chunk,
+                        voice_tensor,
+                        speed,
+                        output_format,
+                        is_first=(i == 0),
+                        is_last=(i == len(chunks) - 1),
+                        normalizer=stream_normalizer
+                    )
+                )
                 for i, chunk in enumerate(chunks)
             ]
 
-            # Process chunks concurrently and yield results in order
-            for chunk_bytes in await asyncio.gather(*tasks):
-                if chunk_bytes is not None:
-                    yield chunk_bytes
+            # Process chunks and maintain order
+            for i, task in enumerate(tasks):
+                result = await task
+                
+                if i == next_index and result is not None:
+                    # If this is the next chunk we need, yield it
+                    yield result
+                    next_index += 1
+                    
+                    # Check if we have any subsequent chunks ready
+                    while next_index in pending_results:
+                        result = pending_results.pop(next_index)
+                        if result is not None:
+                            yield result
+                        next_index += 1
+                else:
+                    # Store out-of-order result
+                    pending_results[i] = result
 
         except Exception as e:
             logger.error(f"Error in audio generation stream: {str(e)}")
             raise
         finally:
-            # Always clean up voice tensor
             if voice_tensor is not None:
                 del voice_tensor
                 torch.cuda.empty_cache()
 
-    async def combine_voices(self, voices: List[str]) -> str:
-        """Combine multiple voices.
+    async def generate_audio(
+        self, text: str, voice: str, speed: float = 1.0
+    ) -> Tuple[np.ndarray, float]:
+        """Generate complete audio for text using streaming internally."""
+        start_time = time.time()
+        chunks = []
         
-        Args:
-            voices: List of voice names
-            
-        Returns:
-            Name of combined voice
-        """
+        try:
+            # Use streaming generator but collect all chunks
+            async for chunk in self.generate_audio_stream(
+                text, voice, speed, output_format=None
+            ):
+                if chunk is not None:
+                    chunks.append(chunk)
+
+            if not chunks:
+                raise ValueError("No audio chunks were generated successfully")
+
+            # Combine chunks
+            audio = np.concatenate(chunks) if len(chunks) > 1 else chunks[0]
+            processing_time = time.time() - start_time
+            return audio, processing_time
+
+        except Exception as e:
+            logger.error(f"Error in audio generation: {str(e)}")
+            raise
+
+    async def combine_voices(self, voices: List[str]) -> str:
+        """Combine multiple voices."""
         return await self._voice_manager.combine_voices(voices)
 
     async def list_voices(self) -> List[str]:
-        """List available voices.
-        
-        Returns:
-            List of voice names
-        """
+        """List available voices."""
         return await self._voice_manager.list_voices()
-
-    def _audio_to_bytes(self, audio: np.ndarray) -> bytes:
-        """Convert audio to WAV bytes.
-        
-        Args:
-            audio: Audio samples
-            
-        Returns:
-            WAV bytes
-        """
-        buffer = io.BytesIO()
-        wavfile.write(buffer, 24000, audio)
-        return buffer.getvalue()
