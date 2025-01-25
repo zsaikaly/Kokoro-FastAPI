@@ -12,8 +12,7 @@ from ..core.model_config import ModelConfig, model_config
 from .base import BaseModelBackend
 from .onnx_cpu import ONNXCPUBackend
 from .onnx_gpu import ONNXGPUBackend
-from .pytorch_cpu import PyTorchCPUBackend
-from .pytorch_gpu import PyTorchGPUBackend
+from .pytorch_backend import PyTorchBackend
 from .session_pool import CPUSessionPool, StreamingSessionPool
 
 
@@ -63,18 +62,18 @@ class ModelManager:
                     self._current_backend = 'onnx_gpu'
                     logger.info("Initialized new ONNX GPU backend")
                 else:
-                    self._backends['pytorch_gpu'] = PyTorchGPUBackend()
-                    self._current_backend = 'pytorch_gpu'
-                    logger.info("Initialized new PyTorch GPU backend")
+                    self._backends['pytorch'] = PyTorchBackend()
+                    self._current_backend = 'pytorch'
+                    logger.info("Initialized new PyTorch backend on GPU")
             else:
                 if settings.use_onnx:
                     self._backends['onnx_cpu'] = ONNXCPUBackend()
                     self._current_backend = 'onnx_cpu'
                     logger.info("Initialized new ONNX CPU backend")
                 else:
-                    self._backends['pytorch_cpu'] = PyTorchCPUBackend()
-                    self._current_backend = 'pytorch_cpu'
-                    logger.info("Initialized new PyTorch CPU backend")
+                    self._backends['pytorch'] = PyTorchBackend()
+                    self._current_backend = 'pytorch'
+                    logger.info("Initialized new PyTorch backend on CPU")
                     
             # Initialize locks for each backend
             for backend in self._backends:
@@ -95,10 +94,10 @@ class ModelManager:
         """
         try:
             # Determine backend type based on settings
-            if settings.use_gpu and torch.cuda.is_available():
-                backend_type = 'pytorch_gpu' if not settings.use_onnx else 'onnx_gpu'
+            if settings.use_onnx:
+                backend_type = 'onnx_gpu' if settings.use_gpu and torch.cuda.is_available() else 'onnx_cpu'
             else:
-                backend_type = 'pytorch_cpu' if not settings.use_onnx else 'onnx_cpu'
+                backend_type = 'pytorch'
 
             # Get backend
             backend = self.get_backend(backend_type)
@@ -167,13 +166,10 @@ class ModelManager:
         Returns:
             Backend type to use
         """
-        has_gpu = settings.use_gpu and torch.cuda.is_available()
-        
         # If ONNX is preferred or model is ONNX format
         if settings.use_onnx or model_path.lower().endswith('.onnx'):
-            return 'onnx_gpu' if has_gpu else 'onnx_cpu'
-        else:
-            return 'pytorch_gpu' if has_gpu else 'pytorch_cpu'
+            return 'onnx_gpu' if settings.use_gpu and torch.cuda.is_available() else 'onnx_cpu'
+        return 'pytorch'
 
     async def load_model(
         self,
