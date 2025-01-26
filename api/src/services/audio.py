@@ -1,6 +1,7 @@
 """Audio conversion service"""
 
 from io import BytesIO
+import struct
 
 import numpy as np
 import scipy.io.wavfile as wavfile
@@ -107,14 +108,30 @@ class AudioService:
                 # Raw 16-bit PCM samples, no header
                 buffer.write(normalized_audio.tobytes())
             elif output_format == "wav":
-                # WAV format with headers
-                sf.write(
-                    buffer,
-                    normalized_audio,
-                    sample_rate,
-                    format="WAV",
-                    subtype="PCM_16",
-                )
+                # Write the WAV header ourselves so that we can specify a "fake" data size.
+                # This is necessary for streaming responses to work properly: if we simply
+                # concatenated individual WAV files then the initial chunk's header length
+                # would be shorter than the full file length and subsequent chunks' RIFF
+                # headers would appear in the middle of the audio data.
+                if is_first_chunk:
+                    # Modified from Python stdlib's wave.py module:
+                    buffer.write(b'RIFF')
+                    buffer.write(struct.pack('<L4s4sLHHLLHH4s',
+                        0xFFFFFFFF,  # total size (set to max)
+                        b'WAVE',
+                        b'fmt ',
+                        16,
+                        1,  # PCM format
+                        1,  # channels
+                        sample_rate,
+                        sample_rate * 2,  # byte rate
+                        2,  # block align
+                        16,  # bits per sample
+                        b'data'
+                    ))
+                    buffer.write(struct.pack('<L', 0xFFFFFFFF))  # data size (set to max)
+                # write raw PCM data
+                buffer.write(normalized_audio.tobytes())
             elif output_format == "mp3":
                 # MP3 format with proper framing
                 settings = format_settings.get("mp3", {}) if format_settings else {}
