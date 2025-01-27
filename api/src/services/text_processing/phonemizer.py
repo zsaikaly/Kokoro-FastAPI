@@ -34,6 +34,7 @@ class EspeakBackend(PhonemizerBackend):
         self.backend = phonemizer.backend.EspeakBackend(
             language=language, preserve_punctuation=True, with_stress=True
         )
+
         self.language = language
 
     def phonemize(self, text: str) -> str:
