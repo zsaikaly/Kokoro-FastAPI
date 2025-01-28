@@ -34,6 +34,7 @@ class StreamingAudioWriter:
             # For MP3, we'll use pydub's incremental writer
             self.buffer = BytesIO()
             self.segments = []  # Store segments until we have enough data
+            self.total_duration = 0  # Track total duration in milliseconds
             # Initialize an empty AudioSegment as our encoder
             self.encoder = AudioSegment.silent(duration=0, frame_rate=self.sample_rate)
 
@@ -85,7 +86,17 @@ class StreamingAudioWriter:
             elif self.format == "mp3":
                 # Final export of any remaining audio
                 if hasattr(self, 'encoder') and len(self.encoder) > 0:
-                    self.encoder.export(buffer, format="mp3", bitrate="192k", parameters=["-q:a", "2"])
+                    # Export with duration metadata
+                    self.encoder.export(
+                        buffer,
+                        format="mp3",
+                        bitrate="192k",
+                        parameters=[
+                            "-q:a", "2",
+                            "-write_xing", "1",  # Force XING/LAME header
+                            "-metadata", f"duration={self.total_duration/1000}"  # Duration in seconds
+                        ]
+                    )
                     self.encoder = None
             return buffer.getvalue()
 
@@ -119,11 +130,18 @@ class StreamingAudioWriter:
                 channels=self.channels
             )
             
+            # Track total duration
+            self.total_duration += len(segment)
+            
             # Add segment to encoder
             self.encoder = self.encoder + segment
             
             # Export current state to buffer
-            self.encoder.export(buffer, format="mp3", bitrate="192k", parameters=["-q:a", "2"])
+            self.encoder.export(buffer, format="mp3", bitrate="192k", parameters=[
+                "-q:a", "2",
+                "-write_xing", "1",  # Force XING/LAME header
+                "-metadata", f"duration={self.total_duration/1000}"  # Duration in seconds
+            ])
             
             # Get the encoded data
             encoded_data = buffer.getvalue()

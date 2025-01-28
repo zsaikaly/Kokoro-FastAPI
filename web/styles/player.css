@@ -122,6 +122,45 @@
     margin-top: 0.5rem;
 }
 
+/* Progress bar styles */
+.generation-progress {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border: none;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 3px;
+    margin: 1rem 0;
+    display: block;
+}
+
+.generation-progress::-webkit-progress-bar {
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 3px;
+}
+
+.generation-progress::-webkit-progress-value {
+    background: var(--fg-color);
+    border-radius: 3px;
+    transition: width 0.2s ease;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+}
+
+.generation-progress::-moz-progress-bar {
+    background: var(--fg-color);
+    border-radius: 3px;
+    transition: width 0.2s ease;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+}
+
+.generation-progress::-ms-fill {
+    background: var(--fg-color);
+    border-radius: 3px;
+    transition: width 0.2s ease;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+}
+
 .wave-container canvas {
     position: absolute;
     top: 0;
