@@ -77,6 +77,7 @@ mkdir -p "$MODELS_DIR"
 if [ "$MODEL_TYPE" = "pth" ]; then
     DEFAULT_MODELS=(
         "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19.pth"
+        "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19-half.pth"
     )
 else
     DEFAULT_MODELS=(
