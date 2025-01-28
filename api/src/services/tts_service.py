@@ -73,8 +73,7 @@ class TTSService:
                         output_format,
                         is_first_chunk=is_first,
                         normalizer=normalizer,
-                        is_last_chunk=is_last,
-                        stream=True
+                        is_last_chunk=is_last
                     )
                     
                 return chunk_audio

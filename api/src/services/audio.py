@@ -10,7 +10,7 @@ from loguru import logger
 from pydub import AudioSegment
 
 from ..core.config import settings
-
+from .streaming_audio_writer import StreamingAudioWriter
 
 class AudioNormalizer:
     """Handles audio normalization state for a single stream"""
@@ -45,7 +45,7 @@ class AudioNormalizer:
 
 
 class AudioService:
-    """Service for audio format conversions"""
+    """Service for audio format conversions with streaming support"""
 
     # Default audio format settings balanced for speed and compression
     DEFAULT_SETTINGS = {
@@ -64,6 +64,8 @@ class AudioService:
         },
     }
 
+    _writers = {}
+
     @staticmethod
     async def convert_audio(
         audio_data: np.ndarray,
@@ -72,127 +74,46 @@ class AudioService:
         is_first_chunk: bool = True,
         is_last_chunk: bool = False,
         normalizer: AudioNormalizer = None,
-        format_settings: dict = None,
-        stream: bool = True,
     ) -> bytes:
-        """Convert audio data to specified format
+        """Convert audio data to specified format with streaming support
 
         Args:
             audio_data: Numpy array of audio samples
             sample_rate: Sample rate of the audio
-            output_format: Target format (wav, mp3, opus, flac, pcm)
-            is_first_chunk: Whether this is the first chunk of a stream
-            normalizer: Optional AudioNormalizer instance for consistent normalization across chunks
-            format_settings: Optional dict of format-specific settings to override defaults
-                Example: {
-                    "mp3": {
-                        "bitrate_mode": "VARIABLE",
-                        "compression_level": 0.8
-                    }
-                }
-                Default settings balance speed and compression:
-                optimized for localhost @ 0.0
-                - MP3: constant bitrate, no compression (0.0)
-                - OPUS: no compression (0.0)
-                - FLAC: no compression (0.0)
+            output_format: Target format (wav, mp3, ogg, pcm)
+            is_first_chunk: Whether this is the first chunk
+            is_last_chunk: Whether this is the last chunk
+            normalizer: Optional AudioNormalizer instance for consistent normalization
 
         Returns:
-            Bytes of the converted audio
+            Bytes of the converted audio chunk
         """
-        buffer = BytesIO()
-
         try:
             # Always normalize audio to ensure proper amplitude scaling
             if normalizer is None:
                 normalizer = AudioNormalizer()
             normalized_audio = await normalizer.normalize(audio_data)
 
-            if output_format == "pcm":
-                # Raw 16-bit PCM samples, no header
-                buffer.write(normalized_audio.tobytes())
-            elif output_format == "wav":
-                # Write the WAV header ourselves so that we can specify a "fake" data size.
-                # This is necessary for streaming responses to work properly: if we simply
-                # concatenated individual WAV files then the initial chunk's header length
-                # would be shorter than the full file length and subsequent chunks' RIFF
-                # headers would appear in the middle of the audio data.
-                if is_first_chunk:
-                    # Modified from Python stdlib's wave.py module:
-                    buffer.write(b'RIFF')
-                    buffer.write(struct.pack('<L4s4sLHHLLHH4s',
-                        0xFFFFFFFF,  # total size (set to max)
-                        b'WAVE',
-                        b'fmt ',
-                        16,
-                        1,  # PCM format
-                        1,  # channels
-                        sample_rate,
-                        sample_rate * 2,  # byte rate
-                        2,  # block align
-                        16,  # bits per sample
-                        b'data'
-                    ))
-                    buffer.write(struct.pack('<L', 0xFFFFFFFF))  # data size (set to max)
-                # write raw PCM data
-                buffer.write(normalized_audio.tobytes())
-            elif output_format == "mp3":
-                # MP3 format with proper framing
-                settings = format_settings.get("mp3", {}) if format_settings else {}
-                settings = {**AudioService.DEFAULT_SETTINGS["mp3"], **settings}
-                sf.write(
-                    buffer, normalized_audio, sample_rate, format="MP3", **settings
+            # Get or create format-specific writer
+            writer_key = f"{output_format}_{sample_rate}"
+            if is_first_chunk or writer_key not in AudioService._writers:
+                AudioService._writers[writer_key] = StreamingAudioWriter(
+                    output_format, sample_rate
                 )
-            elif output_format == "opus":
-                # Opus format in OGG container
-                settings = format_settings.get("opus", {}) if format_settings else {}
-                settings = {**AudioService.DEFAULT_SETTINGS["opus"], **settings}
-                sf.write(
-                    buffer,
-                    normalized_audio,
-                    sample_rate,
-                    format="OGG",
-                    subtype="OPUS",
-                    **settings,
-                )
-            elif output_format == "flac":
-                # FLAC format with proper framing
-                if is_first_chunk:
-                    logger.info("Starting FLAC stream...")
-                settings = format_settings.get("flac", {}) if format_settings else {}
-                settings = {**AudioService.DEFAULT_SETTINGS["flac"], **settings}
-                sf.write(
-                    buffer,
-                    normalized_audio,
-                    sample_rate,
-                    format="FLAC",
-                    subtype="PCM_16",
-                    **settings,
-                )
-            elif output_format == "aac":           
-                # Convert numpy array directly to AAC using pydub
-                audio_segment = AudioSegment(
-                    normalized_audio.tobytes(), 
-                    frame_rate=sample_rate,
-                    sample_width=normalized_audio.dtype.itemsize,
-                    channels=1 if len(normalized_audio.shape) == 1 else normalized_audio.shape[1]
-                )
-                
-                settings = format_settings.get("aac", {}) if format_settings else {}
-                settings = {**AudioService.DEFAULT_SETTINGS["aac"], **settings}
-                
-                audio_segment.export(
-                    buffer,
-                    format="adts",  # ADTS is a common AAC container format
-                    bitrate=settings["bitrate"]
-                )
-            else:
-                raise ValueError(
-                    f"Format {output_format} not supported. Supported formats are: wav, mp3, opus, flac, pcm, aac."
-                )
+            writer = AudioService._writers[writer_key]
 
-            buffer.seek(0)
-            return buffer.getvalue()
+            # Write the current chunk
+            chunk_data = writer.write_chunk(normalized_audio)
+
+            # Handle last chunk and cleanup
+            if is_last_chunk:
+                final_data = writer.close()
+                if final_data:
+                    chunk_data += final_data
+                del AudioService._writers[writer_key]
+
+            return chunk_data
 
         except Exception as e:
-            logger.error(f"Error converting audio to {output_format}: {str(e)}")
-            raise ValueError(f"Failed to convert audio to {output_format}: {str(e)}")
+            logger.error(f"Error converting audio stream to {output_format}: {str(e)}")
+            raise ValueError(f"Failed to convert audio stream to {output_format}: {str(e)}")
