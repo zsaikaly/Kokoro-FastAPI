@@ -30,9 +30,6 @@ class AudioNormalizer:
         Returns:
             Normalized and trimmed audio data
         """
-        if len(audio_data) == 0:
-            raise ValueError("Audio data cannot be empty")
-            
         # Convert to float32 for processing
         audio_float = audio_data.astype(np.float32)
         
@@ -102,17 +99,14 @@ class AudioService:
                 )
             writer = AudioService._writers[writer_key]
 
-            # Write the current chunk
-            chunk_data = writer.write_chunk(normalized_audio)
-
-            # Handle last chunk and cleanup
+            # Write chunk or finalize
             if is_last_chunk:
-                final_data = writer.close()
-                if final_data:
-                    chunk_data += final_data
+                chunk_data = writer.write_chunk(finalize=True)
                 del AudioService._writers[writer_key]
-
-            return chunk_data
+            else:
+                chunk_data = writer.write_chunk(normalized_audio)
+            
+            return chunk_data if chunk_data else b''
 
         except Exception as e:
             logger.error(f"Error converting audio stream to {output_format}: {str(e)}")

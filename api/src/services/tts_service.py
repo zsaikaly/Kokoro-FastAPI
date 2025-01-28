@@ -1,11 +1,10 @@
 """TTS service using model and voice managers."""
 
-import io
 import time
 from typing import List, Tuple, Optional, AsyncGenerator, Union
+import asyncio
 
 import numpy as np
-import scipy.io.wavfile as wavfile
 import torch
 from loguru import logger
 
@@ -13,10 +12,7 @@ from ..core.config import settings
 from ..inference.model_manager import get_manager as get_model_manager
 from ..inference.voice_manager import get_manager as get_voice_manager
 from .audio import AudioNormalizer, AudioService
-from .text_processing import chunker, normalize_text, process_text
-
-
-import asyncio
+from .text_processing.text_processor import process_text_chunk, smart_split
 
 class TTSService:
     """Text-to-speech service."""
@@ -40,7 +36,7 @@ class TTSService:
 
     async def _process_chunk(
         self,
-        chunk: str,
+        tokens: List[int],
         voice_tensor: torch.Tensor,
         speed: float,
         output_format: Optional[str] = None,
@@ -48,13 +44,24 @@ class TTSService:
         is_last: bool = False,
         normalizer: Optional[AudioNormalizer] = None,
     ) -> Optional[Union[np.ndarray, bytes]]:
-        """Process a single text chunk into audio."""
+        """Process tokens into audio."""
         async with self._chunk_semaphore:
             try:
-                tokens = process_text(chunk)
+                # Handle stream finalization
+                if is_last:
+                    return await AudioService.convert_audio(
+                        np.array([0], dtype=np.float32),  # Dummy data for type checking
+                        24000,
+                        output_format,
+                        is_first_chunk=False,
+                        normalizer=normalizer,
+                        is_last_chunk=True
+                    )
+                
+                # Skip empty chunks
                 if not tokens:
                     return None
-                
+
                 # Generate audio using pre-warmed model
                 chunk_audio = await self.model_manager.generate(
                     tokens,
@@ -63,23 +70,31 @@ class TTSService:
                 )
                 
                 if chunk_audio is None:
+                    logger.error("Model generated None for audio chunk")
+                    return None
+                
+                if len(chunk_audio) == 0:
+                    logger.error("Model generated empty audio chunk")
                     return None
                     
                 # For streaming, convert to bytes
                 if output_format:
-                    return await AudioService.convert_audio(
-                        chunk_audio,
-                        24000,
-                        output_format,
-                        is_first_chunk=is_first,
-                        normalizer=normalizer,
-                        is_last_chunk=is_last
-                    )
+                    try:
+                        return await AudioService.convert_audio(
+                            chunk_audio,
+                            24000,
+                            output_format,
+                            is_first_chunk=is_first,
+                            normalizer=normalizer,
+                            is_last_chunk=is_last
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to convert audio: {str(e)}")
+                        return None
                     
                 return chunk_audio
-                
             except Exception as e:
-                logger.error(f"Failed to process chunk: '{chunk}'. Error: {str(e)}")
+                logger.error(f"Failed to process tokens: {str(e)}")
                 return None
 
     async def generate_audio_stream(
@@ -92,62 +107,59 @@ class TTSService:
         """Generate and stream audio chunks."""
         stream_normalizer = AudioNormalizer()
         voice_tensor = None
-        pending_results = {}
-        next_index = 0
+        chunk_index = 0
         
         try:
-            # Normalize text
-            normalized = normalize_text(text)
-            if not normalized:
-                raise ValueError("Text is empty after preprocessing")
-            text = str(normalized)
-
             # Get backend and load voice (should be fast if cached)
             backend = self.model_manager.get_backend()
             voice_tensor = await self._voice_manager.load_voice(voice, device=backend.device)
 
-            # Process chunks with semaphore limiting concurrency
-            chunks = []
-            async for chunk in chunker.split_text(text):
-                chunks.append(chunk)
-                
-            if not chunks:
-                raise ValueError("No text chunks to process")
-
-            # Create tasks for all chunks
-            tasks = [
-                asyncio.create_task(
-                    self._process_chunk(
-                        chunk,
+            # Process text in chunks with smart splitting
+            async for chunk_text, tokens in smart_split(text):
+                try:
+                    # Process audio for chunk
+                    result = await self._process_chunk(
+                        tokens,
                         voice_tensor,
                         speed,
                         output_format,
-                        is_first=(i == 0),
-                        is_last=(i == len(chunks) - 1),
+                        is_first=(chunk_index == 0),
+                        is_last=False,  # We'll update the last chunk later
                         normalizer=stream_normalizer
                     )
-                )
-                for i, chunk in enumerate(chunks)
-            ]
-
-            # Process chunks and maintain order
-            for i, task in enumerate(tasks):
-                result = await task
-                
-                if i == next_index and result is not None:
-                    # If this is the next chunk we need, yield it
-                    yield result
-                    next_index += 1
                     
-                    # Check if we have any subsequent chunks ready
-                    while next_index in pending_results:
-                        result = pending_results.pop(next_index)
-                        if result is not None:
-                            yield result
-                        next_index += 1
-                else:
-                    # Store out-of-order result
-                    pending_results[i] = result
+                    if result is not None:
+                        yield result
+                        chunk_index += 1
+                    else:
+                        logger.warning(f"No audio generated for chunk: '{chunk_text[:100]}...'")
+                        
+                except Exception as e:
+                    logger.error(f"Failed to process audio for chunk: '{chunk_text[:100]}...'. Error: {str(e)}")
+                    continue
+
+            # Only finalize if we successfully processed at least one chunk
+            if chunk_index > 0:
+                try:
+                    # Empty tokens list to finalize audio
+                    final_result = await self._process_chunk(
+                        [],  # Empty tokens list
+                        voice_tensor,
+                        speed,
+                        output_format,
+                        is_first=False,
+                        is_last=True,
+                        normalizer=stream_normalizer
+                    )
+                    if final_result is not None:
+                        logger.debug("Yielding final chunk to finalize audio")
+                        yield final_result
+                    else:
+                        logger.warning("Final chunk processing returned None")
+                except Exception as e:
+                    logger.error(f"Failed to process final chunk: {str(e)}")
+            else:
+                logger.warning("No audio chunks were successfully processed")
 
         except Exception as e:
             logger.error(f"Error in audio generation stream: {str(e)}")

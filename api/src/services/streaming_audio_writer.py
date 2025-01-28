@@ -33,7 +33,9 @@ class StreamingAudioWriter:
         elif self.format == "mp3":
             # For MP3, we'll use pydub's incremental writer
             self.buffer = BytesIO()
-            self.encoder = AudioSegment.from_mono_audiosegments()
+            self.segments = []  # Store segments until we have enough data
+            # Initialize an empty AudioSegment as our encoder
+            self.encoder = AudioSegment.silent(duration=0, frame_rate=self.sample_rate)
 
     def _write_wav_header(self) -> bytes:
         """Write WAV header with correct streaming format"""
@@ -53,12 +55,45 @@ class StreamingAudioWriter:
         header.write(struct.pack('<L', 0))  # Placeholder for data size
         return header.getvalue()
 
-    def write_chunk(self, audio_data: np.ndarray) -> bytes:
-        """Write a chunk of audio data and return bytes in the target format"""
+    def write_chunk(self, audio_data: Optional[np.ndarray] = None, finalize: bool = False) -> bytes:
+        """Write a chunk of audio data and return bytes in the target format.
+        
+        Args:
+            audio_data: Audio data to write, or None if finalizing
+            finalize: Whether this is the final write to close the stream
+        """
         buffer = BytesIO()
 
+        if finalize:
+            if self.format == "wav":
+                # Write final WAV header with correct sizes
+                buffer.write(b'RIFF')
+                buffer.write(struct.pack('<L', self.bytes_written + 36))
+                buffer.write(b'WAVE')
+                buffer.write(b'fmt ')
+                buffer.write(struct.pack('<L', 16))
+                buffer.write(struct.pack('<H', 1))
+                buffer.write(struct.pack('<H', self.channels))
+                buffer.write(struct.pack('<L', self.sample_rate))
+                buffer.write(struct.pack('<L', self.sample_rate * self.channels * 2))
+                buffer.write(struct.pack('<H', self.channels * 2))
+                buffer.write(struct.pack('<H', 16))
+                buffer.write(b'data')
+                buffer.write(struct.pack('<L', self.bytes_written))
+            elif self.format == "ogg":
+                self.writer.close()
+            elif self.format == "mp3":
+                # Final export of any remaining audio
+                if hasattr(self, 'encoder') and len(self.encoder) > 0:
+                    self.encoder.export(buffer, format="mp3", bitrate="192k", parameters=["-q:a", "2"])
+                    self.encoder = None
+            return buffer.getvalue()
+
+        if audio_data is None or len(audio_data) == 0:
+            return b''
+
         if self.format == "wav":
-            # For WAV, we write raw PCM after the first chunk
+            # For WAV, write raw PCM after the first chunk
             if self.bytes_written == 0:
                 buffer.write(self._write_wav_header())
             buffer.write(audio_data.tobytes())
@@ -83,8 +118,20 @@ class StreamingAudioWriter:
                 sample_width=audio_data.dtype.itemsize,
                 channels=self.channels
             )
-            self.encoder += segment
-            self.encoder.export(buffer, format="mp3")
+            
+            # Add segment to encoder
+            self.encoder = self.encoder + segment
+            
+            # Export current state to buffer
+            self.encoder.export(buffer, format="mp3", bitrate="192k", parameters=["-q:a", "2"])
+            
+            # Get the encoded data
+            encoded_data = buffer.getvalue()
+            
+            # Reset encoder to prevent memory growth
+            self.encoder = AudioSegment.silent(duration=0, frame_rate=self.sample_rate)
+            
+            return encoded_data
 
         return buffer.getvalue()
 
