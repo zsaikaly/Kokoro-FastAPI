@@ -34,6 +34,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Copy project files including models
 COPY --chown=appuser:appuser api ./api
 COPY --chown=appuser:appuser web ./web
+COPY --chown=appuser:appuser docker/scripts/download_model.* ./
 
 # Install project
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -44,8 +45,19 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 ENV PATH="/app/.venv/bin:$PATH"
 ENV UV_LINK_MODE=copy
+
 ENV USE_GPU=false
-ENV USE_ONNX=false
+ENV USE_ONNX=true
+ENV DOWNLOAD_ONNX=true
+ENV DOWNLOAD_PTH=false
+
+# Download models based on environment variables
+RUN if [ "$DOWNLOAD_ONNX" = "true" ]; then \
+    python download_model.py --type onnx; \
+    fi && \
+    if [ "$DOWNLOAD_PTH" = "true" ]; then \
+    python download_model.py --type pth; \
+    fi
 
 # Run FastAPI server
 CMD ["uv", "run", "python", "-m", "uvicorn", "api.src.main:app", "--host", "0.0.0.0", "--port", "8880", "--log-level", "debug"]

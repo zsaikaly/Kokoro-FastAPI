@@ -336,3 +336,4 @@ async def get_manager(config: Optional[ModelConfig] = None) -> ModelManager:
             _manager_instance = ModelManager(config)
             await _manager_instance.initialize()
         return _manager_instance
+    

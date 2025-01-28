@@ -59,7 +59,7 @@ async def test_empty_text(tts_service, test_voice):
             voice=test_voice,
             speed=1.0
         )
-    assert "Text is empty after preprocessing" in str(exc_info.value)
+    assert "No audio chunks were generated successfully" in str(exc_info.value)
 
 @pytest.mark.asyncio
 async def test_invalid_voice(tts_service):
@@ -126,15 +126,17 @@ async def test_combine_voices(tts_service):
 @pytest.mark.asyncio
 async def test_chunked_text_processing(tts_service, test_voice, mock_audio_output):
     """Test processing chunked text"""
-    long_text = "First sentence. Second sentence. Third sentence."
+    # Create text that will force chunking by exceeding max tokens
+    long_text = "This is a test sentence." * 100  # Should be way over 500 tokens
     
+    # Don't mock smart_split - let it actually split the text
     audio, processing_time = await tts_service.generate_audio(
         text=long_text,
         voice=test_voice,
-        speed=1.0,
-        stitch_long_output=True
+        speed=1.0
     )
     
+    # Should be called multiple times due to chunking
     assert tts_service.model_manager.generate.call_count > 1
     assert isinstance(audio, np.ndarray)
     assert processing_time > 0

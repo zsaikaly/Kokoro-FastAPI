@@ -5,6 +5,7 @@ FastAPI OpenAI Compatible API
 import os
 import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import torch
 import uvicorn
@@ -57,16 +58,30 @@ async def lifespan(app: FastAPI):
 
         # Initialize model with warmup and get status
         device, model, voicepack_count = await model_manager.initialize_with_warmup(voice_manager)
+    except FileNotFoundError:
+        logger.error("""
+Model files not found! You need to either:
+
+1. Download models using the scripts:
+   GPU: python docker/scripts/download_model.py --type pth
+   CPU: python docker/scripts/download_model.py --type onnx
+
+2. Set environment variables in docker-compose:
+   GPU: DOWNLOAD_PTH=true
+   CPU: DOWNLOAD_ONNX=true
+""")
+        raise
     except Exception as e:
         logger.error(f"Failed to initialize model: {e}")
         raise
+        
     boundary = "░" * 2*12
     startup_msg = f"""
 
 {boundary}
 
     ╔═╗┌─┐┌─┐┌┬┐
-    ╠╣ ├─┤└─┐ │
+    ╠╣ ├─┤└─┐ │ 
     ╚  ┴ ┴└─┘ ┴
     ╦╔═┌─┐┬┌─┌─┐
     ╠╩╗│ │├┴┐│ │

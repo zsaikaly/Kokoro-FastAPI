@@ -16,7 +16,6 @@ class AudioNormalizer:
     """Handles audio normalization state for a single stream"""
 
     def __init__(self):
-        self.int16_max = np.iinfo(np.int16).max
         self.chunk_trim_ms = settings.gap_trim_ms
         self.sample_rate = 24000  # Sample rate of the audio
         self.samples_to_trim = int(self.chunk_trim_ms * self.sample_rate / 1000)
@@ -30,19 +29,22 @@ class AudioNormalizer:
         Returns:
             Normalized and trimmed audio data
         """
-        # Convert to float32 for processing
-        audio_float = audio_data.astype(np.float32)
-        
+        if len(audio_data) == 0:
+            raise ValueError("Empty audio data")
+            
         # Trim start and end if enough samples
-        if len(audio_float) > (2 * self.samples_to_trim):
-            audio_float = audio_float[self.samples_to_trim:-self.samples_to_trim]
+        if len(audio_data) > (2 * self.samples_to_trim):
+            audio_data = audio_data[self.samples_to_trim:-self.samples_to_trim]
         
-        # Scale to int16 range
-        return (audio_float * 32767).astype(np.int16)
+        # Scale directly to int16 range with clipping
+        return np.clip(audio_data * 32767, -32768, 32767).astype(np.int16)
 
 
 class AudioService:
     """Service for audio format conversions with streaming support"""
+
+    # Supported formats
+    SUPPORTED_FORMATS = {"wav", "mp3", "opus", "flac", "aac", "pcm", "ogg"}
 
     # Default audio format settings balanced for speed and compression
     DEFAULT_SETTINGS = {
@@ -86,6 +88,10 @@ class AudioService:
             Bytes of the converted audio chunk
         """
         try:
+            # Validate format
+            if output_format not in AudioService.SUPPORTED_FORMATS:
+                raise ValueError(f"Format {output_format} not supported")
+
             # Always normalize audio to ensure proper amplitude scaling
             if normalizer is None:
                 normalizer = AudioNormalizer()

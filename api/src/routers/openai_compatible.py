@@ -1,3 +1,5 @@
+"""OpenAI-compatible router for text-to-speech"""
+
 import json
 import os
 from typing import AsyncGenerator, Dict, List, Union
@@ -217,9 +219,9 @@ async def create_speech(
                 stitch_long_output=True
             )
 
-            # Convert to requested format
+            # Convert to requested format - removed stream parameter
             content = await AudioService.convert_audio(
-                audio, 24000, request.response_format, is_first_chunk=True, stream=False
+                audio, 24000, request.response_format, is_first_chunk=True
             )
 
             return Response(

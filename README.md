@@ -53,10 +53,12 @@ The service can be accessed through either the API endpoints or the Gradio web i
         git clone https://github.com/remsky/Kokoro-FastAPI.git
         cd Kokoro-FastAPI
 
-        cd docker/gpu # OR 
+        cd docker/gpu # OR
         # cd docker/cpu # Run this or the above
-        docker compose up --build 
-        # if you are missing any models, run the .py or .sh scrips in the respective folders
+        docker compose up --build
+        # if you are missing any models, run:
+        # python ../scripts/download_model.py --type pth  # for GPU
+        # python ../scripts/download_model.py --type onnx # for CPU
         ```
         
       Once started:
