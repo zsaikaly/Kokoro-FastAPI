@@ -119,7 +119,7 @@ class TTSService:
                 try:
                     # Process audio for chunk
                     result = await self._process_chunk(
-                        tokens,
+                        tokens,  # Now always a flat List[int]
                         voice_tensor,
                         speed,
                         output_format,
