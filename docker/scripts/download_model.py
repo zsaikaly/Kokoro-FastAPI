@@ -6,7 +6,7 @@ import requests
 from pathlib import Path
 from typing import List
 
-def download_file(url: str, output_dir: Path, model_type: str) -> bool:
+def download_file(url: str, output_dir: Path, model_type: str, overwrite:str) -> bool:
     """Download a file from URL to the specified directory.
     
     Returns:
@@ -18,6 +18,10 @@ def download_file(url: str, output_dir: Path, model_type: str) -> bool:
         return False
         
     output_path = output_dir / filename
+    
+    if os.path.exists(output_path):
+        print(f"{filename} exists. Canceling download")
+        return True
     
     print(f"Downloading {filename}...")
     try:
@@ -52,6 +56,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description='Download model files')
     parser.add_argument('--type', choices=['pth', 'onnx'], required=True,
                       help='Model type to download (pth or onnx)')
+    parser.add_argument('--overwrite', action='store_true', help='Overwite existing files')
     parser.add_argument('urls', nargs='*', help='Optional model URLs to download')
     args = parser.parse_args()
 
@@ -65,7 +70,8 @@ def main() -> int:
         # Default models if no arguments provided
         default_models = {
             'pth': [
-                "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19.pth"
+                "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19.pth",
+                "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19-half.pth"
             ],
             'onnx': [
                 "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19.onnx",
@@ -79,7 +85,7 @@ def main() -> int:
         # Download all models
         success = True
         for model_url in models_to_download:
-            if not download_file(model_url, models_dir, args.type):
+            if not download_file(model_url, models_dir, args.type,args.overwrite):
                 success = False
         
         if success:

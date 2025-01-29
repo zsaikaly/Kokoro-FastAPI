@@ -44,6 +44,10 @@ COPY --chown=appuser:appuser docker/scripts/download_model.* ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --extra gpu
 
+COPY --chown=appuser:appuser docker/scripts/ /app/docker/scripts/
+RUN chmod +x docker/scripts/entrypoint.sh
+RUN chmod +x docker/scripts/download_model.sh
+
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
@@ -55,13 +59,5 @@ ENV USE_ONNX=false
 ENV DOWNLOAD_PTH=true
 ENV DOWNLOAD_ONNX=false
 
-# Download models based on environment variables
-RUN if [ "$DOWNLOAD_PTH" = "true" ]; then \
-    python download_model.py --type pth; \
-    fi && \
-    if [ "$DOWNLOAD_ONNX" = "true" ]; then \
-    python download_model.py --type onnx; \
-    fi
-
 # Run FastAPI server
-CMD ["uv", "run", "python", "-m", "uvicorn", "api.src.main:app", "--host", "0.0.0.0", "--port", "8880", "--log-level", "debug"]
+CMD ["/app/docker/scripts/entrypoint.sh"]
