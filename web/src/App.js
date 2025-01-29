@@ -77,7 +77,17 @@ export class App {
         // Handle completion
         this.audioService.addEventListener('complete', () => {
             this.setGenerating(false);
+            this.showStatus('Preparing file...', 'info');
+        });
+
+        // Handle download ready
+        this.audioService.addEventListener('downloadReady', () => {
             this.showStatus('Generation complete', 'success');
+        });
+
+        // Handle audio end
+        this.audioService.addEventListener('ended', () => {
+            this.playerState.setPlaying(false);
         });
 
         // Handle errors

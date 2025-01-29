@@ -108,15 +108,27 @@ class StreamingAudioWriter:
                         "aac": {"format": "adts", "codec": "aac"}
                     }[self.format]
                     
+                    # On finalization, include proper headers and duration metadata
+                    parameters = [
+                        "-q:a", "2",
+                        "-write_xing", "1" if self.format == "mp3" else "0",  # XING header for MP3 only
+                        "-metadata", f"duration={self.total_duration/1000}",  # Duration in seconds
+                        "-write_id3v1", "1" if self.format == "mp3" else "0",  # ID3v1 tag for MP3
+                        "-write_id3v2", "1" if self.format == "mp3" else "0"   # ID3v2 tag for MP3
+                    ]
+                    
+                    if self.format == "mp3":
+                        # For MP3, ensure proper VBR headers
+                        parameters.extend([
+                            "-write_vbr", "1",
+                            "-vbr_quality", "2"
+                        ])
+                    
                     self.encoder.export(
                         output_buffer,
                         **format_args,
                         bitrate="192k",
-                        parameters=[
-                            "-q:a", "2",
-                            "-write_xing", "1" if self.format == "mp3" else "0",  # XING header for MP3 only
-                            "-metadata", f"duration={self.total_duration/1000}"  # Duration in seconds
-                        ]
+                        parameters=parameters
                     )
                     self.encoder = None
             return output_buffer.getvalue()
@@ -163,10 +175,10 @@ class StreamingAudioWriter:
                 "aac": {"format": "adts", "codec": "aac"}
             }[self.format]
             
+            # For chunks, export without duration metadata or XING headers
             self.encoder.export(output_buffer, **format_args, bitrate="192k", parameters=[
                 "-q:a", "2",
-                "-write_xing", "1" if self.format == "mp3" else "0",  # XING header for MP3 only
-                "-metadata", f"duration={self.total_duration/1000}"  # Duration in seconds
+                "-write_xing", "0"  # No XING headers for chunks
             ])
             
             # Get the encoded data

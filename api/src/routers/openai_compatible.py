@@ -5,7 +5,7 @@ import os
 from typing import AsyncGenerator, Dict, List, Union
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
 from loguru import logger
 
 from ..services.audio import AudioService
@@ -179,36 +179,59 @@ async def create_speech(
             # Create generator but don't start it yet
             generator = stream_audio_chunks(tts_service, request, client_request)
             
-            # Test the generator by attempting to get first chunk
-            try:
-                first_chunk = await anext(generator)
-            except StopAsyncIteration:
-                first_chunk = b""  # Empty audio case
-            except Exception as e:
-                # Re-raise any errors to be caught by the outer try-except
-                raise RuntimeError(f"Failed to initialize audio stream: {str(e)}") from e
+            # If download link requested, wrap generator with temp file writer
+            if request.return_download_link:
+                from ..services.temp_manager import TempFileWriter
+                
+                temp_writer = TempFileWriter(request.response_format)
+                await temp_writer.__aenter__()  # Initialize temp file
+                
+                # Create response headers
+                headers = {
+                    "Content-Disposition": f"attachment; filename=speech.{request.response_format}",
+                    "X-Accel-Buffering": "no",
+                    "Cache-Control": "no-cache",
+                    "Transfer-Encoding": "chunked"
+                }
+
+                # Create async generator for streaming
+                async def dual_output():
+                    try:
+                        # Write chunks to temp file and stream
+                        async for chunk in generator:
+                            if chunk:  # Skip empty chunks
+                                await temp_writer.write(chunk)
+                                yield chunk
+
+                        # Get download path and add to headers
+                        download_path = await temp_writer.finalize()
+                        headers["X-Download-Path"] = download_path
+                    except Exception as e:
+                        logger.error(f"Error in dual output streaming: {e}")
+                        await temp_writer.__aexit__(type(e), e, e.__traceback__)
+                        raise
+                    finally:
+                        # Ensure temp writer is closed
+                        if not temp_writer._finalized:
+                            await temp_writer.__aexit__(None, None, None)
+
+                # Stream with temp file writing
+                return StreamingResponse(
+                    dual_output(),
+                    media_type=content_type,
+                    headers=headers
+                )
             
-            # If we got here, streaming can begin
-            async def safe_stream():
-                yield first_chunk
-                try:
-                    async for chunk in generator:
-                        yield chunk
-                except Exception as e:
-                    # Log the error but don't yield anything - the connection will close
-                    logger.error(f"Error during streaming: {str(e)}")
-                    raise
-            
-            # Stream audio chunks as they're generated
+            # Standard streaming without download link
             return StreamingResponse(
-                safe_stream(),
+                generator,
                 media_type=content_type,
                 headers={
                     "Content-Disposition": f"attachment; filename=speech.{request.response_format}",
-                    "X-Accel-Buffering": "no",  # Disable proxy buffering
-                    "Cache-Control": "no-cache",  # Prevent caching
-                    "Transfer-Encoding": "chunked",  # Enable chunked transfer encoding
-                },
+                    "X-Accel-Buffering": "no",
+                    "Cache-Control": "no-cache",
+                    "Transfer-Encoding": "chunked"
+                }
             )
         else:
             # Generate complete audio using public interface
@@ -263,6 +286,43 @@ async def create_speech(
             detail={
                 "error": "processing_error",
                 "message": str(e),
+                "type": "server_error"
+            }
+        )
+
+
+@router.get("/download/{filename}")
+async def download_audio_file(filename: str):
+    """Download a generated audio file from temp storage"""
+    try:
+        from ..core.paths import _find_file, get_content_type
+        
+        # Search for file in temp directory
+        file_path = await _find_file(
+            filename=filename,
+            search_paths=[settings.temp_file_dir]
+        )
+        
+        # Get content type from path helper
+        content_type = await get_content_type(file_path)
+        
+        return FileResponse(
+            file_path,
+            media_type=content_type,
+            filename=filename,
+            headers={
+                "Cache-Control": "no-cache",
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"Error serving download file {filename}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "server_error",
+                "message": "Failed to serve audio file",
                 "type": "server_error"
             }
         )

@@ -9,7 +9,8 @@ export class AudioService {
         this.minimumPlaybackSize = 50000; // 50KB minimum before playback
         this.textLength = 0;
         this.shouldAutoplay = false;
-        this.CHARS_PER_CHUNK = 600; // Estimated chars per chunk
+        this.CHARS_PER_CHUNK = 300; // Estimated chars per chunk
+        this.serverDownloadPath = null; // Server-side download path
     }
 
     async streamAudio(text, voice, speed, onProgress) {
@@ -45,7 +46,8 @@ export class AudioService {
                     voice: voice,
                     response_format: 'mp3',
                     stream: true,
-                    speed: speed
+                    speed: speed,
+                    return_download_link: true
                 }),
                 signal: this.controller.signal
             });
@@ -58,7 +60,7 @@ export class AudioService {
                 throw new Error(error.detail?.message || 'Failed to generate speech');
             }
 
-            await this.setupAudioStream(response, onProgress, estimatedChunks);
+            await this.setupAudioStream(response.body, response, onProgress, estimatedChunks);
             return this.audio;
         } catch (error) {
             this.cleanup();
@@ -66,16 +68,21 @@ export class AudioService {
         }
     }
 
-    async setupAudioStream(response, onProgress, estimatedTotalSize) {
+    async setupAudioStream(stream, response, onProgress, estimatedTotalSize) {
         this.audio = new Audio();
         this.mediaSource = new MediaSource();
         this.audio.src = URL.createObjectURL(this.mediaSource);
+        
+        // Set up ended event handler
+        this.audio.addEventListener('ended', () => {
+            this.dispatchEvent('ended');
+        });
 
         return new Promise((resolve, reject) => {
             this.mediaSource.addEventListener('sourceopen', async () => {
                 try {
                     this.sourceBuffer = this.mediaSource.addSourceBuffer('audio/mpeg');
-                    await this.processStream(response.body, onProgress, estimatedTotalSize);
+                    await this.processStream(stream, response, onProgress, estimatedTotalSize);
                     resolve();
                 } catch (error) {
                     reject(error);
@@ -84,10 +91,16 @@ export class AudioService {
         });
     }
 
-    async processStream(stream, onProgress, estimatedChunks) {
+    async processStream(stream, response, onProgress, estimatedChunks) {
         const reader = stream.getReader();
         let hasStartedPlaying = false;
         let receivedChunks = 0;
+
+        // Check for download path in response headers
+        const downloadPath = response.headers.get('X-Download-Path');
+        if (downloadPath) {
+            this.serverDownloadPath = downloadPath;
+        }
 
         try {
             while (true) {
@@ -245,6 +258,7 @@ export class AudioService {
         this.sourceBuffer = null;
         this.chunks = [];
         this.textLength = 0;
+        this.serverDownloadPath = null;
 
         // Force a hard refresh of the page to ensure clean state
         window.location.reload();
@@ -277,17 +291,25 @@ export class AudioService {
         this.sourceBuffer = null;
         this.chunks = [];
         this.textLength = 0;
+        this.serverDownloadPath = null;
     }
-
-    getDownloadUrl() {
-        if (!this.audio || !this.sourceBuffer || this.chunks.length === 0) return null;
-        
-        // Get the buffered data from MediaSource
-        const buffered = this.sourceBuffer.buffered;
-        if (buffered.length === 0) return null;
-        
-        // Create blob from the original chunks
-        const blob = new Blob(this.chunks, { type: 'audio/mpeg' });
+getDownloadUrl() {
+    // Check for server-side download link first
+    const downloadPath = this.serverDownloadPath;
+    if (downloadPath) {
+        return downloadPath;
+    }
+    
+    // Fall back to client-side blob URL
+    if (!this.audio || !this.sourceBuffer || this.chunks.length === 0) return null;
+    
+    // Get the buffered data from MediaSource
+    const buffered = this.sourceBuffer.buffered;
+    if (buffered.length === 0) return null;
+    
+    // Create blob from the original chunks
+    const blob = new Blob(this.chunks, { type: 'audio/mpeg' });
+    return URL.createObjectURL(blob);
         return URL.createObjectURL(blob);
     }
 }

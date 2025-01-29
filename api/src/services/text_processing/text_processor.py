@@ -8,10 +8,10 @@ from .phonemizer import phonemize
 from .normalizer import normalize_text
 from .vocabulary import tokenize
 
-# Constants for chunk size optimization
-TARGET_MIN_TOKENS = 300
-TARGET_MAX_TOKENS = 400
-ABSOLUTE_MAX_TOKENS = 500
+# Target token ranges
+TARGET_MIN = 200
+TARGET_MAX = 350
+ABSOLUTE_MAX = 500
 
 def process_text_chunk(text: str, language: str = "a") -> List[int]:
     """Process a chunk of text through normalization, phonemization, and tokenization.
@@ -48,10 +48,6 @@ def process_text_chunk(text: str, language: str = "a") -> List[int]:
     
     return tokens
 
-def is_chunk_size_optimal(token_count: int) -> bool:
-    """Check if chunk size is within optimal range."""
-    return TARGET_MIN_TOKENS <= token_count <= TARGET_MAX_TOKENS
-
 async def yield_chunk(text: str, tokens: List[int], chunk_count: int) -> Tuple[str, List[int]]:
     """Yield a chunk with consistent logging."""
     logger.info(f"Yielding chunk {chunk_count}: '{text[:50]}...' ({len(tokens)} tokens)")
@@ -76,10 +72,6 @@ def process_text(text: str, language: str = "a") -> List[int]:
         
     return process_text_chunk(text, language)
 
-# Target token ranges
-TARGET_MIN = 300
-TARGET_MAX = 400
-ABSOLUTE_MAX = 500
 
 def get_sentence_info(text: str) -> List[Tuple[str, List[int], int]]:
     """Process all sentences and return info."""
@@ -166,13 +158,23 @@ async def smart_split(text: str, max_tokens: int = ABSOLUTE_MAX) -> AsyncGenerat
                 yield chunk_text, clause_tokens
                 
         # Regular sentence handling
+        elif current_count >= TARGET_MIN and current_count + count > TARGET_MAX:
+            # If we have a good sized chunk and adding next sentence exceeds target,
+            # yield current chunk and start new one
+            chunk_text = " ".join(current_chunk)
+            chunk_count += 1
+            logger.info(f"Yielding chunk {chunk_count}: '{chunk_text[:50]}...' ({current_count} tokens)")
+            yield chunk_text, current_tokens
+            current_chunk = [sentence]
+            current_tokens = tokens
+            current_count = count
         elif current_count + count <= TARGET_MAX:
             # Keep building chunk while under target max
             current_chunk.append(sentence)
             current_tokens.extend(tokens)
             current_count += count
-        elif current_count + count <= max_tokens:
-            # Accept slightly larger chunk if needed
+        elif current_count + count <= max_tokens and current_count < TARGET_MIN:
+            # Only exceed target max if we haven't reached minimum size yet
             current_chunk.append(sentence)
             current_tokens.extend(tokens)
             current_count += count

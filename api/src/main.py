@@ -48,6 +48,10 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for model initialization"""
     from .inference.model_manager import get_manager
     from .inference.voice_manager import get_manager as get_voice_manager
+    from .core.paths import cleanup_temp_files
+
+    # Clean old temp files on startup
+    await cleanup_temp_files()
 
     logger.info("Loading TTS model and voice packs...")
 

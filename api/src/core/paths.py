@@ -338,3 +338,77 @@ async def get_content_type(path: str) -> str:
 async def verify_model_path(model_path: str) -> bool:
     """Verify model file exists at path."""
     return await aiofiles.os.path.exists(model_path)
+
+
+async def cleanup_temp_files() -> None:
+    """Clean up old temp files on startup"""
+    try:
+        if not await aiofiles.os.path.exists(settings.temp_file_dir):
+            await aiofiles.os.makedirs(settings.temp_file_dir, exist_ok=True)
+            return
+
+        entries = await aiofiles.os.scandir(settings.temp_file_dir)
+        for entry in entries:
+            if entry.is_file():
+                stat = await aiofiles.os.stat(entry.path)
+                max_age = stat.st_mtime + (settings.temp_file_max_age_hours * 3600)
+                if max_age < stat.st_mtime:
+                    try:
+                        await aiofiles.os.remove(entry.path)
+                        logger.info(f"Cleaned up old temp file: {entry.name}")
+                    except Exception as e:
+                        logger.warning(f"Failed to delete old temp file {entry.name}: {e}")
+    except Exception as e:
+        logger.warning(f"Error cleaning temp files: {e}")
+
+
+async def get_temp_file_path(filename: str) -> str:
+    """Get path to temporary audio file.
+    
+    Args:
+        filename: Name of temp file
+        
+    Returns:
+        Absolute path to temp file
+        
+    Raises:
+        RuntimeError: If temp directory does not exist
+    """
+    temp_path = os.path.join(settings.temp_file_dir, filename)
+    
+    # Ensure temp directory exists
+    if not await aiofiles.os.path.exists(settings.temp_file_dir):
+        await aiofiles.os.makedirs(settings.temp_file_dir, exist_ok=True)
+        
+    return temp_path
+
+
+async def list_temp_files() -> List[str]:
+    """List temporary audio files.
+    
+    Returns:
+        List of temp file names
+    """
+    if not await aiofiles.os.path.exists(settings.temp_file_dir):
+        return []
+        
+    entries = await aiofiles.os.scandir(settings.temp_file_dir)
+    return [entry.name for entry in entries if entry.is_file()]
+
+
+async def get_temp_dir_size() -> int:
+    """Get total size of temp directory in bytes.
+    
+    Returns:
+        Size in bytes
+    """
+    if not await aiofiles.os.path.exists(settings.temp_file_dir):
+        return 0
+        
+    total = 0
+    entries = await aiofiles.os.scandir(settings.temp_file_dir)
+    for entry in entries:
+        if entry.is_file():
+            stat = await aiofiles.os.stat(entry.path)
+            total += stat.st_size
+    return total
