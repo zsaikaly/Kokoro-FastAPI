@@ -15,11 +15,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    # Add FFmpeg installation step
-    - name: Install FFmpeg
+    # Add FFmpeg and espeak-ng installation step
+    - name: Install FFmpeg and espeak-ng
       run: |
         sudo apt-get update
-        sudo apt-get install -y ffmpeg
+        sudo apt-get install -y ffmpeg espeak-ng
     
     - name: Install uv
       uses: astral-sh/setup-uv@v5
