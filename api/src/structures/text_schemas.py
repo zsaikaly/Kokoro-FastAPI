@@ -33,15 +33,6 @@ class StitchOptions(BaseModel):
 
 
 class GenerateFromPhonemesRequest(BaseModel):
-    phonemes: Union[str, List[str]] = Field(
-        ...,
-        description="Single phoneme string or list of phoneme chunks to stitch together"
-    )
+    """Simple request for phoneme-to-speech generation"""
+    phonemes: str = Field(..., description="Phoneme string to synthesize")
     voice: str = Field(..., description="Voice ID to use for generation")
-    speed: float = Field(
-        default=1.0, ge=0.1, le=5.0, description="Speed factor for generation"
-    )
-    options: Optional[StitchOptions] = Field(
-        default=None,
-        description="Optional settings for audio generation and stitching"
-    )

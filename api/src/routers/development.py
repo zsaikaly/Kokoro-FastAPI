@@ -3,10 +3,13 @@ from typing import List
 import numpy as np
 import torch
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
 from loguru import logger
 
-from ..services.audio import AudioService
-from ..services.text_processing import phonemize, tokenize
+from ..services.audio import AudioService, AudioNormalizer
+from ..services.streaming_audio_writer import StreamingAudioWriter
+from ..services.text_processing import phonemize, smart_split
+from ..services.text_processing.vocabulary import tokenize
 from ..services.tts_service import TTSService
 from ..structures.text_schemas import (
     GenerateFromPhonemesRequest,
@@ -21,8 +24,6 @@ async def get_tts_service() -> TTSService:
     """Dependency to get TTSService instance"""
     return await TTSService.create()  # Create service with properly initialized managers
 
-
-@router.post("/text/phonemize", response_model=PhonemeResponse, tags=["deprecated"])
 @router.post("/dev/phonemize", response_model=PhonemeResponse)
 async def phonemize_text(request: PhonemeRequest) -> PhonemeResponse:
     """Convert text to phonemes and tokens
@@ -56,108 +57,95 @@ async def phonemize_text(request: PhonemeRequest) -> PhonemeResponse:
         raise HTTPException(
             status_code=500, detail={"error": "Server error", "message": str(e)}
         )
-
-
-@router.post("/text/generate_from_phonemes", tags=["deprecated"])
 @router.post("/dev/generate_from_phonemes")
 async def generate_from_phonemes(
     request: GenerateFromPhonemesRequest,
+    client_request: Request,
     tts_service: TTSService = Depends(get_tts_service),
-) -> Response:
-    """Generate audio directly from phonemes
-
-    Args:
-        request: Request containing phonemes and generation parameters
-        tts_service: Injected TTSService instance
-
-    Returns:
-        WAV audio bytes
-    """
-    # Validate phonemes first
-    if not request.phonemes:
-        raise HTTPException(
-            status_code=400,
-            detail={"error": "Invalid request", "message": "Phonemes cannot be empty"},
-        )
-
+) -> StreamingResponse:
+    """Generate audio directly from phonemes with proper streaming"""
     try:
-        # Validate voice exists
-        available_voices = await tts_service.list_voices()
-        if request.voice not in available_voices:
-            raise HTTPException(
-                status_code=400,
-                detail={
-                    "error": "Invalid request",
-                    "message": f"Voice not found: {request.voice}",
-                },
-            )
+        # Basic validation
+        if not isinstance(request.phonemes, str):
+            raise ValueError("Phonemes must be a string")
+        if not request.phonemes:
+            raise ValueError("Phonemes cannot be empty")
 
-        # Handle both single string and list of chunks
-        phoneme_chunks = [request.phonemes] if isinstance(request.phonemes, str) else request.phonemes
-        audio_chunks = []
+        # Create streaming audio writer and normalizer
+        writer = StreamingAudioWriter(format="wav", sample_rate=24000, channels=1)
+        normalizer = AudioNormalizer()
 
-        # Load voice tensor first since we'll need it for all chunks
-        voice_tensor = await tts_service._voice_manager.load_voice(
-            request.voice,
-            device=tts_service.model_manager.get_backend().device
-        )
+        async def generate_chunks():
+            try:
+                has_data = False
+                # Process phonemes in chunks
+                async for chunk_text, _ in smart_split(request.phonemes):
+                    # Check if client is still connected
+                    is_disconnected = client_request.is_disconnected
+                    if callable(is_disconnected):
+                        is_disconnected = await is_disconnected()
+                    if is_disconnected:
+                        logger.info("Client disconnected, stopping audio generation")
+                        break
 
-        try:
-            # Process each chunk
-            for chunk in phoneme_chunks:
-                # Convert chunk to tokens
-                tokens = tokenize(chunk)
-                tokens = [0] + tokens + [0]  # Add start/end tokens
-
-                # Validate chunk length
-                if len(tokens) > 510:  # 510 to leave room for start/end tokens
-                    raise ValueError(
-                        f"Chunk too long ({len(tokens)} tokens). Each chunk must be under 510 tokens."
+                    chunk_audio, _ = await tts_service.generate_from_phonemes(
+                        phonemes=chunk_text,
+                        voice=request.voice,
+                        speed=1.0
                     )
+                    if chunk_audio is not None:
+                        has_data = True
+                        # Normalize audio before writing
+                        normalized_audio = await normalizer.normalize(chunk_audio)
+                        # Write chunk and yield bytes
+                        chunk_bytes = writer.write_chunk(normalized_audio)
+                        if chunk_bytes:
+                            yield chunk_bytes
 
-                # Generate audio for chunk
-                chunk_audio = await tts_service.model_manager.generate(
-                    tokens,
-                    voice_tensor,
-                    speed=request.speed
-                )
-                if chunk_audio is not None:
-                    audio_chunks.append(chunk_audio)
+                if not has_data:
+                    raise ValueError("Failed to generate any audio data")
 
-            # Combine chunks if needed
-            if len(audio_chunks) > 1:
-                audio = np.concatenate(audio_chunks)
-            elif len(audio_chunks) == 1:
-                audio = audio_chunks[0]
-            else:
-                raise ValueError("No audio chunks were generated")
+                # Finalize and yield remaining bytes if we still have a connection
+                if not (callable(is_disconnected) and await is_disconnected()):
+                    final_bytes = writer.write_chunk(finalize=True)
+                    if final_bytes:
+                        yield final_bytes
+            except Exception as e:
+                logger.error(f"Error in audio chunk generation: {str(e)}")
+                # Clean up writer on error
+                writer.write_chunk(finalize=True)
+                # Re-raise the original exception
+                raise
 
-        finally:
-            # Clean up voice tensor
-            del voice_tensor
-            torch.cuda.empty_cache()
-
-        # Convert to WAV bytes
-        wav_bytes = await AudioService.convert_audio(
-            audio, 24000, "wav", is_first_chunk=True, is_last_chunk=True, stream=False,
-        )
-
-        return Response(
-            content=wav_bytes,
+        return StreamingResponse(
+            generate_chunks(),
             media_type="audio/wav",
             headers={
                 "Content-Disposition": "attachment; filename=speech.wav",
+                "X-Accel-Buffering": "no",
                 "Cache-Control": "no-cache",
-            },
+                "Transfer-Encoding": "chunked"
+            }
         )
 
+
     except ValueError as e:
-        logger.error(f"Invalid request: {str(e)}")
+        logger.error(f"Error generating audio: {str(e)}")
         raise HTTPException(
-            status_code=400, detail={"error": "Invalid request", "message": str(e)}
+            status_code=400,
+            detail={
+                "error": "validation_error",
+                "message": str(e),
+                "type": "invalid_request_error"
+            }
         )
     except Exception as e:
         logger.error(f"Error generating audio: {str(e)}")
         raise HTTPException(
-            status_code=500, detail={"error": "Server error", "message": str(e)}
+            status_code=500,
+            detail={
+                "error": "processing_error",
+                "message": str(e),
+                "type": "server_error"
+            }
         )

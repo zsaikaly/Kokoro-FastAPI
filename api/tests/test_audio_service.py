@@ -30,7 +30,14 @@ def sample_audio():
 async def test_convert_to_wav(sample_audio):
     """Test converting to WAV format"""
     audio_data, sample_rate = sample_audio
-    result = await AudioService.convert_audio(audio_data, sample_rate, "wav")
+    # Write and finalize in one step for WAV
+    result = await AudioService.convert_audio(
+        audio_data,
+        sample_rate,
+        "wav",
+        is_first_chunk=True,
+        is_last_chunk=True
+    )
     assert isinstance(result, bytes)
     assert len(result) > 0
     # Check WAV header
@@ -106,7 +113,14 @@ async def test_normalization_wav(sample_audio):
     audio_data, sample_rate = sample_audio
     # Create audio data outside int16 range
     large_audio = audio_data * 1e5
-    result = await AudioService.convert_audio(large_audio, sample_rate, "wav")
+    # Write and finalize in one step for WAV
+    result = await AudioService.convert_audio(
+        large_audio,
+        sample_rate,
+        "wav",
+        is_first_chunk=True,
+        is_last_chunk=True
+    )
     assert isinstance(result, bytes)
     assert len(result) > 0
 
@@ -138,7 +152,13 @@ async def test_different_sample_rates(sample_audio):
     sample_rates = [8000, 16000, 44100, 48000]
 
     for rate in sample_rates:
-        result = await AudioService.convert_audio(audio_data, rate, "wav")
+        result = await AudioService.convert_audio(
+            audio_data,
+            rate,
+            "wav",
+            is_first_chunk=True,
+            is_last_chunk=True
+        )
         assert isinstance(result, bytes)
         assert len(result) > 0
 
@@ -147,7 +167,20 @@ async def test_different_sample_rates(sample_audio):
 async def test_buffer_position_after_conversion(sample_audio):
     """Test that buffer position is reset after writing"""
     audio_data, sample_rate = sample_audio
-    result = await AudioService.convert_audio(audio_data, sample_rate, "wav")
+    # Write and finalize in one step for first conversion
+    result = await AudioService.convert_audio(
+        audio_data,
+        sample_rate,
+        "wav",
+        is_first_chunk=True,
+        is_last_chunk=True
+    )
     # Convert again to ensure buffer was properly reset
-    result2 = await AudioService.convert_audio(audio_data, sample_rate, "wav")
+    result2 = await AudioService.convert_audio(
+        audio_data,
+        sample_rate,
+        "wav",
+        is_first_chunk=True,
+        is_last_chunk=True
+    )
     assert len(result) == len(result2)

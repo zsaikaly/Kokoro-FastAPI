@@ -128,7 +128,8 @@ class BaseSessionPool:
             # Check if we can create new session
             if len(self._sessions) >= self._max_size:
                 raise RuntimeError(
-                    f"Maximum number of sessions reached ({self._max_size})"
+                    f"Maximum number of sessions reached ({self._max_size}). "
+                    "Try again later or reduce concurrent requests."
                 )
                 
             # Create new session

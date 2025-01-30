@@ -156,12 +156,8 @@ async def create_speech(
         )
     
     try:
-        model_name = get_model_name(request.model)
-
-        # Get global service instance
+        # model_name = get_model_name(request.model)
         tts_service = await get_tts_service()
-        
-        # Process voice combination and validate
         voice_to_use = await process_voices(request.voice, tts_service)
 
         # Set content type based on format
@@ -238,13 +234,14 @@ async def create_speech(
             audio, _ = await tts_service.generate_audio(
                 text=request.input,
                 voice=voice_to_use,
-                speed=request.speed,
-                stitch_long_output=True
+                speed=request.speed
             )
 
-            # Convert to requested format - removed stream parameter
+            # Convert to requested format with proper finalization
             content = await AudioService.convert_audio(
-                audio, 24000, request.response_format, is_first_chunk=True
+                audio, 24000, request.response_format,
+                is_first_chunk=True,
+                is_last_chunk=True
             )
 
             return Response(

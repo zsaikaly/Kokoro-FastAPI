@@ -192,8 +192,13 @@ def mock_tts_service(mock_audio_bytes):
         mock_get.side_effect = None
         yield service
 
-def test_openai_speech_endpoint(mock_tts_service, test_voice):
+@patch('api.src.services.audio.AudioService.convert_audio')
+def test_openai_speech_endpoint(mock_convert, mock_tts_service, test_voice, mock_audio_bytes):
     """Test the OpenAI-compatible speech endpoint with basic MP3 generation"""
+    # Configure mocks
+    mock_tts_service.generate_audio.return_value = (np.zeros(1000), 0.1)
+    mock_convert.return_value = mock_audio_bytes
+    
     response = client.post(
         "/v1/audio/speech",
         json={
@@ -207,6 +212,10 @@ def test_openai_speech_endpoint(mock_tts_service, test_voice):
     assert response.status_code == 200
     assert response.headers["content-type"] == "audio/mpeg"
     assert len(response.content) > 0
+    assert response.content == mock_audio_bytes
+    
+    mock_tts_service.generate_audio.assert_called_once()
+    mock_convert.assert_called_once()
 
 def test_openai_speech_streaming(mock_tts_service, test_voice, mock_audio_bytes):
     """Test the OpenAI-compatible speech endpoint with streaming"""
@@ -357,12 +366,8 @@ def test_server_error(mock_tts_service, test_voice):
 
 def test_streaming_error(mock_tts_service, test_voice):
     """Test handling streaming errors"""
-    async def mock_error_stream(*args, **kwargs) -> AsyncGenerator[bytes, None]:
-        if False:  # This makes it a proper generator
-            yield b""
-        raise RuntimeError("Streaming failed")
-    
-    mock_tts_service.generate_audio_stream = mock_error_stream
+    # Mock process_voices to raise the error
+    mock_tts_service.list_voices.side_effect = RuntimeError("Streaming failed")
     
     response = client.post(
         "/v1/audio/speech",
@@ -374,10 +379,12 @@ def test_streaming_error(mock_tts_service, test_voice):
             "stream": True
         }
     )
+    
     assert response.status_code == 500
-    error_response = response.json()
-    assert error_response["detail"]["error"] == "processing_error"
-    assert error_response["detail"]["type"] == "server_error"
+    error_data = response.json()
+    assert error_data["detail"]["error"] == "processing_error"
+    assert error_data["detail"]["type"] == "server_error"
+    assert "Streaming failed" in error_data["detail"]["message"]
 
 @pytest.mark.asyncio
 async def test_streaming_initialization_error():

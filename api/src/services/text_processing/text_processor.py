@@ -13,35 +13,41 @@ TARGET_MIN = 200
 TARGET_MAX = 350
 ABSOLUTE_MAX = 500
 
-def process_text_chunk(text: str, language: str = "a") -> List[int]:
+def process_text_chunk(text: str, language: str = "a", skip_phonemize: bool = False) -> List[int]:
     """Process a chunk of text through normalization, phonemization, and tokenization.
     
     Args:
         text: Text chunk to process
         language: Language code for phonemization
+        skip_phonemize: If True, treat input as phonemes and skip normalization/phonemization
         
     Returns:
         List of token IDs
     """
     start_time = time.time()
     
-    # Normalize
-    t0 = time.time()
-    normalized = normalize_text(text)
-    t1 = time.time()
-    logger.debug(f"Normalization took {(t1-t0)*1000:.2f}ms for {len(text)} chars")
-    
-    # Phonemize
-    t0 = time.time()
-    phonemes = phonemize(normalized, language, normalize=False)  # Already normalized
-    t1 = time.time()
-    logger.debug(f"Phonemization took {(t1-t0)*1000:.2f}ms for {len(normalized)} chars")
-    
-    # Convert to token IDs
-    t0 = time.time()
-    tokens = tokenize(phonemes)
-    t1 = time.time()
-    logger.debug(f"Tokenization took {(t1-t0)*1000:.2f}ms for {len(phonemes)} chars")
+    if skip_phonemize:
+        # Input is already phonemes, just tokenize
+        t0 = time.time()
+        tokens = tokenize(text)
+        t1 = time.time()
+        logger.debug(f"Tokenization took {(t1-t0)*1000:.2f}ms for {len(text)} chars")
+    else:
+        # Normal text processing pipeline
+        t0 = time.time()
+        normalized = normalize_text(text)
+        t1 = time.time()
+        logger.debug(f"Normalization took {(t1-t0)*1000:.2f}ms for {len(text)} chars")
+        
+        t0 = time.time()
+        phonemes = phonemize(normalized, language, normalize=False)  # Already normalized
+        t1 = time.time()
+        logger.debug(f"Phonemization took {(t1-t0)*1000:.2f}ms for {len(normalized)} chars")
+        
+        t0 = time.time()
+        tokens = tokenize(phonemes)
+        t1 = time.time()
+        logger.debug(f"Tokenization took {(t1-t0)*1000:.2f}ms for {len(phonemes)} chars")
     
     total_time = time.time() - start_time
     logger.debug(f"Total processing took {total_time*1000:.2f}ms for chunk: '{text[:50]}...'")

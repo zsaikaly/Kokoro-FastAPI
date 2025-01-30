@@ -105,12 +105,15 @@ class AudioService:
                 )
             writer = AudioService._writers[writer_key]
 
-            # Write chunk or finalize
-            if is_last_chunk:
-                chunk_data = writer.write_chunk(finalize=True)
-                del AudioService._writers[writer_key]
-            else:
+            # Write audio data first
+            if len(normalized_audio) > 0:
                 chunk_data = writer.write_chunk(normalized_audio)
+
+            # Then finalize if this is the last chunk
+            if is_last_chunk:
+                final_data = writer.write_chunk(finalize=True)
+                del AudioService._writers[writer_key]
+                return final_data if final_data else b''
             
             return chunk_data if chunk_data else b''
 

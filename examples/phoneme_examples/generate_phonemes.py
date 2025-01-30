@@ -1,5 +1,5 @@
 import json
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union, List
 from pathlib import Path
 
 import requests
@@ -22,7 +22,7 @@ def get_phonemes(text: str, language: str = "a") -> Tuple[str, list[int]]:
     payload = {"text": text, "language": language}
 
     # Make POST request to the phonemize endpoint
-    response = requests.post("http://localhost:8880/text/phonemize", json=payload)
+    response = requests.post("http://localhost:8880/dev/phonemize", json=payload)
 
     # Raise exception for error status codes
     response.raise_for_status()
@@ -32,43 +32,28 @@ def get_phonemes(text: str, language: str = "a") -> Tuple[str, list[int]]:
     return result["phonemes"], result["tokens"]
 
 
-def generate_audio_from_phonemes(
-    phonemes: str, voice: str = "af_bella", speed: float = 1.0
-) -> Optional[bytes]:
-    """Generate audio from phonemes.
-
-    Args:
-        phonemes: Phoneme string to synthesize
-        voice: Voice ID to use (defaults to af_bella)
-        speed: Speed factor (defaults to 1.0)
-
-    Returns:
-        WAV audio bytes if successful, None if failed
-    """
-    # Create the request payload
-    payload = {
-        "phonemes": phonemes,
-        "voice": voice,
-        "speed": speed,
-        "stitch_long_content": True  # Default to false to get the error message
-    }
-
-    try:
-        # Make POST request to generate audio
-        response = requests.post(
-            "http://localhost:8880/text/generate_from_phonemes", json=payload
-        )
-        response.raise_for_status()
-        return response.content
-    except requests.HTTPError as e:
-        # Get the error details from the response
-        try:
-            error_details = response.json()
-            error_msg = error_details.get('detail', {}).get('message', str(e))
-            print(f"Server Error: {error_msg}")
-        except:
-            print(f"Error: {e}")
+def generate_audio_from_phonemes(phonemes: str, voice: str = "af_bella") -> Optional[bytes]:
+    """Generate audio from phonemes."""
+    response = requests.post(
+        "http://localhost:8880/dev/generate_from_phonemes",
+        json={"phonemes": phonemes, "voice": voice},
+        headers={"Accept": "audio/wav"}
+    )
+    
+    print(f"Response status: {response.status_code}")
+    print(f"Response headers: {dict(response.headers)}")
+    print(f"Response content type: {response.headers.get('Content-Type')}")
+    print(f"Response length: {len(response.content)} bytes")
+    
+    if response.status_code != 200:
+        print(f"Error response: {response.text}")
         return None
+        
+    if not response.content:
+        print("Error: Empty response content")
+        return None
+        
+    return response.content
 
 
 def main():
@@ -103,10 +88,14 @@ def main():
 
             # Generate audio from phonemes
             print("Generating audio...")
-            if len(phonemes) > 500: # split into arrays of 500 phonemes
-                phonemes = [phonemes[i:i+500] for i in range(0, len(phonemes), 500)]
-
             audio_bytes = generate_audio_from_phonemes(phonemes)
+            
+            if not audio_bytes:
+                print("Error: No audio data generated")
+                continue
+
+            # Log response size
+            print(f"Generated {len(audio_bytes)} bytes of audio data")
 
             if audio_bytes:
                 # Save audio file

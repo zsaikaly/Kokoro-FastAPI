@@ -13,6 +13,7 @@ from ..inference.model_manager import get_manager as get_model_manager
 from ..inference.voice_manager import get_manager as get_voice_manager
 from .audio import AudioNormalizer, AudioService
 from .text_processing.text_processor import process_text_chunk, smart_split
+from .text_processing import tokenize
 
 class TTSService:
     """Text-to-speech service."""
@@ -163,6 +164,55 @@ class TTSService:
 
         except Exception as e:
             logger.error(f"Error in audio generation stream: {str(e)}")
+            raise
+        finally:
+            if voice_tensor is not None:
+                del voice_tensor
+                torch.cuda.empty_cache()
+
+    async def generate_from_phonemes(
+        self, phonemes: str, voice: str, speed: float = 1.0
+    ) -> Tuple[np.ndarray, float]:
+        """Generate audio from phonemes.
+        
+        Args:
+            phonemes: Phoneme string to synthesize
+            voice: Voice ID to use
+            speed: Speed multiplier
+            
+        Returns:
+            Tuple of (audio array, processing time)
+        """
+        start_time = time.time()
+        voice_tensor = None
+
+        try:
+            # Get backend and load voice
+            backend = self.model_manager.get_backend()
+            voice_tensor = await self._voice_manager.load_voice(voice, device=backend.device)
+
+            # Convert phonemes to tokens
+            tokens = tokenize(phonemes)
+            if len(tokens) > 500:  # Model context limit
+                raise ValueError(f"Phoneme sequence too long ({len(tokens)} tokens, max 500)")
+                
+            tokens = [0] + tokens + [0]  # Add start/end tokens
+            
+            # Generate audio
+            audio = await self.model_manager.generate(
+                tokens,
+                voice_tensor,
+                speed=speed
+            )
+            
+            if audio is None:
+                raise ValueError("Failed to generate audio")
+
+            processing_time = time.time() - start_time
+            return audio, processing_time
+
+        except Exception as e:
+            logger.error(f"Error in phoneme audio generation: {str(e)}")
             raise
         finally:
             if voice_tensor is not None:

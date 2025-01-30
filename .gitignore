@@ -39,19 +39,9 @@ ENV/
 *.pth
 *.tar*
 
-# Audio files
-examples/*.wav
-examples/*.pcm
-examples/*.mp3
-examples/*.flac
-examples/*.acc
-examples/*.ogg
-examples/speech.mp3
-examples/phoneme_examples/output/example_1.wav
-examples/phoneme_examples/output/example_2.wav
-examples/phoneme_examples/output/example_3.wav
 
 # Other project files
+.env
 Kokoro-82M/
 ui/data/
 EXTERNAL_UV_DOCUMENTATION*
@@ -61,10 +51,20 @@ api/temp_files/
 # Docker
 Dockerfile*
 docker-compose*
-examples/assorted_checks/River_of_Teet_-_Sarah_Gailey.epub
 examples/ebook_test/chapter_to_audio.py
 examples/ebook_test/chapters_to_audio.py
 examples/ebook_test/parse_epub.py
-examples/ebook_test/River_of_Teet_-_Sarah_Gailey.epub
-examples/ebook_test/River_of_Teet_-_Sarah_Gailey.txt
 api/src/voices/af_jadzia.pt
+examples/assorted_checks/test_combinations/output/*
+examples/assorted_checks/test_openai/output/*
+
+
+# Audio files
+examples/*.wav
+examples/*.pcm
+examples/*.mp3
+examples/*.flac
+examples/*.acc
+examples/*.ogg
+examples/speech.mp3
+examples/phoneme_examples/output/*.wav
