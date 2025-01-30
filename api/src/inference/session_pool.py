@@ -119,13 +119,17 @@ class BaseSessionPool:
             # Clean expired sessions
             self._cleanup_expired()
             
+            # TODO: Change session tracking to use unique IDs instead of model paths
+            # This would allow multiple instances of the same model
+            
             # Check if session exists and is valid
             if model_path in self._sessions:
                 session_info = self._sessions[model_path]
                 session_info.last_used = time.time()
                 return session_info.session
                 
-            # Check if we can create new session
+            # TODO: Modify session limit check to count instances per model path
+            # Rather than total sessions across all models
             if len(self._sessions) >= self._max_size:
                 raise RuntimeError(
                     f"Maximum number of sessions reached ({self._max_size}). "

@@ -2,6 +2,34 @@
 
 Notable changes to this project will be documented in this file.
 
+## [v0.1.4] - 2025-01-30
+### Added
+- Smart Chunking System:
+  - New text_processor with smart_split for improved sentence boundary detection
+  - Dynamically adjusts chunk sizes based on sentence structure, using phoneme/token information in an intial pass
+  - Should avoid ever going over the 510 limit per chunk, while preserving natural cadence
+- Web UI Added (To Be Replacing Gradio):
+  - Integrated streaming with tempfile generation
+  - Download links available in X-Download-Path header
+  - Configurable cleanup triggers for temp files
+- Debug Endpoints:
+  - /debug/threads for thread information and stack traces
+  - /debug/storage for temp file and output directory monitoring
+  - /debug/system for system resource information
+  - /debug/session_pools for ONNX/CUDA session status
+- Automated Model Management:
+  - Auto-download from releases page
+  - Included download scripts for manual installation
+  - Pre-packaged voice models in repository
+
+### Changed
+- Significant architectural improvements:
+  - Multi-model architecture support
+  - Enhanced concurrency handling
+  - Improved streaming header management
+  - Better resource/session pool management
+
+
 ## [v0.1.2] - 2025-01-23
 ### Structural Improvements
 - Models can be manually download and placed in api/src/models, or use included script

@@ -3,51 +3,58 @@
 </p>
 
 # <sub><sub>_`FastKoko`_ </sub></sub>
-[![Tests](https://img.shields.io/badge/tests-104%20passed-darkgreen)]()
+[![Tests](https://img.shields.io/badge/tests-100%20passed-darkgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-49%25-grey)]()
 [![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/c3b0d86e2a980e027ef71c28819ea02e351c2667) [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero)
 
-> Pre-release. Not fully tested
+> Support for Kokoro-82M v1.0 coming very soon!
 
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
 - OpenAI-compatible Speech endpoint, with inline voice combination, and mapped naming/models for strict systems
 - NVIDIA GPU accelerated or CPU inference (ONNX, Pytorch) 
 - very fast generation time
-  - 35x-100x+ real time speed via 4060Ti+
-  - 5x+ real time speed via M3 Pro CPU
-- streaming support w/ variable chunking to control latency, (new) improved concurrency
+  - ~35x-100x+ real time speed via 4060Ti+
+  - ~5x+ real time speed via M3 Pro CPU
+- streaming support & tempfile generation
 - phoneme based dev endpoints
 - (new) Integrated web UI on localhost:8880/web
+- (new) Debug endpoints for monitoring threads, storage, and session pools
 
-> [!Tip]
-> You can try the new beta version from the `v0.1.2-pre` branch now:
-<table>
-  <tr>
-    <td>
-      <img src="https://github.com/user-attachments/assets/440162eb-1918-4999-ab2b-e2730990efd0" width="100%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 5px;">
-    </td>
-    <td>
-      <ul>
-        <li>Integrated web UI (on localhost:8880/web)</li>
-        <li>Better concurrency handling, baked in models and voices</li>
-        <li>Voice name/model mappings to OAI standard</li>
-        <pre> # with:
-docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest # CPU
-docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest # Nvidia GPU
-        </pre>
-      </ul>
-    </td>
-  </tr>
-</table>
 
-<details open>
-<summary>Quick Start</summary>
+## Get Started
 
-The service can be accessed through either the API endpoints or the Gradio web interface.
+<details >
+<summary>Quickest Start (docker run)</summary>
+
+
+Pre built images are available to run, with arm/multi-arch support, and baked in models
+Refer to the core/config.py file for a full list of variables which can be managed via the environment
+
+```bash
+
+docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.4 # CPU, or:
+docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.4 #NVIDIA GPU
+```
+
+Once running, access:
+- API Documentation: http://localhost:8880/docs
+- Web Interface: http://localhost:8880/web
+
+<div align="center" style="display: flex; justify-content: center; gap: 20px;">
+  <img src="assets/docs-screenshot.png" width="48%" alt="API Documentation" style="border: 2px solid #333; padding: 10px;">
+  <img src="assets/webui-screenshot.png" width="48%" alt="Web UI Screenshot" style="border: 2px solid #333; padding: 10px;">
+</div>
+
+</details>
+
+
+<details>
+
+<summary>Quick Start (docker compose) </summary>
 
 1. Install prerequisites, and start the service using Docker Compose (Full setup including UI):
    - Install [Docker](https://www.docker.com/products/docker-desktop/)
-
+   - 
    - Clone the repository:
         ```bash
         git clone https://github.com/remsky/Kokoro-FastAPI.git
@@ -60,20 +67,18 @@ The service can be accessed through either the API endpoints or the Gradio web i
         # python ../scripts/download_model.py --type pth  # for GPU
         # python ../scripts/download_model.py --type onnx # for CPU
         ```
-        
+
+        ```bash
+        Or directly via UV
+        ./start-cpu.sh
+        ./start-gpu.sh 
+        ```
+
       Once started:
      - The API will be available at http://localhost:8880
      - The *Web UI* can be tested at http://localhost:8880/web
      - The Gradio UI (deprecating) can be accessed at http://localhost:7860
-        
-    __Or__ running the API alone using Docker (model + voice packs baked in) (Most Recent):
-          
-    ```bash
-    docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.2 # CPU 
-    docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.2 # Nvidia GPU
-    ```
-        
-        
+
 2. Run locally as an OpenAI-Compatible Speech Endpoint
     ```python
     from openai import OpenAI
@@ -91,13 +96,50 @@ The service can be accessed through either the API endpoints or the Gradio web i
         response.stream_to_file("output.mp3")
     
     ```
+</details>
+<summary>Direct Run (via uv) </summary>
 
-  <div align="center">
-    <div style="display: flex; justify-content: center; gap: 20px;">
-      <img src="assets/beta_web_ui.png" width="45%" alt="Beta Web UI" style="border: 2px solid #333; padding: 10px;">
-      <img src="ui/GradioScreenShot.png" width="45%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
-    </div>
-  </div>
+1. Install prerequisites ():
+   - Install [astral-uv](https://docs.astral.sh/uv/)
+   - Clone the repository:
+        ```bash
+        git clone https://github.com/remsky/Kokoro-FastAPI.git
+        cd Kokoro-FastAPI
+
+        # if you are missing any models, run:
+        # python ../scripts/download_model.py --type pth  # for GPU
+        # python ../scripts/download_model.py --type onnx # for CPU
+        ```
+
+        Start directly via UV (with hot-reload)
+        ```bash
+        ./start-cpu.sh OR
+        ./start-gpu.sh 
+        ```
+
+      Once started:
+     - The API will be available at http://localhost:8880
+     - The *Web UI* can be tested at http://localhost:8880/web
+     - The Gradio UI (deprecating) can be accessed at http://localhost:7860
+
+2. Run locally as an OpenAI-Compatible Speech Endpoint
+    ```python
+    from openai import OpenAI
+    client = OpenAI(
+        base_url="http://localhost:8880/v1",
+        api_key="not-needed"
+        )
+
+    with client.audio.speech.with_streaming_response.create(
+        model="kokoro", 
+        voice="af_sky+af_bella", #single or multiple voicepack combo
+        input="Hello world!",
+        response_format="mp3"
+    ) as response:
+        response.stream_to_file("output.mp3")
+    
+    ```
+</details>
 
 ## Features 
 <details>
@@ -211,13 +253,12 @@ If you only want the API, just comment out everything in the docker-compose.yml 
 
 Currently, voices created via the API are accessible here, but voice combination/creation has not yet been added
 
-Running the UI Docker Service
+Running the UI Docker Service [deprecating]
    - If you only want to run the Gradio web interface separately and connect it to an existing API service:
       ```bash
       docker run -p 7860:7860 \
         -e API_HOST=<api-hostname-or-ip> \
         -e API_PORT=8880 \
-        ghcr.io/remsky/kokoro-fastapi-ui:v0.1.0
       ```
 
      - Replace `<api-hostname-or-ip>` with:
@@ -236,7 +277,7 @@ environment:
 
 When running the Docker image directly:
 ```bash
-docker run -p 7860:7860 -e DISABLE_LOCAL_SAVING=true ghcr.io/remsky/kokoro-fastapi-ui:latest
+docker run -p 7860:7860 -e DISABLE_LOCAL_SAVING=true ghcr.io/remsky/kokoro-fastapi-ui:v0.1.4
 ```
 </details>
 
@@ -247,7 +288,7 @@ docker run -p 7860:7860 -e DISABLE_LOCAL_SAVING=true ghcr.io/remsky/kokoro-fasta
 # OpenAI-compatible streaming
 from openai import OpenAI
 client = OpenAI(
-    base_url="http://localhost:8880", api_key="not-needed")
+    base_url="http://localhost:8880/v1", api_key="not-needed")
 
 # Stream to file
 with client.audio.speech.with_streaming_response.create(
@@ -329,17 +370,17 @@ Benchmarking was performed on generation via the local API using text lengths up
 </p>
 
 Key Performance Metrics:
-- Realtime Speed: Ranges between 25-50x (generation time to output audio length)
+- Realtime Speed: Ranges between 35x-100x (generation time to output audio length)
 - Average Processing Rate: 137.67 tokens/second (cl100k_base)
 </details>
 <details>
 <summary>GPU Vs. CPU</summary>
 
 ```bash
-# GPU: Requires NVIDIA GPU with CUDA 12.1 support (~35x realtime speed)
+# GPU: Requires NVIDIA GPU with CUDA 12.1 support (~35x-100x realtime speed)
 docker compose up --build
 
-# CPU: ONNX optimized inference (~2.4x realtime speed)
+# CPU: ONNX optimized inference (~5x+ realtime speed on M3 Pro)
 docker compose -f docker-compose.cpu.yml up --build
 ```
 *Note: Overall speed may have reduced somewhat with the structural changes to accomodate streaming. Looking into it* 
@@ -359,34 +400,59 @@ Convert text to phonemes and/or generate audio directly from phonemes:
 ```python
 import requests
 
-# Convert text to phonemes
-response = requests.post(
-    "http://localhost:8880/dev/phonemize",
-    json={
-        "text": "Hello world!",
-        "language": "a"  # "a" for American English
-    }
-)
-result = response.json()
-phonemes = result["phonemes"]  # Phoneme string e.g  ðɪs ɪz ˈoʊnli ɐ tˈɛst
-tokens = result["tokens"]      # Token IDs including start/end tokens 
+def get_phonemes(text: str, language: str = "a"):
+    """Get phonemes and tokens for input text"""
+    response = requests.post(
+        "http://localhost:8880/dev/phonemize",
+        json={"text": text, "language": language}  # "a" for American English
+    )
+    response.raise_for_status()
+    result = response.json()
+    return result["phonemes"], result["tokens"]
 
-# Generate audio from phonemes
-response = requests.post(
-    "http://localhost:8880/dev/generate_from_phonemes",
-    json={
-        "phonemes": phonemes,
-        "voice": "af_bella",
-        "speed": 1.0
-    }
-)
+def generate_audio_from_phonemes(phonemes: str, voice: str = "af_bella"):
+    """Generate audio from phonemes"""
+    response = requests.post(
+        "http://localhost:8880/dev/generate_from_phonemes",
+        json={"phonemes": phonemes, "voice": voice},
+        headers={"Accept": "audio/wav"}
+    )
+    if response.status_code != 200:
+        print(f"Error: {response.text}")
+        return None
+    return response.content
 
-# Save WAV audio
-with open("speech.wav", "wb") as f:
-    f.write(response.content)
+# Example usage
+text = "Hello world!"
+try:
+    # Convert text to phonemes
+    phonemes, tokens = get_phonemes(text)
+    print(f"Phonemes: {phonemes}")  # e.g. ðɪs ɪz ˈoʊnli ɐ tˈɛst
+    print(f"Tokens: {tokens}")      # Token IDs including start/end tokens
+
+    # Generate and save audio
+    if audio_bytes := generate_audio_from_phonemes(phonemes):
+        with open("speech.wav", "wb") as f:
+            f.write(audio_bytes)
+        print(f"Generated {len(audio_bytes)} bytes of audio")
+except Exception as e:
+    print(f"Error: {e}")
 ```
 
 See `examples/phoneme_examples/generate_phonemes.py` for a sample script.
+</details>
+
+<details>
+<summary>Debug Endpoints</summary>
+
+Monitor system state and resource usage with these endpoints:
+
+- `/debug/threads` - Get thread information and stack traces
+- `/debug/storage` - Monitor temp file and output directory usage
+- `/debug/system` - Get system information (CPU, memory, GPU)
+- `/debug/session_pools` - View ONNX session and CUDA stream status
+
+Useful for debugging resource exhaustion or performance issues.
 </details>
 
 ## Known Issues

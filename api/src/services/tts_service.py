@@ -50,6 +50,10 @@ class TTSService:
             try:
                 # Handle stream finalization
                 if is_last:
+                    # Skip format conversion for raw audio mode
+                    if not output_format:
+                        return np.array([], dtype=np.float32)
+                    
                     return await AudioService.convert_audio(
                         np.array([0], dtype=np.float32),  # Dummy data for type checking
                         24000,
@@ -229,7 +233,7 @@ class TTSService:
         try:
             # Use streaming generator but collect all chunks
             async for chunk in self.generate_audio_stream(
-                text, voice, speed, output_format=None
+                text, voice, speed,  # Default to WAV for raw audio
             ):
                 if chunk is not None:
                     chunks.append(chunk)
