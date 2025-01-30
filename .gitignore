@@ -56,6 +56,7 @@ Kokoro-82M/
 ui/data/
 EXTERNAL_UV_DOCUMENTATION*
 app
+api/temp_files/
 
 # Docker
 Dockerfile*

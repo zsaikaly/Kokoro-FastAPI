@@ -2,14 +2,71 @@
 
 import os
 import tempfile
-from typing import Optional
+from typing import Optional, List
 
 import aiofiles
 from fastapi import HTTPException
 from loguru import logger
 
 from ..core.config import settings
-from ..core.paths import _scan_directories
+
+
+async def cleanup_temp_files() -> None:
+    """Clean up old temp files"""
+    try:
+        if not await aiofiles.os.path.exists(settings.temp_file_dir):
+            await aiofiles.os.makedirs(settings.temp_file_dir, exist_ok=True)
+            return
+
+        # Get all temp files with stats
+        files = []
+        total_size = 0
+        
+        # Use os.scandir for sync iteration, but aiofiles.os.stat for async stats
+        for entry in os.scandir(settings.temp_file_dir):
+            if entry.is_file():
+                stat = await aiofiles.os.stat(entry.path)
+                files.append((entry.path, stat.st_mtime, stat.st_size))
+                total_size += stat.st_size
+
+        # Sort by modification time (oldest first)
+        files.sort(key=lambda x: x[1])
+
+        # Remove files if:
+        # 1. They're too old
+        # 2. We have too many files
+        # 3. Directory is too large
+        current_time = (await aiofiles.os.stat(settings.temp_file_dir)).st_mtime
+        max_age = settings.max_temp_dir_age_hours * 3600
+
+        for path, mtime, size in files:
+            should_delete = False
+            
+            # Check age
+            if current_time - mtime > max_age:
+                should_delete = True
+                logger.info(f"Deleting old temp file: {path}")
+            
+            # Check count limit
+            elif len(files) > settings.max_temp_dir_count:
+                should_delete = True
+                logger.info(f"Deleting excess temp file: {path}")
+            
+            # Check size limit
+            elif total_size > settings.max_temp_dir_size_mb * 1024 * 1024:
+                should_delete = True
+                logger.info(f"Deleting to reduce directory size: {path}")
+            
+            if should_delete:
+                try:
+                    await aiofiles.os.remove(path)
+                    total_size -= size
+                    logger.info(f"Deleted temp file: {path}")
+                except Exception as e:
+                    logger.warning(f"Failed to delete temp file {path}: {e}")
+
+    except Exception as e:
+        logger.warning(f"Error during temp file cleanup: {e}")
 
 
 class TempFileWriter:
@@ -27,21 +84,11 @@ class TempFileWriter:
         
     async def __aenter__(self):
         """Async context manager entry"""
-        # Check temp dir size by scanning
-        total_size = 0
-        entries = await _scan_directories([settings.temp_file_dir])
-        for entry in entries:
-            stat = await aiofiles.os.stat(os.path.join(settings.temp_file_dir, entry))
-            total_size += stat.st_size
-            
-        if total_size >= settings.max_temp_dir_size_mb * 1024 * 1024:
-            raise HTTPException(
-                status_code=507,
-                detail="Temporary storage full. Please try again later."
-            )
+        # Clean up old files first
+        await cleanup_temp_files()
             
         # Create temp file with proper extension
-        os.makedirs(settings.temp_file_dir, exist_ok=True)
+        await aiofiles.os.makedirs(settings.temp_file_dir, exist_ok=True)
         temp = tempfile.NamedTemporaryFile(
             dir=settings.temp_file_dir,
             delete=False,

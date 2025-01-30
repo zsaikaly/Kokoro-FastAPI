@@ -351,7 +351,7 @@ async def cleanup_temp_files() -> None:
         for entry in entries:
             if entry.is_file():
                 stat = await aiofiles.os.stat(entry.path)
-                max_age = stat.st_mtime + (settings.temp_file_max_age_hours * 3600)
+                max_age = stat.st_mtime + (settings.max_temp_dir_age_hours * 3600)
                 if max_age < stat.st_mtime:
                     try:
                         await aiofiles.os.remove(entry.path)

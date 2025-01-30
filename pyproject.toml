@@ -36,6 +36,7 @@ dependencies = [
     "matplotlib>=3.10.0",
     "semchunk>=3.0.1",
     "mutagen>=1.47.0",
+    "psutil>=6.1.1",
 ]
 
 [project.optional-dependencies]

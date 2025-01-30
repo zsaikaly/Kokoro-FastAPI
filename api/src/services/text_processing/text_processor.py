@@ -50,7 +50,7 @@ def process_text_chunk(text: str, language: str = "a") -> List[int]:
 
 async def yield_chunk(text: str, tokens: List[int], chunk_count: int) -> Tuple[str, List[int]]:
     """Yield a chunk with consistent logging."""
-    logger.info(f"Yielding chunk {chunk_count}: '{text[:50]}...' ({len(tokens)} tokens)")
+    logger.debug(f"Yielding chunk {chunk_count}: '{text[:50]}...' ({len(tokens)} tokens)")
     return text, tokens
 
 def process_text(text: str, language: str = "a") -> List[int]:
@@ -111,7 +111,7 @@ async def smart_split(text: str, max_tokens: int = ABSOLUTE_MAX) -> AsyncGenerat
             if current_chunk:
                 chunk_text = " ".join(current_chunk)
                 chunk_count += 1
-                logger.info(f"Yielding chunk {chunk_count}: '{chunk_text[:50]}...' ({current_count} tokens)")
+                logger.debug(f"Yielding chunk {chunk_count}: '{chunk_text[:50]}...' ({current_count} tokens)")
                 yield chunk_text, current_tokens
                 current_chunk = []
                 current_tokens = []
@@ -144,7 +144,7 @@ async def smart_split(text: str, max_tokens: int = ABSOLUTE_MAX) -> AsyncGenerat
                     if clause_chunk:
                         chunk_text = " ".join(clause_chunk)
                         chunk_count += 1
-                        logger.info(f"Yielding clause chunk {chunk_count}: '{chunk_text[:50]}...' ({clause_count} tokens)")
+                        logger.debug(f"Yielding clause chunk {chunk_count}: '{chunk_text[:50]}...' ({clause_count} tokens)")
                         yield chunk_text, clause_tokens
                     clause_chunk = [full_clause]
                     clause_tokens = tokens
@@ -154,7 +154,7 @@ async def smart_split(text: str, max_tokens: int = ABSOLUTE_MAX) -> AsyncGenerat
             if clause_chunk:
                 chunk_text = " ".join(clause_chunk)
                 chunk_count += 1
-                logger.info(f"Yielding final clause chunk {chunk_count}: '{chunk_text[:50]}...' ({clause_count} tokens)")
+                logger.debug(f"Yielding final clause chunk {chunk_count}: '{chunk_text[:50]}...' ({clause_count} tokens)")
                 yield chunk_text, clause_tokens
                 
         # Regular sentence handling

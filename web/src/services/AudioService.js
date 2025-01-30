@@ -5,31 +5,26 @@ export class AudioService {
         this.audio = null;
         this.controller = null;
         this.eventListeners = new Map();
-        this.chunks = [];
         this.minimumPlaybackSize = 50000; // 50KB minimum before playback
         this.textLength = 0;
         this.shouldAutoplay = false;
         this.CHARS_PER_CHUNK = 300; // Estimated chars per chunk
         this.serverDownloadPath = null; // Server-side download path
+        this.pendingOperations = []; // Queue for buffer operations
     }
 
     async streamAudio(text, voice, speed, onProgress) {
         try {
             console.log('AudioService: Starting stream...', { text, voice, speed });
             
-            // Only abort if there's an active controller
             if (this.controller) {
                 this.controller.abort();
                 this.controller = null;
             }
             
-            // Create new controller before cleanup to prevent race conditions
             this.controller = new AbortController();
-            
-            // Clean up previous audio state
             this.cleanup();
             onProgress?.(0, 1); // Reset progress to 0
-            this.chunks = [];
             this.textLength = text.length;
             this.shouldAutoplay = document.getElementById('autoplay-toggle').checked;
             
@@ -52,7 +47,10 @@ export class AudioService {
                 signal: this.controller.signal
             });
 
-            console.log('AudioService: Got response', { status: response.status });
+            console.log('AudioService: Got response', { 
+                status: response.status,
+                headers: Object.fromEntries(response.headers.entries())
+            });
 
             if (!response.ok) {
                 const error = await response.json();
@@ -68,12 +66,16 @@ export class AudioService {
         }
     }
 
-    async setupAudioStream(stream, response, onProgress, estimatedTotalSize) {
+    async setupAudioStream(stream, response, onProgress, estimatedChunks) {
         this.audio = new Audio();
         this.mediaSource = new MediaSource();
         this.audio.src = URL.createObjectURL(this.mediaSource);
         
-        // Set up ended event handler
+        // Monitor for audio element errors
+        this.audio.addEventListener('error', (e) => {
+            console.error('Audio error:', this.audio.error);
+        });
+
         this.audio.addEventListener('ended', () => {
             this.dispatchEvent('ended');
         });
@@ -82,7 +84,13 @@ export class AudioService {
             this.mediaSource.addEventListener('sourceopen', async () => {
                 try {
                     this.sourceBuffer = this.mediaSource.addSourceBuffer('audio/mpeg');
-                    await this.processStream(stream, response, onProgress, estimatedTotalSize);
+                    this.sourceBuffer.mode = 'sequence';
+                    
+                    this.sourceBuffer.addEventListener('updateend', () => {
+                        this.processNextOperation();
+                    });
+                    
+                    await this.processStream(stream, response, onProgress, estimatedChunks);
                     resolve();
                 } catch (error) {
                     reject(error);
@@ -96,41 +104,88 @@ export class AudioService {
         let hasStartedPlaying = false;
         let receivedChunks = 0;
 
-        // Check for download path in response headers
-        const downloadPath = response.headers.get('X-Download-Path');
-        if (downloadPath) {
-            this.serverDownloadPath = downloadPath;
-        }
-
         try {
             while (true) {
                 const {value, done} = await reader.read();
                 
                 if (done) {
+                    // Get final download path from header
+                    const downloadPath = response.headers.get('X-Download-Path');
+                    if (downloadPath) {
+                        // Prepend /v1 since the router is mounted there
+                        this.serverDownloadPath = `/v1${downloadPath}`;
+                        console.log('Download path received:', this.serverDownloadPath);
+                        // Log all headers to see what we're getting
+                        console.log('All response headers:', Object.fromEntries(response.headers.entries()));
+                    } else {
+                        console.warn('No X-Download-Path header found in response');
+                    }
+
                     if (this.mediaSource.readyState === 'open') {
                         this.mediaSource.endOfStream();
                     }
-                    // Ensure we show 100% at completion
+                    
+                    // Signal completion
                     onProgress?.(estimatedChunks, estimatedChunks);
                     this.dispatchEvent('complete');
-                    this.dispatchEvent('downloadReady');
+                    setTimeout(() => {
+                        this.dispatchEvent('downloadReady');
+                    }, 800);
                     return;
                 }
 
-                this.chunks.push(value);
                 receivedChunks++;
-
-                await this.appendChunk(value);
-                
-                // Update progress based on received chunks
                 onProgress?.(receivedChunks, estimatedChunks);
 
-                // Start playback if we have enough chunks
-                if (!hasStartedPlaying && receivedChunks >= 1) {
-                    hasStartedPlaying = true;
-                    if (this.shouldAutoplay) {
-                        // Small delay to ensure buffer is ready
-                        setTimeout(() => this.play(), 100);
+                try {
+                    // Check for audio errors before proceeding
+                    if (this.audio.error) {
+                        console.error('Audio error detected:', this.audio.error);
+                        continue; // Skip this chunk if audio is in error state
+                    }
+
+                    // Only remove old data if we're hitting quota errors
+                    if (this.sourceBuffer.buffered.length > 0) {
+                        const currentTime = this.audio.currentTime;
+                        const start = this.sourceBuffer.buffered.start(0);
+                        const end = this.sourceBuffer.buffered.end(0);
+                        
+                        // Only remove if we have a lot of historical data
+                        if (currentTime - start > 30) {
+                            const removeEnd = Math.max(start, currentTime - 15);
+                            if (removeEnd > start) {
+                                await this.removeBufferRange(start, removeEnd);
+                            }
+                        }
+                    }
+
+                    await this.appendChunk(value);
+
+                    if (!hasStartedPlaying && this.sourceBuffer.buffered.length > 0) {
+                        hasStartedPlaying = true;
+                        if (this.shouldAutoplay) {
+                            setTimeout(() => this.play(), 100);
+                        }
+                    }
+                } catch (error) {
+                    if (error.name === 'QuotaExceededError') {
+                        // If we hit quota, try more aggressive cleanup
+                        if (this.sourceBuffer.buffered.length > 0) {
+                            const currentTime = this.audio.currentTime;
+                            const start = this.sourceBuffer.buffered.start(0);
+                            const removeEnd = Math.max(start, currentTime - 5);
+                            if (removeEnd > start) {
+                                await this.removeBufferRange(start, removeEnd);
+                                // Retry append after removing data
+                                try {
+                                    await this.appendChunk(value);
+                                } catch (retryError) {
+                                    console.warn('Buffer error after cleanup:', retryError);
+                                }
+                            }
+                        }
+                    } else {
+                        console.warn('Buffer error:', error);
                     }
                 }
             }
@@ -141,23 +196,77 @@ export class AudioService {
         }
     }
 
-    async appendChunk(chunk) {
+    async removeBufferRange(start, end) {
+        // Double check that end is greater than start
+        if (end <= start) {
+            console.warn('Invalid buffer remove range:', {start, end});
+            return;
+        }
+
         return new Promise((resolve) => {
-            const appendChunk = () => {
-                this.sourceBuffer.appendBuffer(chunk);
-                this.sourceBuffer.addEventListener('updateend', resolve, { once: true });
+            const doRemove = () => {
+                try {
+                    this.sourceBuffer.remove(start, end);
+                } catch (e) {
+                    console.warn('Error removing buffer:', e);
+                }
+                resolve();
             };
 
-            if (!this.sourceBuffer.updating) {
-                appendChunk();
+            if (this.sourceBuffer.updating) {
+                this.sourceBuffer.addEventListener('updateend', () => {
+                    doRemove();
+                }, { once: true });
             } else {
-                this.sourceBuffer.addEventListener('updateend', appendChunk, { once: true });
+                doRemove();
             }
         });
     }
 
+    async appendChunk(chunk) {
+        // Don't append if audio is in error state
+        if (this.audio.error) {
+            console.warn('Skipping chunk append due to audio error');
+            return;
+        }
+
+        return new Promise((resolve, reject) => {
+            const operation = { chunk, resolve, reject };
+            this.pendingOperations.push(operation);
+            
+            if (!this.sourceBuffer.updating) {
+                this.processNextOperation();
+            }
+        });
+    }
+
+    processNextOperation() {
+        if (this.sourceBuffer.updating || this.pendingOperations.length === 0) {
+            return;
+        }
+
+        // Don't process if audio is in error state
+        if (this.audio.error) {
+            console.warn('Skipping operation due to audio error');
+            return;
+        }
+
+        const operation = this.pendingOperations.shift();
+        
+        try {
+            this.sourceBuffer.appendBuffer(operation.chunk);
+            operation.resolve();
+        } catch (error) {
+            operation.reject(error);
+            // Only continue processing if it's not a fatal error
+            if (error.name !== 'InvalidStateError') {
+                this.processNextOperation();
+            }
+        }
+    }
+
     play() {
-        if (this.audio && this.audio.readyState >= 2) {
+        if (this.audio && this.audio.readyState >= 2 && !this.audio.error) {
             const playPromise = this.audio.play();
             if (playPromise) {
                 playPromise.catch(error => {
@@ -178,7 +287,7 @@ export class AudioService {
     }
 
     seek(time) {
-        if (this.audio) {
+        if (this.audio && !this.audio.error) {
             const wasPlaying = !this.audio.paused;
             this.audio.currentTime = time;
             if (wasPlaying) {
@@ -239,7 +348,6 @@ export class AudioService {
             this.controller = null;
         }
         
-        // Full cleanup of all resources
         if (this.audio) {
             this.audio.pause();
             this.audio.src = '';
@@ -256,18 +364,14 @@ export class AudioService {
 
         this.mediaSource = null;
         this.sourceBuffer = null;
-        this.chunks = [];
-        this.textLength = 0;
         this.serverDownloadPath = null;
+        this.pendingOperations = [];
 
-        // Force a hard refresh of the page to ensure clean state
         window.location.reload();
     }
 
     cleanup() {
-        // Clean up audio elements
         if (this.audio) {
-            // Remove all event listeners
             this.eventListeners.forEach((listeners, event) => {
                 listeners.forEach(callback => {
                     this.audio.removeEventListener(event, callback);
@@ -289,28 +393,16 @@ export class AudioService {
 
         this.mediaSource = null;
         this.sourceBuffer = null;
-        this.chunks = [];
-        this.textLength = 0;
         this.serverDownloadPath = null;
+        this.pendingOperations = [];
     }
-getDownloadUrl() {
-    // Check for server-side download link first
-    const downloadPath = this.serverDownloadPath;
-    if (downloadPath) {
-        return downloadPath;
-    }
-    
-    // Fall back to client-side blob URL
-    if (!this.audio || !this.sourceBuffer || this.chunks.length === 0) return null;
-    
-    // Get the buffered data from MediaSource
-    const buffered = this.sourceBuffer.buffered;
-    if (buffered.length === 0) return null;
-    
-    // Create blob from the original chunks
-    const blob = new Blob(this.chunks, { type: 'audio/mpeg' });
-    return URL.createObjectURL(blob);
-        return URL.createObjectURL(blob);
+
+    getDownloadUrl() {
+        if (!this.serverDownloadPath) {
+            console.warn('No download path available');
+            return null;
+        }
+        return this.serverDownloadPath;
     }
 }
 

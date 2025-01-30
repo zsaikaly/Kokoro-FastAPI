@@ -18,6 +18,7 @@ from .routers.web_player import router as web_router
 from .core.model_config import model_config
 from .routers.development import router as dev_router
 from .routers.openai_compatible import router as openai_router
+from .routers.debug import router as debug_router
 from .services.tts_service import TTSService
 
 
@@ -48,7 +49,7 @@ async def lifespan(app: FastAPI):
     """Lifespan context manager for model initialization"""
     from .inference.model_manager import get_manager
     from .inference.voice_manager import get_manager as get_voice_manager
-    from .core.paths import cleanup_temp_files
+    from .services.temp_manager import cleanup_temp_files
 
     # Clean old temp files on startup
     await cleanup_temp_files()
@@ -130,6 +131,7 @@ if settings.cors_enabled:
 # Include routers
 app.include_router(openai_router, prefix="/v1")
 app.include_router(dev_router)  # Development endpoints
+app.include_router(debug_router)  # Debug endpoints
 if settings.enable_web_player:
     app.include_router(web_router, prefix="/web")  # Web player static files
 

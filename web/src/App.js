@@ -16,7 +16,8 @@ export class App {
             autoplayToggle: document.getElementById('autoplay-toggle'),
             formatSelect: document.getElementById('format-select'),
             status: document.getElementById('status'),
-            cancelBtn: document.getElementById('cancel-btn')
+            cancelBtn: document.getElementById('cancel-btn'),
+            clearBtn: document.getElementById('clear-btn')
         };
 
         this.initialize();
@@ -60,6 +61,12 @@ export class App {
             this.showStatus('Generation cancelled', 'info');
         });
 
+        // Clear text button
+        this.elements.clearBtn.addEventListener('click', () => {
+            this.elements.textInput.value = '';
+            this.elements.textInput.focus();
+        });
+
         // Handle page unload
         window.addEventListener('beforeunload', () => {
             this.audioService.cleanup();
@@ -74,15 +81,34 @@ export class App {
             this.elements.downloadBtn.style.display = 'flex';
         });
 
+        // Handle buffer errors
+        this.audioService.addEventListener('bufferError', () => {
+            this.showStatus('Processing... (Download will be available when complete)', 'info');
+        });
+
         // Handle completion
         this.audioService.addEventListener('complete', () => {
             this.setGenerating(false);
+            
+            // Show preparing status
             this.showStatus('Preparing file...', 'info');
+            
+            // Trigger coffee steam animation
+            const steamElement = document.querySelector('.cup .steam');
+            if (steamElement) {
+                // Remove and re-add the element to restart animation
+                const parent = steamElement.parentNode;
+                const clone = steamElement.cloneNode(true);
+                parent.removeChild(steamElement);
+                parent.appendChild(clone);
+            }
         });
 
         // Handle download ready
         this.audioService.addEventListener('downloadReady', () => {
-            this.showStatus('Generation complete', 'success');
+            setTimeout(() => {
+                this.showStatus('Generation complete', 'success');
+            }, 500); // Small delay to ensure "Preparing file..." is visible
         });
 
         // Handle audio end
@@ -175,20 +201,23 @@ export class App {
 
     downloadAudio() {
         const downloadUrl = this.audioService.getDownloadUrl();
-        if (!downloadUrl) return;
+        if (!downloadUrl) {
+            console.warn('No download URL available');
+            return;
+        }
 
+        console.log('Starting download from:', downloadUrl);
+        
         const format = this.elements.formatSelect.value;
         const voice = this.voiceService.getSelectedVoiceString();
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         
-        // Create download link
         const a = document.createElement('a');
         a.href = downloadUrl;
         a.download = `${voice}_${timestamp}.${format}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        URL.revokeObjectURL(downloadUrl);
     }
 }
 

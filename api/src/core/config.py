@@ -32,10 +32,12 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["*"]  # CORS origins for web player
     cors_enabled: bool = True  # Whether to enable CORS
 
-    # Temp File Settings
+    # Temp File Settings for WEB Ui
     temp_file_dir: str = "api/temp_files"  # Directory for temporary audio files (relative to project root)
     max_temp_dir_size_mb: int = 2048  # Maximum size of temp directory (2GB)
-    temp_file_max_age_hours: int = 1  # Remove temp files older than 1 hour
+    max_temp_dir_age_hours: int = 1  # Remove temp files older than 1 hour
+    max_temp_dir_count: int = 3  # Maximum number of temp files to keep
+
 
     class Config:
         env_file = ".env"
