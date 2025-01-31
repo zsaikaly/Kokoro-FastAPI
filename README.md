@@ -11,12 +11,11 @@
 
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
 - OpenAI-compatible Speech endpoint, with inline voice combination, and mapped naming/models for strict systems
-- NVIDIA GPU accelerated or CPU inference (ONNX, Pytorch) 
+- NVIDIA GPU accelerated or CPU inference (ONNX or Pytorch for either)
 - very fast generation time
   - ~35x-100x+ real time speed via 4060Ti+
   - ~5x+ real time speed via M3 Pro CPU
-- streaming support & tempfile generation
-- phoneme based dev endpoints
+- streaming support & tempfile generation, phoneme based dev endpoints
 - (new) Integrated web UI on localhost:8880/web
 - (new) Debug endpoints for monitoring threads, storage, and session pools
 
@@ -36,14 +35,6 @@ docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.4 # CPU, or:
 docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.4 #NVIDIA GPU
 ```
 
-Once running, access:
-- API Documentation: http://localhost:8880/docs
-- Web Interface: http://localhost:8880/web
-
-<div align="center" style="display: flex; justify-content: center; gap: 20px;">
-  <img src="assets/docs-screenshot.png" width="48%" alt="API Documentation" style="border: 2px solid #333; padding: 10px;">
-  <img src="assets/webui-screenshot.png" width="48%" alt="Web UI Screenshot" style="border: 2px solid #333; padding: 10px;">
-</div>
 
 </details>
 
@@ -53,7 +44,6 @@ Once running, access:
 
 1. Install prerequisites, and start the service using Docker Compose (Full setup including UI):
    - Install [Docker](https://www.docker.com/products/docker-desktop/)
-   - 
    - Clone the repository:
         ```bash
         git clone https://github.com/remsky/Kokoro-FastAPI.git
@@ -72,31 +62,7 @@ Once running, access:
         ./start-cpu.sh
         ./start-gpu.sh 
         ```
-
-      Once started:
-     - The API will be available at http://localhost:8880
-     - The *Web UI* can be tested at http://localhost:8880/web
-     - The Gradio UI (deprecating) can be accessed at http://localhost:7860
-
-2. Run locally as an OpenAI-Compatible Speech Endpoint
-    ```python
-    from openai import OpenAI
-    client = OpenAI(
-        base_url="http://localhost:8880/v1",
-        api_key="not-needed"
-        )
-
-    with client.audio.speech.with_streaming_response.create(
-        model="kokoro", 
-        voice="af_sky+af_bella", #single or multiple voicepack combo
-        input="Hello world!",
-        response_format="mp3"
-    ) as response:
-        response.stream_to_file("output.mp3")
-    
-    ```
 </details>
-
 <details>
 <summary>Direct Run (via uv) </summary>
 
@@ -118,28 +84,40 @@ Once running, access:
         ./start-gpu.sh 
         ```
 
-      Once started:
-     - The API will be available at http://localhost:8880
-     - The *Web UI* can be tested at http://localhost:8880/web
-     - The Gradio UI (deprecating) can be accessed at http://localhost:7860
+</details>
 
-2. Run locally as an OpenAI-Compatible Speech Endpoint
-    ```python
-    from openai import OpenAI
-    client = OpenAI(
-        base_url="http://localhost:8880/v1",
-        api_key="not-needed"
-        )
+<details open>
+<summary> Up and Running? </summary>
 
-    with client.audio.speech.with_streaming_response.create(
-        model="kokoro", 
-        voice="af_sky+af_bella", #single or multiple voicepack combo
-        input="Hello world!",
-        response_format="mp3"
-    ) as response:
-        response.stream_to_file("output.mp3")
+
+Run locally as an OpenAI-Compatible Speech Endpoint
     
-    ```
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="http://localhost:8880/v1", api_key="not-needed"
+)
+
+with client.audio.speech.with_streaming_response.create(
+    model="kokoro",
+    voice="af_sky+af_bella", #single or multiple voicepack combo
+    input="Hello world!"
+  ) as response:
+      response.stream_to_file("output.mp3")
+```
+  
+- The API will be available at http://localhost:8880
+- API Documentation: http://localhost:8880/docs
+
+- Web Interface: http://localhost:8880/web
+- Gradio UI (deprecating) can be accessed at http://localhost:7860 if enabled in docker compose file (it is a separate image!)
+
+<div align="center" style="display: flex; justify-content: center; gap: 10px;">
+  <img src="assets/docs-screenshot.png" width="40%" alt="API Documentation" style="border: 2px solid #333; padding: 10px;">
+  <img src="assets/webui-screenshot.png" width="49%" alt="Web UI Screenshot" style="border: 2px solid #333; padding: 10px;">
+</div>
+
 </details>
 
 ## Features 
