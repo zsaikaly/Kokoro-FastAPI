@@ -23,7 +23,7 @@ Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokor
 
 ## Get Started
 
-<details >
+<details>
 <summary>Quickest Start (docker run)</summary>
 
 
@@ -46,7 +46,6 @@ Once running, access:
 </div>
 
 </details>
-
 
 <details>
 
@@ -97,6 +96,8 @@ Once running, access:
     
     ```
 </details>
+
+<details>
 <summary>Direct Run (via uv) </summary>
 
 1. Install prerequisites ():
