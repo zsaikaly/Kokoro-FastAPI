@@ -31,23 +31,20 @@ def process_text_chunk(text: str, language: str = "a", skip_phonemize: bool = Fa
         t0 = time.time()
         tokens = tokenize(text)
         t1 = time.time()
-        logger.debug(f"Tokenization took {(t1-t0)*1000:.2f}ms for {len(text)} chars")
     else:
         # Normal text processing pipeline
         t0 = time.time()
         normalized = normalize_text(text)
         t1 = time.time()
-        logger.debug(f"Normalization took {(t1-t0)*1000:.2f}ms for {len(text)} chars")
+
         
         t0 = time.time()
         phonemes = phonemize(normalized, language, normalize=False)  # Already normalized
         t1 = time.time()
-        logger.debug(f"Phonemization took {(t1-t0)*1000:.2f}ms for {len(normalized)} chars")
         
         t0 = time.time()
         tokens = tokenize(phonemes)
         t1 = time.time()
-        logger.debug(f"Tokenization took {(t1-t0)*1000:.2f}ms for {len(phonemes)} chars")
     
     total_time = time.time() - start_time
     logger.debug(f"Total processing took {total_time*1000:.2f}ms for chunk: '{text[:50]}...'")

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import numpy as np
 import torch
 from pathlib import Path
-
+import os
 from api.src.services.tts_service import TTSService
 from api.src.inference.voice_manager import VoiceManager
 from api.src.inference.model_manager import ModelManager
@@ -12,20 +12,25 @@ from api.src.structures.model_schemas import VoiceConfig
 
 @pytest.fixture
 def mock_voice_tensor():
-    """Mock voice tensor for testing."""
-    return torch.randn(1, 128)  # Dummy tensor
+    """Load a real voice tensor for testing."""
+    voice_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'src/voices/af_bella.pt')
+    return torch.load(voice_path, map_location='cpu', weights_only=False)
 
 @pytest.fixture
 def mock_audio_output():
-    """Mock audio output for testing."""
-    return np.random.rand(16000)  # 1 second of random audio
+    """Load pre-generated test audio for consistent testing."""
+    test_audio_path = os.path.join(os.path.dirname(__file__), 'test_data/test_audio.npy')
+    return np.load(test_audio_path)  # Return as numpy array instead of bytes
 
 @pytest_asyncio.fixture
 async def mock_model_manager(mock_audio_output):
     """Mock model manager for testing."""
     manager = AsyncMock(spec=ModelManager)
     manager.get_backend = MagicMock()
-    manager.generate = AsyncMock(return_value=mock_audio_output)
+    async def mock_generate(*args, **kwargs):
+        # Simulate successful audio generation
+        return np.random.rand(24000).astype(np.float32)  # 1 second of random audio data
+    manager.generate = AsyncMock(side_effect=mock_generate)
     return manager
 
 @pytest_asyncio.fixture

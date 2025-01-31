@@ -98,6 +98,9 @@ class TempFileWriter:
         self.temp_file = await aiofiles.open(temp.name, mode='wb')
         self.temp_path = temp.name
         temp.close()  # Close sync file, we'll use async version
+        
+        # Generate download path immediately
+        self.download_path = f"/download/{os.path.basename(self.temp_path)}"
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):

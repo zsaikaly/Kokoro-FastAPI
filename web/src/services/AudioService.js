@@ -47,10 +47,17 @@ export class AudioService {
                 signal: this.controller.signal
             });
 
-            console.log('AudioService: Got response', { 
+            console.log('AudioService: Got response', {
                 status: response.status,
                 headers: Object.fromEntries(response.headers.entries())
             });
+
+            // Check for download path as soon as we get the response
+            const downloadPath = response.headers.get('x-download-path');
+            if (downloadPath) {
+                this.serverDownloadPath = `/v1${downloadPath}`;
+                console.log('Download path received:', this.serverDownloadPath);
+            }
 
             if (!response.ok) {
                 const error = await response.json();
@@ -109,16 +116,18 @@ export class AudioService {
                 const {value, done} = await reader.read();
                 
                 if (done) {
-                    // Get final download path from header
-                    const downloadPath = response.headers.get('X-Download-Path');
+                    // Get final download path from header after stream is complete
+                    const headers = Object.fromEntries(response.headers.entries());
+                    console.log('Response headers at stream end:', headers);
+                    
+                    const downloadPath = headers['x-download-path'];
                     if (downloadPath) {
                         // Prepend /v1 since the router is mounted there
                         this.serverDownloadPath = `/v1${downloadPath}`;
                         console.log('Download path received:', this.serverDownloadPath);
-                        // Log all headers to see what we're getting
-                        console.log('All response headers:', Object.fromEntries(response.headers.entries()));
                     } else {
-                        console.warn('No X-Download-Path header found in response');
+                        console.warn('No X-Download-Path header found. Available headers:',
+                            Object.keys(headers).join(', '));
                     }
 
                     if (this.mediaSource.readyState === 'open') {

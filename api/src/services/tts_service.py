@@ -231,7 +231,7 @@ class TTSService:
         chunks = []
         
         try:
-            # Use streaming generator but collect all chunks
+            # Use streaming generator but collect all valid chunks
             async for chunk in self.generate_audio_stream(
                 text, voice, speed,  # Default to WAV for raw audio
             ):
@@ -241,8 +241,15 @@ class TTSService:
             if not chunks:
                 raise ValueError("No audio chunks were generated successfully")
 
-            # Combine chunks
-            audio = np.concatenate(chunks) if len(chunks) > 1 else chunks[0]
+            # Combine chunks, ensuring we have valid arrays
+            if len(chunks) == 1:
+                audio = chunks[0]
+            else:
+                # Filter out any zero-dimensional arrays
+                valid_chunks = [c for c in chunks if c.ndim > 0]
+                if not valid_chunks:
+                    raise ValueError("No valid audio chunks to concatenate")
+                audio = np.concatenate(valid_chunks)
             processing_time = time.time() - start_time
             return audio, processing_time
 

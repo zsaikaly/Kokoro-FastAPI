@@ -182,12 +182,16 @@ async def create_speech(
                 temp_writer = TempFileWriter(request.response_format)
                 await temp_writer.__aenter__()  # Initialize temp file
                 
-                # Create response headers
+                # Get download path immediately after temp file creation
+                download_path = temp_writer.download_path
+                
+                # Create response headers with download path
                 headers = {
                     "Content-Disposition": f"attachment; filename=speech.{request.response_format}",
                     "X-Accel-Buffering": "no",
                     "Cache-Control": "no-cache",
-                    "Transfer-Encoding": "chunked"
+                    "Transfer-Encoding": "chunked",
+                    "X-Download-Path": download_path
                 }
 
                 # Create async generator for streaming
@@ -199,9 +203,8 @@ async def create_speech(
                                 await temp_writer.write(chunk)
                                 yield chunk
 
-                        # Get download path and add to headers
-                        download_path = await temp_writer.finalize()
-                        headers["X-Download-Path"] = download_path
+                        # Finalize the temp file
+                        await temp_writer.finalize()
                     except Exception as e:
                         logger.error(f"Error in dual output streaming: {e}")
                         await temp_writer.__aexit__(type(e), e, e.__traceback__)

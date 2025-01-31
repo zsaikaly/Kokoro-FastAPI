@@ -15,11 +15,9 @@ from loguru import logger
 
 from .core.config import settings
 from .routers.web_player import router as web_router
-from .core.model_config import model_config
 from .routers.development import router as dev_router
 from .routers.openai_compatible import router as openai_router
 from .routers.debug import router as debug_router
-from .services.tts_service import TTSService
 
 
 def setup_logger():
