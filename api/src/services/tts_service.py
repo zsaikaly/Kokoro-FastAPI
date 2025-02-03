@@ -1,9 +1,11 @@
 """TTS service using model and voice managers."""
 
+import os
 import time
+import tempfile
 from typing import List, Tuple, Optional, AsyncGenerator, Union
-import asyncio
 
+import asyncio
 import numpy as np
 import torch
 from loguru import logger
@@ -14,6 +16,8 @@ from ..inference.voice_manager import get_manager as get_voice_manager
 from .audio import AudioNormalizer, AudioService
 from .text_processing.text_processor import process_text_chunk, smart_split
 from .text_processing import tokenize
+from ..inference.kokoro_v1 import KokoroV1
+
 
 class TTSService:
     """Text-to-speech service."""
@@ -37,14 +41,16 @@ class TTSService:
 
     async def _process_chunk(
         self,
+        chunk_text: str,
         tokens: List[int],
-        voice_tensor: torch.Tensor,
+        voice_name: str,
+        voice_path: str,
         speed: float,
         output_format: Optional[str] = None,
         is_first: bool = False,
         is_last: bool = False,
         normalizer: Optional[AudioNormalizer] = None,
-    ) -> Optional[Union[np.ndarray, bytes]]:
+    ) -> AsyncGenerator[Union[np.ndarray, bytes], None]:
         """Process tokens into audio."""
         async with self._chunk_semaphore:
             try:
@@ -52,9 +58,10 @@ class TTSService:
                 if is_last:
                     # Skip format conversion for raw audio mode
                     if not output_format:
-                        return np.array([], dtype=np.float32)
+                        yield np.array([], dtype=np.float32)
+                        return
                     
-                    return await AudioService.convert_audio(
+                    result = await AudioService.convert_audio(
                         np.array([0], dtype=np.float32),  # Dummy data for type checking
                         24000,
                         output_format,
@@ -62,45 +69,126 @@ class TTSService:
                         normalizer=normalizer,
                         is_last_chunk=True
                     )
+                    yield result
+                    return
                 
                 # Skip empty chunks
-                if not tokens:
-                    return None
+                if not tokens and not chunk_text:
+                    return
+
+                # Get backend
+                backend = self.model_manager.get_backend()
 
                 # Generate audio using pre-warmed model
-                chunk_audio = await self.model_manager.generate(
-                    tokens,
-                    voice_tensor,
-                    speed=speed
-                )
-                
-                if chunk_audio is None:
-                    logger.error("Model generated None for audio chunk")
-                    return None
-                
-                if len(chunk_audio) == 0:
-                    logger.error("Model generated empty audio chunk")
-                    return None
+                if isinstance(backend, KokoroV1):
+                    # For Kokoro V1, pass text and voice info
+                    async for chunk_audio in self.model_manager.generate(
+                        chunk_text,
+                        (voice_name, voice_path),
+                        speed=speed
+                    ):
+                        # For streaming, convert to bytes
+                        if output_format:
+                            try:
+                                converted = await AudioService.convert_audio(
+                                    chunk_audio,
+                                    24000,
+                                    output_format,
+                                    is_first_chunk=is_first,
+                                    normalizer=normalizer,
+                                    is_last_chunk=is_last
+                                )
+                                yield converted
+                            except Exception as e:
+                                logger.error(f"Failed to convert audio: {str(e)}")
+                        else:
+                            yield chunk_audio
+                else:
+                    # For legacy backends, load voice tensor
+                    voice_tensor = await self._voice_manager.load_voice(voice_name, device=backend.device)
+                    chunk_audio = await self.model_manager.generate(
+                        tokens,
+                        voice_tensor,
+                        speed=speed
+                    )
                     
-                # For streaming, convert to bytes
-                if output_format:
-                    try:
-                        return await AudioService.convert_audio(
-                            chunk_audio,
-                            24000,
-                            output_format,
-                            is_first_chunk=is_first,
-                            normalizer=normalizer,
-                            is_last_chunk=is_last
-                        )
-                    except Exception as e:
-                        logger.error(f"Failed to convert audio: {str(e)}")
-                        return None
+                    if chunk_audio is None:
+                        logger.error("Model generated None for audio chunk")
+                        return
                     
-                return chunk_audio
+                    if len(chunk_audio) == 0:
+                        logger.error("Model generated empty audio chunk")
+                        return
+                        
+                    # For streaming, convert to bytes
+                    if output_format:
+                        try:
+                            converted = await AudioService.convert_audio(
+                                chunk_audio,
+                                24000,
+                                output_format,
+                                is_first_chunk=is_first,
+                                normalizer=normalizer,
+                                is_last_chunk=is_last
+                            )
+                            yield converted
+                        except Exception as e:
+                            logger.error(f"Failed to convert audio: {str(e)}")
+                    else:
+                        yield chunk_audio
             except Exception as e:
                 logger.error(f"Failed to process tokens: {str(e)}")
-                return None
+
+    async def _get_voice_path(self, voice: str) -> Tuple[str, str]:
+        """Get voice path, handling combined voices.
+        
+        Args:
+            voice: Voice name or combined voice names (e.g., 'af_jadzia+af_jessica')
+            
+        Returns:
+            Tuple of (voice name to use, voice path to use)
+            
+        Raises:
+            RuntimeError: If voice not found
+        """
+        try:
+            # Check if it's a combined voice
+            if "+" in voice:
+                voices = [v.strip() for v in voice.split("+") if v.strip()]
+                if len(voices) < 2:
+                    raise RuntimeError(f"Invalid combined voice name: {voice}")
+                
+                # Load and combine voices
+                voice_tensors = []
+                for v in voices:
+                    path = self._voice_manager.get_voice_path(v)
+                    if not path:
+                        raise RuntimeError(f"Voice not found: {v}")
+                    logger.debug(f"Loading voice tensor from: {path}")
+                    voice_tensor = torch.load(path, map_location="cpu")
+                    voice_tensors.append(voice_tensor)
+                
+                # Average the voice tensors
+                logger.debug(f"Combining {len(voice_tensors)} voice tensors")
+                combined = torch.mean(torch.stack(voice_tensors), dim=0)
+                
+                # Save combined tensor
+                temp_dir = tempfile.gettempdir()
+                combined_path = os.path.join(temp_dir, f"{voice}.pt")
+                logger.debug(f"Saving combined voice to: {combined_path}")
+                torch.save(combined, combined_path)
+                
+                return voice, combined_path
+            else:
+                # Single voice
+                path = self._voice_manager.get_voice_path(voice)
+                if not path:
+                    raise RuntimeError(f"Voice not found: {voice}")
+                logger.debug(f"Using single voice path: {path}")
+                return voice, path
+        except Exception as e:
+            logger.error(f"Failed to get voice path: {e}")
+            raise
 
     async def generate_audio_stream(
         self,
@@ -111,33 +199,36 @@ class TTSService:
     ) -> AsyncGenerator[bytes, None]:
         """Generate and stream audio chunks."""
         stream_normalizer = AudioNormalizer()
-        voice_tensor = None
         chunk_index = 0
         
         try:
-            # Get backend and load voice (should be fast if cached)
+            # Get backend
             backend = self.model_manager.get_backend()
-            voice_tensor = await self._voice_manager.load_voice(voice, device=backend.device)
+
+            # Get voice path, handling combined voices
+            voice_name, voice_path = await self._get_voice_path(voice)
+            logger.debug(f"Using voice path: {voice_path}")
 
             # Process text in chunks with smart splitting
             async for chunk_text, tokens in smart_split(text):
                 try:
                     # Process audio for chunk
-                    result = await self._process_chunk(
-                        tokens,  # Now always a flat List[int]
-                        voice_tensor,
+                    async for result in self._process_chunk(
+                        chunk_text,  # Pass text for Kokoro V1
+                        tokens,      # Pass tokens for legacy backends
+                        voice_name,  # Pass voice name
+                        voice_path,  # Pass voice path
                         speed,
                         output_format,
                         is_first=(chunk_index == 0),
                         is_last=False,  # We'll update the last chunk later
                         normalizer=stream_normalizer
-                    )
-                    
-                    if result is not None:
-                        yield result
-                        chunk_index += 1
-                    else:
-                        logger.warning(f"No audio generated for chunk: '{chunk_text[:100]}...'")
+                    ):
+                        if result is not None:
+                            yield result
+                            chunk_index += 1
+                        else:
+                            logger.warning(f"No audio generated for chunk: '{chunk_text[:100]}...'")
                         
                 except Exception as e:
                     logger.error(f"Failed to process audio for chunk: '{chunk_text[:100]}...'. Error: {str(e)}")
@@ -147,81 +238,25 @@ class TTSService:
             if chunk_index > 0:
                 try:
                     # Empty tokens list to finalize audio
-                    final_result = await self._process_chunk(
-                        [],  # Empty tokens list
-                        voice_tensor,
+                    async for result in self._process_chunk(
+                        "",  # Empty text
+                        [],  # Empty tokens
+                        voice_name,
+                        voice_path,
                         speed,
                         output_format,
                         is_first=False,
-                        is_last=True,
+                        is_last=True,  # Signal this is the last chunk
                         normalizer=stream_normalizer
-                    )
-                    if final_result is not None:
-                        logger.debug("Yielding final chunk to finalize audio")
-                        yield final_result
-                    else:
-                        logger.warning("Final chunk processing returned None")
+                    ):
+                        if result is not None:
+                            yield result
                 except Exception as e:
-                    logger.error(f"Failed to process final chunk: {str(e)}")
-            else:
-                logger.warning("No audio chunks were successfully processed")
-
-        except Exception as e:
-            logger.error(f"Error in audio generation stream: {str(e)}")
-            raise
-        finally:
-            if voice_tensor is not None:
-                del voice_tensor
-                torch.cuda.empty_cache()
-
-    async def generate_from_phonemes(
-        self, phonemes: str, voice: str, speed: float = 1.0
-    ) -> Tuple[np.ndarray, float]:
-        """Generate audio from phonemes.
-        
-        Args:
-            phonemes: Phoneme string to synthesize
-            voice: Voice ID to use
-            speed: Speed multiplier
-            
-        Returns:
-            Tuple of (audio array, processing time)
-        """
-        start_time = time.time()
-        voice_tensor = None
-
-        try:
-            # Get backend and load voice
-            backend = self.model_manager.get_backend()
-            voice_tensor = await self._voice_manager.load_voice(voice, device=backend.device)
-
-            # Convert phonemes to tokens
-            tokens = tokenize(phonemes)
-            if len(tokens) > 500:  # Model context limit
-                raise ValueError(f"Phoneme sequence too long ({len(tokens)} tokens, max 500)")
-                
-            tokens = [0] + tokens + [0]  # Add start/end tokens
-            
-            # Generate audio
-            audio = await self.model_manager.generate(
-                tokens,
-                voice_tensor,
-                speed=speed
-            )
-            
-            if audio is None:
-                raise ValueError("Failed to generate audio")
-
-            processing_time = time.time() - start_time
-            return audio, processing_time
+                    logger.error(f"Failed to finalize audio stream: {str(e)}")
 
         except Exception as e:
             logger.error(f"Error in phoneme audio generation: {str(e)}")
             raise
-        finally:
-            if voice_tensor is not None:
-                del voice_tensor
-                torch.cuda.empty_cache()
 
     async def generate_audio(
         self, text: str, voice: str, speed: float = 1.0

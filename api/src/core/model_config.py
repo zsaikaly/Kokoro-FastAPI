@@ -2,6 +2,9 @@
 
 from pydantic import BaseModel, Field
 
+class KokoroV1Config(BaseModel):
+    languages: list[str] = ["en"]
+
 
 class ONNXCPUConfig(BaseModel):
     """ONNX CPU runtime configuration."""
@@ -77,6 +80,7 @@ class ModelConfig(BaseModel):
     voice_cache_size: int = Field(2, description="Maximum number of cached voices")
     
     # Model filenames
+    pytorch_kokoro_v1_file: str = Field("v1_0/kokoro-v1_0.pth", description="PyTorch Kokoro V1 model filename")
     pytorch_model_file: str = Field("kokoro-v0_19-half.pth", description="PyTorch model filename")
     onnx_model_file: str = Field("kokoro-v0_19.onnx", description="ONNX model filename")
     
@@ -93,7 +97,7 @@ class ModelConfig(BaseModel):
         """Get configuration for specific backend.
         
         Args:
-            backend_type: Backend type ('pytorch_cpu', 'pytorch_gpu', 'onnx_cpu', 'onnx_gpu')
+            backend_type: Backend type ('pytorch_cpu', 'pytorch_gpu', 'onnx_cpu', 'onnx_gpu', 'kokoro_v1')
             
         Returns:
             Backend-specific configuration
@@ -102,7 +106,7 @@ class ModelConfig(BaseModel):
             ValueError: If backend type is invalid
         """
         if backend_type not in {
-            'pytorch_cpu', 'pytorch_gpu', 'onnx_cpu', 'onnx_gpu'
+            'pytorch_cpu', 'pytorch_gpu', 'onnx_cpu', 'onnx_gpu', 'kokoro_v1'
         }:
             raise ValueError(f"Invalid backend type: {backend_type}")
             

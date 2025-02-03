@@ -30,7 +30,7 @@ def setup_logger():
                 "{level: <8} | "
                 "{message}",
                 "colorize": True,
-                "level": "INFO",
+                "level": "DEBUG",
             },
         ],
     }

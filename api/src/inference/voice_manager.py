@@ -8,6 +8,7 @@ from loguru import logger
 
 from ..core import paths
 from ..core.config import settings
+from ..core.model_config import model_config
 from ..structures.model_schemas import VoiceConfig
 
 
@@ -33,8 +34,28 @@ class VoiceManager:
             Path to voice file if exists, None otherwise
         """
         api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        voice_path = os.path.join(api_dir, settings.voices_dir, f"{voice_name}.pt")
-        return voice_path if os.path.exists(voice_path) else None
+        voices_dir = os.path.join(api_dir, settings.voices_dir)
+
+        logger.debug(f"Looking for voice: {voice_name}")
+        logger.debug(f"Base voices directory: {voices_dir}")
+
+        # Check v1_0 subdirectory first if using Kokoro V1
+        if model_config.pytorch_kokoro_v1_file:
+            v1_path = os.path.join(voices_dir, 'v1_0', f"{voice_name}.pt")
+            logger.debug(f"Checking v1_0 path: {v1_path}")
+            if os.path.exists(v1_path):
+                logger.debug(f"Found voice in v1_0: {v1_path}")
+                return v1_path
+
+        # Fall back to main voices directory
+        voice_path = os.path.join(voices_dir, f"{voice_name}.pt")
+        logger.debug(f"Checking main path: {voice_path}")
+        if os.path.exists(voice_path):
+            logger.debug(f"Found voice in main dir: {voice_path}")
+            return voice_path
+        
+        logger.debug(f"Voice not found: {voice_name}")
+        return None
 
     async def load_voice(self, voice_name: str, device: str = "cpu") -> torch.Tensor:
         """Load voice tensor.
@@ -74,10 +95,12 @@ class VoiceManager:
         # Check cache
         cache_key = f"{voice_path}_{device}"
         if self._config.use_cache and cache_key in self._voice_cache:
+            logger.debug(f"Using cached voice: {voice_name} from {voice_path}")
             return self._voice_cache[cache_key]
 
         # Load voice tensor
         try:
+            logger.debug(f"Loading voice tensor from: {voice_path}")
             voice = await paths.load_voice_tensor(voice_path, device=device)
         except Exception as e:
             raise RuntimeError(f"Failed to load voice {voice_name}: {e}")
@@ -86,7 +109,7 @@ class VoiceManager:
         if self._config.use_cache:
             self._manage_cache()
             self._voice_cache[cache_key] = voice
-            logger.debug(f"Cached voice: {voice_name} on {device}")
+            logger.debug(f"Cached voice: {voice_name} on {device} from {voice_path}")
 
         return voice
 
@@ -128,6 +151,11 @@ class VoiceManager:
                 # Save to disk
                 api_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
                 voices_dir = os.path.join(api_dir, settings.voices_dir)
+                
+                # Save in v1_0 directory if using Kokoro V1
+                if model_config.pytorch_kokoro_v1_file:
+                    voices_dir = os.path.join(voices_dir, 'v1_0')
+                
                 os.makedirs(voices_dir, exist_ok=True)
                 
                 combined_path = os.path.join(voices_dir, f"{combined_name}.pt")
@@ -157,9 +185,21 @@ class VoiceManager:
             voices_dir = os.path.join(api_dir, settings.voices_dir)
             os.makedirs(voices_dir, exist_ok=True)
             
-            for entry in os.listdir(voices_dir):
-                if entry.endswith(".pt"):
-                    voices.add(entry[:-3])
+            # Check v1_0 subdirectory if using Kokoro V1
+            if model_config.pytorch_kokoro_v1_file:
+                v1_dir = os.path.join(voices_dir, 'v1_0')
+                logger.debug(f"Checking v1_0 directory: {v1_dir}")
+                if os.path.exists(v1_dir):
+                    for entry in os.listdir(v1_dir):
+                        if entry.endswith(".pt"):
+                            voices.add(entry[:-3])
+                            logger.debug(f"Found v1_0 voice: {entry[:-3]}")
+            else:
+                # Check main voices directory
+                for entry in os.listdir(voices_dir):
+                    if entry.endswith(".pt"):
+                        voices.add(entry[:-3])
+                        logger.debug(f"Found main voice: {entry[:-3]}")
                 
         except Exception as e:
             logger.error(f"Error listing voices: {e}")
@@ -177,7 +217,7 @@ class VoiceManager:
         try:
             if not os.path.exists(voice_path):
                 return False
-            voice = torch.load(voice_path, map_location="cpu")
+            voice = torch.load(voice_path, map_location="cpu", weights_only=False)
             return isinstance(voice, torch.Tensor)
         except Exception:
             return False
