@@ -1,46 +1,13 @@
-"""Model configuration schemas."""
+"""Model configuration for Kokoro V1."""
 
 from pydantic import BaseModel, Field
 
 class KokoroV1Config(BaseModel):
+    """Kokoro V1 configuration."""
     languages: list[str] = ["en"]
 
-
-class ONNXCPUConfig(BaseModel):
-    """ONNX CPU runtime configuration."""
-    
-    # Session pooling
-    max_instances: int = Field(4, description="Maximum concurrent model instances")
-    instance_timeout: int = Field(60, description="Session timeout in seconds")
-    
-    # Runtime settings
-    num_threads: int = Field(8, description="Number of threads for parallel operations")
-    inter_op_threads: int = Field(4, description="Number of threads for operator parallelism")
-    execution_mode: str = Field("parallel", description="ONNX execution mode")
-    optimization_level: str = Field("all", description="ONNX optimization level")
-    memory_pattern: bool = Field(True, description="Enable memory pattern optimization")
-    arena_extend_strategy: str = Field("kNextPowerOfTwo", description="Memory arena strategy")
-
     class Config:
         frozen = True
-
-
-class ONNXGPUConfig(ONNXCPUConfig):
-    """ONNX GPU-specific configuration."""
-    
-    # CUDA settings
-    device_id: int = Field(0, description="CUDA device ID")
-    gpu_mem_limit: float = Field(0.5, description="Fraction of GPU memory to use")
-    cudnn_conv_algo_search: str = Field("EXHAUSTIVE", description="CuDNN convolution algorithm search")
-    
-    # Stream management
-    cuda_streams: int = Field(2, description="Number of CUDA streams for inference")
-    stream_timeout: int = Field(60, description="Stream timeout in seconds")
-    do_copy_in_default_stream: bool = Field(True, description="Copy in default CUDA stream")
-
-    class Config:
-        frozen = True
-
 
 class PyTorchCPUConfig(BaseModel):
     """PyTorch CPU backend configuration."""
@@ -70,47 +37,22 @@ class PyTorchGPUConfig(BaseModel):
 
 
 class ModelConfig(BaseModel):
-    """Model configuration."""
+    """Kokoro V1 model configuration."""
     
     # General settings
-    model_type: str = Field("pytorch", description="Model type ('pytorch' or 'onnx')")
-    device_type: str = Field("auto", description="Device type ('cpu', 'gpu', or 'auto')")
-    cache_models: bool = Field(True, description="Whether to cache loaded models")
+    device_type: str = Field("cpu", description="Device type ('cpu' or 'gpu')")
     cache_voices: bool = Field(True, description="Whether to cache voice tensors")
     voice_cache_size: int = Field(2, description="Maximum number of cached voices")
     
-    # Model filenames
+    # Model filename
     pytorch_kokoro_v1_file: str = Field("v1_0/kokoro-v1_0.pth", description="PyTorch Kokoro V1 model filename")
-    pytorch_model_file: str = Field("kokoro-v0_19-half.pth", description="PyTorch model filename")
-    onnx_model_file: str = Field("kokoro-v0_19.onnx", description="ONNX model filename")
     
-    # Backend-specific configs
-    onnx_cpu: ONNXCPUConfig = Field(default_factory=ONNXCPUConfig)
-    onnx_gpu: ONNXGPUConfig = Field(default_factory=ONNXGPUConfig)
+    # Backend configs
     pytorch_cpu: PyTorchCPUConfig = Field(default_factory=PyTorchCPUConfig)
     pytorch_gpu: PyTorchGPUConfig = Field(default_factory=PyTorchGPUConfig)
 
     class Config:
         frozen = True
-
-    def get_backend_config(self, backend_type: str):
-        """Get configuration for specific backend.
-        
-        Args:
-            backend_type: Backend type ('pytorch_cpu', 'pytorch_gpu', 'onnx_cpu', 'onnx_gpu', 'kokoro_v1')
-            
-        Returns:
-            Backend-specific configuration
-            
-        Raises:
-            ValueError: If backend type is invalid
-        """
-        if backend_type not in {
-            'pytorch_cpu', 'pytorch_gpu', 'onnx_cpu', 'onnx_gpu', 'kokoro_v1'
-        }:
-            raise ValueError(f"Invalid backend type: {backend_type}")
-            
-        return getattr(self, backend_type)
 
 
 # Global instance

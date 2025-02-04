@@ -68,6 +68,7 @@ def get_model_name(model: str) -> str:
     extension = ".onnx" if settings.use_onnx else ".pth"
     return base_name + extension
 
+
 async def process_voices(
     voice_input: Union[str, List[str]], tts_service: TTSService
 ) -> str:

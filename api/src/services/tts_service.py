@@ -161,7 +161,7 @@ class TTSService:
                 # Load and combine voices
                 voice_tensors = []
                 for v in voices:
-                    path = self._voice_manager.get_voice_path(v)
+                    path = await self._voice_manager.get_voice_path(v)
                     if not path:
                         raise RuntimeError(f"Voice not found: {v}")
                     logger.debug(f"Loading voice tensor from: {path}")
@@ -181,7 +181,7 @@ class TTSService:
                 return voice, combined_path
             else:
                 # Single voice
-                path = self._voice_manager.get_voice_path(voice)
+                path = await self._voice_manager.get_voice_path(voice)
                 if not path:
                     raise RuntimeError(f"Voice not found: {voice}")
                 logger.debug(f"Using single voice path: {path}")

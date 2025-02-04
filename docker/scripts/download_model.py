@@ -1,103 +1,86 @@
 #!/usr/bin/env python3
-import os
-import sys
+"""Download and prepare Kokoro model for Docker build."""
+
 import argparse
-import requests
+import json
+import os
+import shutil
 from pathlib import Path
-from typing import List
 
-def download_file(url: str, output_dir: Path, model_type: str, overwrite:str) -> bool:
-    """Download a file from URL to the specified directory.
+import torch
+from huggingface_hub import hf_hub_download
+from loguru import logger
+
+
+def download_model(version: str, output_dir: str) -> None:
+    """Download model files from HuggingFace.
     
-    Returns:
-        bool: True if download succeeded, False otherwise
+    Args:
+        version: Model version to download
+        output_dir: Directory to save model files
     """
-    filename = os.path.basename(url)
-    if not filename.endswith(f'.{model_type}'):
-        print(f"Warning: {filename} is not a .{model_type} file", file=sys.stderr)
-        return False
-        
-    output_path = output_dir / filename
-    
-    if os.path.exists(output_path):
-        print(f"{filename} exists. Canceling download")
-        return True
-    
-    print(f"Downloading {filename}...")
     try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
+        logger.info(f"Downloading Kokoro model version {version}")
         
-        with open(output_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        print(f"Successfully downloaded {filename}")
-        return True
-    except Exception as e:
-        print(f"Error downloading {filename}: {e}", file=sys.stderr)
-        return False
-
-def find_project_root() -> Path:
-    """Find project root by looking for api directory."""
-    max_steps = 5
-    current = Path(__file__).resolve()
-    for _ in range(max_steps):
-        if (current / 'api').is_dir():
-            return current
-        current = current.parent
-    raise RuntimeError("Could not find project root (no api directory found)")
-
-def main() -> int:
-    """Download models to the project.
-    
-    Returns:
-        int: Exit code (0 for success, 1 for failure)
-    """
-    parser = argparse.ArgumentParser(description='Download model files')
-    parser.add_argument('--type', choices=['pth', 'onnx'], required=True,
-                      help='Model type to download (pth or onnx)')
-    parser.add_argument('--overwrite', action='store_true', help='Overwite existing files')
-    parser.add_argument('urls', nargs='*', help='Optional model URLs to download')
-    args = parser.parse_args()
-
-    try:
-        # Find project root and ensure models directory exists
-        project_root = find_project_root()
-        models_dir = project_root / 'api' / 'src' / 'models'
-        print(f"Downloading models to {models_dir}")
-        models_dir.mkdir(exist_ok=True)
+        # Create output directory
+        os.makedirs(output_dir, exist_ok=True)
         
-        # Default models if no arguments provided
-        default_models = {
-            'pth': [
-                "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19.pth",
-                "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19-half.pth"
-            ],
-            'onnx': [
-                "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19.onnx",
-                "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.0/kokoro-v0_19_fp16.onnx"
-            ]
-        }
+        # Download model files
+        model_file = hf_hub_download(
+            repo_id="hexgrad/Kokoro-82M",
+            filename=f"kokoro-{version}.pth"
+        )
+        config_file = hf_hub_download(
+            repo_id="hexgrad/Kokoro-82M",
+            filename="config.json"
+        )
         
-        # Use provided models or default
-        models_to_download = args.urls if args.urls else default_models[args.type]
+        # Copy to output directory
+        shutil.copy2(model_file, os.path.join(output_dir, "model.pt"))
+        shutil.copy2(config_file, os.path.join(output_dir, "config.json"))
         
-        # Download all models
-        success = True
-        for model_url in models_to_download:
-            if not download_file(model_url, models_dir, args.type,args.overwrite):
-                success = False
+        # Verify files
+        model_path = os.path.join(output_dir, "model.pt")
+        config_path = os.path.join(output_dir, "config.json")
         
-        if success:
-            print(f"{args.type.upper()} model download complete!")
-            return 0
-        else:
-            print("Some downloads failed", file=sys.stderr)
-            return 1
+        if not os.path.exists(model_path):
+            raise RuntimeError(f"Model file not found: {model_path}")
+        if not os.path.exists(config_path):
+            raise RuntimeError(f"Config file not found: {config_path}")
             
+        # Load and verify model
+        logger.info("Verifying model files...")
+        with open(config_path) as f:
+            config = json.load(f)
+        logger.info(f"Loaded config: {config}")
+        
+        model = torch.load(model_path, map_location="cpu")
+        logger.info(f"Loaded model with keys: {model.keys()}")
+        
+        logger.info(f"✓ Model files prepared in {output_dir}")
+        
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        return 1
+        logger.error(f"Failed to download model: {e}")
+        raise
+
+
+def main():
+    """Main entry point."""
+    parser = argparse.ArgumentParser(description="Download Kokoro model for Docker build")
+    parser.add_argument(
+        "--version",
+        default="v1_0",
+        help="Model version to download"
+    )
+    parser.add_argument(
+        "--output",
+        required=True,
+        help="Output directory for model files"
+    )
+    
+    args = parser.parse_args()
+    download_model(args.version, args.output)
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

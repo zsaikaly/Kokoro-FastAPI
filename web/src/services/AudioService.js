@@ -375,8 +375,6 @@ export class AudioService {
         this.sourceBuffer = null;
         this.serverDownloadPath = null;
         this.pendingOperations = [];
-
-        window.location.reload();
     }
 
     cleanup() {

@@ -127,7 +127,7 @@ async def get_voice_path(voice_name: str) -> str:
     
     voice_file = f"{voice_name}.pt"
     
-    # Search in voice directory
+    # Search in voice directory/o
     search_paths = [voice_dir]
     logger.debug(f"Searching for voice in path: {voice_dir}")
     

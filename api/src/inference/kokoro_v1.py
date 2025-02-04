@@ -1,9 +1,7 @@
-"""PyTorch inference backend with environment-based configuration."""
+"""Clean Kokoro implementation with controlled resource management."""
 
-import gc
 import os
-from typing import AsyncGenerator, Optional, List, Union, Tuple
-from contextlib import nullcontext
+from typing import AsyncGenerator, Optional, Union, Tuple
 
 import numpy as np
 import torch
@@ -15,23 +13,19 @@ from ..core.config import settings
 from .base import BaseModelBackend
 from kokoro import KModel, KPipeline
 
-
 class KokoroV1(BaseModelBackend):
-    """Kokoro package based inference backend with environment-based configuration."""
+    """Kokoro backend with controlled resource management."""
 
     def __init__(self):
-        """Initialize backend based on environment configuration."""
+        """Initialize backend with environment-based configuration."""
         super().__init__()
-
-        # Configure device based on settings
-        self._device = (
-            "cuda" if settings.use_gpu and torch.cuda.is_available() else "cpu"
-        )
+        # Strictly respect settings.use_gpu
+        self._device = "cuda" if settings.use_gpu else "cpu"
         self._model: Optional[KModel] = None
         self._pipeline: Optional[KPipeline] = None
 
     async def load_model(self, path: str) -> None:
-        """Load Kokoro model.
+        """Load pre-baked model.
         
         Args:
             path: Path to model file
@@ -42,8 +36,6 @@ class KokoroV1(BaseModelBackend):
         try:
             # Get verified model path
             model_path = await paths.get_model_path(path)
-            
-            # Get config.json path from the same directory
             config_path = os.path.join(os.path.dirname(model_path), 'config.json')
             
             if not os.path.exists(config_path):
@@ -53,22 +45,36 @@ class KokoroV1(BaseModelBackend):
             logger.info(f"Config path: {config_path}")
             logger.info(f"Model path: {model_path}")
             
-            # Initialize model with config and weights
-            self._model = KModel(config=config_path, model=model_path).to(self._device).eval()
-            # Initialize pipeline with American English by default
-            self._pipeline = KPipeline(lang_code='a', model=self._model, device=self._device)
+            # Load model and let KModel handle device mapping
+            self._model = KModel(
+                config=config_path,
+                model=model_path
+            ).eval()
+            # Move to CUDA if needed
+            if self._device == "cuda":
+                self._model = self._model.cuda()
+            
+            # Initialize pipeline with our model and device
+            self._pipeline = KPipeline(
+                lang_code='a',
+                model=self._model,  # Pass our model directly
+                device=self._device  # Match our device setting
+            )
             
         except Exception as e:
             raise RuntimeError(f"Failed to load Kokoro model: {e}")
 
     async def generate(
-        self, text: str, voice: Union[str, Tuple[str, Union[torch.Tensor, str]]], speed: float = 1.0
+        self,
+        text: str,
+        voice: Union[str, Tuple[str, Union[torch.Tensor, str]]],
+        speed: float = 1.0
     ) -> AsyncGenerator[np.ndarray, None]:
         """Generate audio using model.
 
         Args:
             text: Input text to synthesize
-            voice: Either a voice path string or a tuple of (voice_name, voice_tensor_or_path)
+            voice: Either a voice path string or a tuple of (voice_name, voice_tensor/path)
             speed: Speed multiplier
 
         Yields:
@@ -87,53 +93,38 @@ class KokoroV1(BaseModelBackend):
                     self._clear_memory()
 
             # Handle voice input
-            if isinstance(voice, str):
-                voice_path = voice  # Voice path provided directly
-                logger.debug(f"Using voice path directly: {voice_path}")
-                # Get language code from first letter of voice name
-                try:
-                    name = os.path.basename(voice_path)
-                    logger.debug(f"Voice basename: {name}")
-                    if name.endswith('.pt'):
-                        name = name[:-3]
-                    lang_code = name[0]
-                    logger.debug(f"Extracted language code: {lang_code}")
-                except Exception as e:
-                    # Default to American English if we can't get language code
-                    logger.warning(f"Failed to extract language code: {e}, defaulting to 'a'")
-                    lang_code = 'a'
-            else:
-                # Unpack voice name and tensor/path
+            voice_path: str
+            if isinstance(voice, tuple):
                 voice_name, voice_data = voice
-                # If voice_data is a path, use it directly
                 if isinstance(voice_data, str):
                     voice_path = voice_data
-                    logger.debug(f"Using provided voice path: {voice_path}")
                 else:
                     # Save tensor to temporary file
                     import tempfile
                     temp_dir = tempfile.gettempdir()
                     voice_path = os.path.join(temp_dir, f"{voice_name}.pt")
-                    logger.debug(f"Saving voice tensor to: {voice_path}")
-                    torch.save(voice_data, voice_path)
-                # Get language code from voice name
-                lang_code = voice_name[0]
-                logger.debug(f"Using language code '{lang_code}' from voice name {voice_name}")
+                    # Save tensor with CPU mapping for portability
+                    torch.save(voice_data.cpu(), voice_path)
+            else:
+                voice_path = voice
 
-            # Update pipeline's language code if needed
-            if self._pipeline.lang_code != lang_code:
-                logger.debug(f"Creating pipeline with lang_code='{lang_code}'")
-                self._pipeline = KPipeline(lang_code=lang_code, model=self._model, device=self._device)
+            # Load voice tensor with proper device mapping
+            voice_tensor = await paths.load_voice_tensor(voice_path, device=self._device)
+            # Save back to a temporary file with proper device mapping
+            import tempfile
+            temp_dir = tempfile.gettempdir()
+            temp_path = os.path.join(temp_dir, f"temp_voice_{os.path.basename(voice_path)}")
+            await paths.save_voice_tensor(voice_tensor, temp_path)
+            voice_path = temp_path
 
-            # Generate audio using pipeline
+            # Generate using pipeline, force model to prevent downloads
             logger.debug(f"Generating audio for text: '{text[:100]}...'")
-            for i, result in enumerate(self._pipeline(text, voice=voice_path, speed=speed)):
-                logger.debug(f"Processing chunk {i+1}")
+            for result in self._pipeline(text, voice=voice_path, speed=speed, model=self._model):
                 if result.audio is not None:
-                    logger.debug(f"Got audio chunk {i+1} with shape: {result.audio.shape}")
+                    logger.debug(f"Got audio chunk with shape: {result.audio.shape}")
                     yield result.audio.numpy()
                 else:
-                    logger.warning(f"No audio in chunk {i+1}")
+                    logger.warning("No audio in chunk")
 
         except Exception as e:
             logger.error(f"Generation failed: {e}")
@@ -146,9 +137,6 @@ class KokoroV1(BaseModelBackend):
                 async for chunk in self.generate(text, voice, speed):
                     yield chunk
             raise
-        finally:
-            if self._device == "cuda" and model_config.pytorch_gpu.sync_cuda:
-                torch.cuda.synchronize()
 
     def _check_memory(self) -> bool:
         """Check if memory usage is above threshold."""
@@ -161,7 +149,7 @@ class KokoroV1(BaseModelBackend):
         """Clear device memory."""
         if self._device == "cuda":
             torch.cuda.empty_cache()
-        gc.collect()
+            torch.cuda.synchronize()
 
     def unload(self) -> None:
         """Unload model and free resources."""
@@ -173,7 +161,7 @@ class KokoroV1(BaseModelBackend):
             self._pipeline = None
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-        gc.collect()
+            torch.cuda.synchronize()
 
     @property
     def is_loaded(self) -> bool:
