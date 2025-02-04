@@ -10,14 +10,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv for speed and glory
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+# Install UV using the installer script
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+    mv /root/.local/bin/uv /usr/local/bin/ && \
+    mv /root/.local/bin/uvx /usr/local/bin/
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser
 
 # Create directories and set ownership
-RUN mkdir -p /app/api/src/voices && \
+RUN mkdir -p /app/api/src/voices/v1_0 && \
     chown -R appuser:appuser /app
 
 USER appuser
@@ -41,15 +43,18 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --extra cpu
 
 # Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
-ENV PATH="/app/.venv/bin:$PATH"
-ENV UV_LINK_MODE=copy
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app:/app/api \
+    PATH="/app/.venv/bin:$PATH" \
+    UV_LINK_MODE=copy
 
-ENV USE_GPU=false
-ENV USE_ONNX=true
-ENV DOWNLOAD_ONNX=true
-ENV DOWNLOAD_PTH=false
+# Core settings that differ from config.py defaults
+ENV USE_GPU=false \
+    USE_ONNX=true
+
+# Model download flags (container-specific)
+ENV DOWNLOAD_ONNX=false \
+    DOWNLOAD_PTH=false
 
 # Download models based on environment variables
 RUN if [ "$DOWNLOAD_ONNX" = "true" ]; then \
