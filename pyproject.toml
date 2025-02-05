@@ -37,8 +37,8 @@ dependencies = [
     "semchunk>=3.0.1",
     "mutagen>=1.47.0",
     "psutil>=6.1.1",
-    "kokoro==0.3.5",
-    'misaki[en,ja,ko,zh,vi]==0.6.7',
+    "kokoro==0.7.4",
+    'misaki[en,ja,ko,zh,vi]==0.7.4',
     "spacy>=3.7.6",
     "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
 ]

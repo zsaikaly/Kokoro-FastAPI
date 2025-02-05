@@ -160,7 +160,7 @@ async def list_voices() -> List[str]:
     return sorted([name[:-3] for name in voices])  # Remove .pt extension
 
 
-async def load_voice_tensor(voice_path: str, device: str = "cpu") -> torch.Tensor:
+async def load_voice_tensor(voice_path: str, device: str = "cpu", weights_only=False) -> torch.Tensor:
     """Load voice tensor from file.
     
     Args:
@@ -179,7 +179,7 @@ async def load_voice_tensor(voice_path: str, device: str = "cpu") -> torch.Tenso
             return torch.load(
                 io.BytesIO(data),
                 map_location=device,
-                weights_only=True
+                weights_only=weights_only
             )
     except Exception as e:
         raise RuntimeError(f"Failed to load voice tensor from {voice_path}: {e}")

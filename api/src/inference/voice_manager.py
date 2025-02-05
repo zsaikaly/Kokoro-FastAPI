@@ -3,6 +3,7 @@
 from typing import Dict, List, Optional
 
 import torch
+import aiofiles
 from loguru import logger
 
 from ..core import paths
@@ -57,7 +58,7 @@ class VoiceManager:
         except Exception as e:
             raise RuntimeError(f"Failed to load voice {voice_name}: {e}")
 
-    async def combine_voices(self, voices: List[str], device: Optional[str] = None) -> str:
+    async def combine_voices(self, voices: List[str], device: Optional[str] = None) -> torch.Tensor:
         """Combine multiple voices.
         
         Args:
@@ -65,7 +66,7 @@ class VoiceManager:
             device: Optional override for target device
             
         Returns:
-            Name of combined voice
+            Combined voice tensor
             
         Raises:
             RuntimeError: If any voice not found
@@ -80,10 +81,7 @@ class VoiceManager:
             voice_tensors.append(voice)
             
         combined = torch.mean(torch.stack(voice_tensors), dim=0)
-        combined_name = "+".join(voices)
-        self._voices[combined_name] = combined
-        
-        return combined_name
+        return combined
 
     async def list_voices(self) -> List[str]:
         """List available voice names.

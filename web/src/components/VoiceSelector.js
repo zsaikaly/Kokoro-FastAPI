@@ -30,6 +30,20 @@ export class VoiceSelector {
             }
         });
 
+        // Weight adjustment and voice removal
+        this.elements.selectedVoices.addEventListener('input', (e) => {
+            if (e.target.type === 'number') {
+                const voice = e.target.dataset.voice;
+                let weight = parseFloat(e.target.value);
+                
+                // Ensure weight is between 0.1 and 10
+                weight = Math.max(0.1, Math.min(10, weight));
+                e.target.value = weight;
+                
+                this.voiceService.updateWeight(voice, weight);
+            }
+        });
+
         // Remove selected voice
         this.elements.selectedVoices.addEventListener('click', (e) => {
             if (e.target.classList.contains('remove-voice')) {
@@ -73,12 +87,22 @@ export class VoiceSelector {
     }
 
     updateSelectedVoicesDisplay() {
-        const selectedVoices = this.voiceService.getSelectedVoices();
+        const selectedVoices = this.voiceService.getSelectedVoiceWeights();
         this.elements.selectedVoices.innerHTML = selectedVoices
-            .map(voice => `
+            .map(({voice, weight}) => `
                 <span class="selected-voice-tag">
-                    ${voice}
-                    <span class="remove-voice" data-voice="${voice}">×</span>
+                    <span class="voice-name">${voice}</span>
+                    <span class="voice-weight">
+                        <input type="number" 
+                               value="${weight}" 
+                               min="0.1" 
+                               max="10" 
+                               step="0.1" 
+                               data-voice="${voice}"
+                               class="weight-input"
+                               title="Voice weight (0.1 to 10)">
+                    </span>
+                    <span class="remove-voice" data-voice="${voice}" title="Remove voice">×</span>
                 </span>
             `)
             .join('');
