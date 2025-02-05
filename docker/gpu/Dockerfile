@@ -16,11 +16,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install UV using the installer script
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/ && \
-    mv /root/.local/bin/uvx /usr/local/bin/
-
-# Create non-root user and prepare /app in one layer
-RUN useradd -m -u 1000 appuser && \
-    mkdir -p /app/api/src/voices/v1_0 && \
+    mv /root/.local/bin/uvx /usr/local/bin/ && \
+    useradd -m -u 1000 appuser && \
+    mkdir -p /app/api/src/models/v1_0 && \
     chown -R appuser:appuser /app
 
 USER appuser
@@ -41,10 +39,6 @@ COPY --chown=appuser:appuser docker/scripts/download_model.* ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --extra gpu
 
-# Copy scripts and make them executable in a single RUN step
-COPY --chown=appuser:appuser docker/scripts/ /app/docker/scripts/
-RUN chmod +x docker/scripts/entrypoint.sh docker/scripts/download_model.sh
-
 # Set all environment variables in one go
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app:/app/api \
@@ -52,8 +46,12 @@ ENV PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \
     USE_GPU=true \
     USE_ONNX=false \
-    DOWNLOAD_PTH=true \
-    DOWNLOAD_ONNX=false
+    DOWNLOAD_MODEL=true
+
+# Download model if enabled
+RUN if [ "$DOWNLOAD_MODEL" = "true" ]; then \
+    python download_model.py --output api/src/models/v1_0; \
+    fi
 
 # Run FastAPI server
-CMD ["/app/docker/scripts/entrypoint.sh"]
+CMD ["uv", "run", "python", "-m", "uvicorn", "api.src.main:app", "--host", "0.0.0.0", "--port", "8880", "--log-level", "debug"]

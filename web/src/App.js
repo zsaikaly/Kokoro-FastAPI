@@ -13,6 +13,8 @@ export class App {
             generateBtnText: document.querySelector('#generate-btn .btn-text'),
             generateBtnLoader: document.querySelector('#generate-btn .loader'),
             downloadBtn: document.getElementById('download-btn'),
+            fileInput: document.getElementById('file-input'),
+            uploadBtn: document.getElementById('upload-btn'),
             autoplayToggle: document.getElementById('autoplay-toggle'),
             formatSelect: document.getElementById('format-select'),
             status: document.getElementById('status'),
@@ -65,6 +67,34 @@ export class App {
         this.elements.clearBtn.addEventListener('click', () => {
             this.elements.textInput.value = '';
             this.elements.textInput.focus();
+        });
+
+        // Upload button
+        this.elements.uploadBtn.addEventListener('click', () => {
+            this.elements.fileInput.click();
+        });
+
+        // File input change
+        this.elements.fileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.size > 1024 * 1024) { // 1MB limit
+                this.showStatus('File too large. Please choose a file under 1MB', 'error');
+                return;
+            }
+
+            try {
+                const text = await file.text();
+                this.elements.textInput.value = text;
+                this.showStatus('File loaded successfully', 'success');
+            } catch (error) {
+                console.error('Error reading file:', error);
+                this.showStatus('Error reading file', 'error');
+            }
+
+            // Clear the input so the same file can be loaded again
+            this.elements.fileInput.value = '';
         });
 
         // Handle page unload

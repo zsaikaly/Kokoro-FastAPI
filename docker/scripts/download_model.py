@@ -1,62 +1,84 @@
 #!/usr/bin/env python3
-"""Download and prepare Kokoro model for Docker build."""
+"""Download and prepare Kokoro v1.0 model."""
 
-import argparse
 import json
 import os
 import shutil
 from pathlib import Path
+from urllib.request import urlretrieve
 
-import torch
-from huggingface_hub import hf_hub_download
 from loguru import logger
 
 
-def download_model(version: str, output_dir: str) -> None:
-    """Download model files from HuggingFace.
+def verify_files(model_path: str, config_path: str) -> bool:
+    """Verify that model files exist and are valid.
     
     Args:
-        version: Model version to download
+        model_path: Path to model file
+        config_path: Path to config file
+        
+    Returns:
+        True if files exist and are valid
+    """
+    try:
+        # Check files exist
+        if not os.path.exists(model_path):
+            return False
+        if not os.path.exists(config_path):
+            return False
+            
+        # Verify config file is valid JSON
+        with open(config_path) as f:
+            config = json.load(f)
+            
+        # Check model file size (should be non-zero)
+        if os.path.getsize(model_path) == 0:
+            return False
+            
+        return True
+    except Exception:
+        return False
+
+
+def download_model(output_dir: str) -> None:
+    """Download model files from GitHub release.
+    
+    Args:
         output_dir: Directory to save model files
     """
     try:
-        logger.info(f"Downloading Kokoro model version {version}")
-        
         # Create output directory
         os.makedirs(output_dir, exist_ok=True)
         
-        # Download model files
-        model_file = hf_hub_download(
-            repo_id="hexgrad/Kokoro-82M",
-            filename=f"kokoro-{version}.pth"
-        )
-        config_file = hf_hub_download(
-            repo_id="hexgrad/Kokoro-82M",
-            filename="config.json"
-        )
+        # Define file paths
+        model_file = "kokoro-v1_0.pth"
+        config_file = "config.json"
+        model_path = os.path.join(output_dir, model_file)
+        config_path = os.path.join(output_dir, config_file)
         
-        # Copy to output directory
-        shutil.copy2(model_file, os.path.join(output_dir, "model.pt"))
-        shutil.copy2(config_file, os.path.join(output_dir, "config.json"))
-        
-        # Verify files
-        model_path = os.path.join(output_dir, "model.pt")
-        config_path = os.path.join(output_dir, "config.json")
-        
-        if not os.path.exists(model_path):
-            raise RuntimeError(f"Model file not found: {model_path}")
-        if not os.path.exists(config_path):
-            raise RuntimeError(f"Config file not found: {config_path}")
+        # Check if files already exist and are valid
+        if verify_files(model_path, config_path):
+            logger.info("Model files already exist and are valid")
+            return
             
-        # Load and verify model
-        logger.info("Verifying model files...")
-        with open(config_path) as f:
-            config = json.load(f)
-        logger.info(f"Loaded config: {config}")
+        logger.info("Downloading Kokoro v1.0 model files")
         
-        model = torch.load(model_path, map_location="cpu")
-        logger.info(f"Loaded model with keys: {model.keys()}")
+        # GitHub release URLs (to be updated with v0.2.0 release)
+        base_url = "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.2.0"
+        model_url = f"{base_url}/{model_file}"
+        config_url = f"{base_url}/{config_file}"
         
+        # Download files
+        logger.info("Downloading model file...")
+        urlretrieve(model_url, model_path)
+        
+        logger.info("Downloading config file...")
+        urlretrieve(config_url, config_path)
+        
+        # Verify downloaded files
+        if not verify_files(model_path, config_path):
+            raise RuntimeError("Failed to verify downloaded files")
+            
         logger.info(f"✓ Model files prepared in {output_dir}")
         
     except Exception as e:
@@ -66,12 +88,9 @@ def download_model(version: str, output_dir: str) -> None:
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(description="Download Kokoro model for Docker build")
-    parser.add_argument(
-        "--version",
-        default="v1_0",
-        help="Model version to download"
-    )
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Download Kokoro v1.0 model")
     parser.add_argument(
         "--output",
         required=True,
@@ -79,7 +98,7 @@ def main():
     )
     
     args = parser.parse_args()
-    download_model(args.version, args.output)
+    download_model(args.output)
 
 
 if __name__ == "__main__":

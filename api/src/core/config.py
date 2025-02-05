@@ -14,7 +14,6 @@ class Settings(BaseSettings):
     output_dir_size_limit_mb: float = 500.0  # Maximum size of output directory in MB
     default_voice: str = "af_heart"
     use_gpu: bool = True  # Whether to use GPU acceleration if available
-    use_onnx: bool = False  # Whether to use ONNX runtime
     allow_local_voice_saving: bool = False  # Whether to allow saving combined voices locally
     
     # Container absolute paths

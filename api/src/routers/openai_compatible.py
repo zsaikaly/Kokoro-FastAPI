@@ -68,9 +68,7 @@ def get_model_name(model: str) -> str:
     base_name = _openai_mappings["models"].get(model)
     if not base_name:
         raise ValueError(f"Unsupported model: {model}")
-    # Add extension based on runtime config
-    extension = ".onnx" if settings.use_onnx else ".pth"
-    return base_name + extension
+    return base_name + ".pth"
 
 
 async def process_voices(
@@ -378,6 +376,17 @@ async def combine_voices(request: Union[str, List[str]]):
             - 400: Invalid request (wrong number of voices, voice not found)
             - 500: Server error (file system issues, combination failed)
     """
+    # Check if local voice saving is allowed
+    if not settings.allow_local_voice_saving:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "permission_denied",
+                "message": "Local voice saving is disabled",
+                "type": "permission_error"
+            }
+        )
+
     try:
         # Convert input to list of voices
         if isinstance(request, str):

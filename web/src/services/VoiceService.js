@@ -50,7 +50,15 @@ export class VoiceService {
     }
 
     getSelectedVoiceString() {
-        return Array.from(this.selectedVoices.entries())
+        const entries = Array.from(this.selectedVoices.entries());
+        
+        // If only one voice with weight 1, return just the voice name
+        if (entries.length === 1 && entries[0][1] === 1) {
+            return entries[0][0];
+        }
+        
+        // Otherwise return voice(weight) format
+        return entries
             .map(([voice, weight]) => `${voice}(${weight})`)
             .join('+');
     }

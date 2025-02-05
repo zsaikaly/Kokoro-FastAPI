@@ -19,7 +19,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 RUN useradd -m -u 1000 appuser
 
 # Create directories and set ownership
-RUN mkdir -p /app/api/src/voices/v1_0 && \
+RUN mkdir -p /app/api/src/models/v1_0 && \
     chown -R appuser:appuser /app
 
 USER appuser
@@ -49,19 +49,14 @@ ENV PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy
 
 # Core settings that differ from config.py defaults
-ENV USE_GPU=false \
-    USE_ONNX=true
+ENV USE_GPU=false
 
 # Model download flags (container-specific)
-ENV DOWNLOAD_ONNX=false \
-    DOWNLOAD_PTH=false
+ENV DOWNLOAD_MODEL=false
 
-# Download models based on environment variables
-RUN if [ "$DOWNLOAD_ONNX" = "true" ]; then \
-    python download_model.py --type onnx; \
-    fi && \
-    if [ "$DOWNLOAD_PTH" = "true" ]; then \
-    python download_model.py --type pth; \
+# Download model if enabled
+RUN if [ "$DOWNLOAD_MODEL" = "true" ]; then \
+    python download_model.py --output api/src/models/v1_0; \
     fi
 
 # Run FastAPI server
