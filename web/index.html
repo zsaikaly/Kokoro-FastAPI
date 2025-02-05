@@ -45,32 +45,18 @@
         </header>
         
         <main>
-            <div class="input-section">
-                <div class="help-icon" title="Tips">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-7v2h2v-2h-2zm2-1.645A3.502 3.502 0 0012 6.5a3.501 3.501 0 00-3.433 2.813l1.962.393A1.5 1.5 0 1112 11.5a1 1 0 00-1 1V14h2v-.645z" fill="currentColor"/>
-                    </svg>
-                    <div class="tooltip-content">
-                        <h4>Tips</h4>
-                        <ul>
-                            <li>Use <code><<>></code> to add an intentional break between chunks</li>
-                        </ul>
-                    </div>
-                </div>
-                <textarea
-                    id="text-input"
-                    placeholder="Enter text to convert to speech..."
-                ></textarea>
-                <div class="text-controls">
-                    <input type="file" id="file-input" accept=".txt" style="display: none;">
-                    <button id="upload-btn" class="clear-btn">
-                        Upload Text
-                    </button>
-                    <button id="clear-btn" class="clear-btn">
-                        Clear Text
-                    </button>
+            <div class="help-icon" title="Tips">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-7v2h2v-2h-2zm2-1.645A3.502 3.502 0 0012 6.5a3.501 3.501 0 00-3.433 2.813l1.962.393A1.5 1.5 0 1112 11.5a1 1 0 00-1 1V14h2v-.645z" fill="currentColor"/>
+                </svg>
+                <div class="tooltip-content">
+                    <h4>Tips</h4>
+                    <ul>
+                        <li>Use <code><<>></code> to add an intentional break between chunks</li>
+                    </ul>
                 </div>
             </div>
+            <div id="text-editor"></div>
             <div class="controls">
                 <div class="voice-select-container">
                     <input 
@@ -90,17 +76,6 @@
                     </div>
                 </div>
                 <div class="options">
-                    <div class="option-group">
-                        <label>
-                            <input type="checkbox" id="autoplay-toggle" checked>
-                            Auto-play
-                        </label>
-                        <select id="format-select" class="format-select">
-                            <option value="mp3">MP3</option>
-                            <option value="wav">WAV</option>
-                            <option value="pcm">PCM</option>
-                        </select>
-                    </div>
                     <div class="speed-control">
                         <label for="speed-slider">Speed: <span id="speed-value">1.0</span>x</label>
                         <input type="range" id="speed-slider" min="0.1" max="4" step="0.1" value="1.0">
@@ -111,34 +86,44 @@
                         <span class="btn-text">Generate Speech</span>
                         <span class="loader"></span>
                     </button>
+                    <div class="generation-options">
+                        <label>
+                            <input type="checkbox" id="autoplay-toggle" checked>
+                            Auto-play
+                        </label>
+                        <select id="format-select" class="format-select">
+                            <option value="mp3">MP3</option>
+                            <option value="wav">WAV</option>
+                            <option value="pcm">PCM</option>
+                        </select>
+                    </div>
                     <button id="cancel-btn" class="cancel-btn" style="display: none;">
                         Cancel
                     </button>
                 </div>
                 <div id="status" class="status"></div>
-                <div class="audio-controls">
-                    <div class="player-container">
-                        <div class="player-controls">
-                            <button id="play-pause-btn" class="player-btn">Play</button>
-                            <input type="range" id="seek-slider" class="seek-slider" min="0" max="100" value="0">
-                            <div class="volume-control">
-                                <svg class="volume-icon" viewBox="0 0 24 24" width="20" height="20">
-                                    <path fill="currentColor" d="M12,4L9.91,6.09L12,8.18M4.27,3L3,4.27L7.73,9H3V15H7L12,20V13.27L16.25,17.53C15.58,18.04 14.83,18.46 14,18.7V20.77C15.38,20.45 16.63,19.82 17.68,18.96L19.73,21L21,19.73L12,10.73M19,12C19,12.94 18.8,13.82 18.46,14.64L19.97,16.15C20.62,14.91 21,13.5 21,12C21,7.72 18,4.14 14,3.23V5.29C16.89,6.15 19,8.83 19,12M16.5,12C16.5,10.23 15.5,8.71 14,7.97V10.18L16.45,12.63C16.5,12.43 16.5,12.21 16.5,12Z"/>
-                                </svg>
-                                <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="100">
-                            </div>
-                            <span id="time-display" class="time-display">0:00</span>
-                        </div>
-                        <div id="wave-container" class="wave-container"></div>
+            </div>
+            <div class="player-container">
+                <div class="player-controls">
+                    <button id="play-pause-btn" class="player-btn">Play</button>
+                    <input type="range" id="seek-slider" class="seek-slider" min="0" max="100" value="0">
+                    <div class="volume-control">
+                        <svg class="volume-icon" viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="currentColor" d="M12,4L9.91,6.09L12,8.18M4.27,3L3,4.27L7.73,9H3V15H7L12,20V13.27L16.25,17.53C15.58,18.04 14.83,18.46 14,18.7V20.77C15.38,20.45 16.63,19.82 17.68,18.96L19.73,21L21,19.73L12,10.73M19,12C19,12.94 18.8,13.82 18.46,14.64L19.97,16.15C20.62,14.91 21,13.5 21,12C21,7.72 18,4.14 14,3.23V5.29C16.89,6.15 19,8.83 19,12M16.5,12C16.5,10.23 15.5,8.71 14,7.97V10.18L16.45,12.63C16.5,12.43 16.5,12.21 16.5,12Z"/>
+                        </svg>
+                        <input type="range" id="volume-slider" class="volume-slider" min="0" max="100" value="100">
                     </div>
-                    <div id="download-btn" class="download-button" style="display: none;">
-                        <div class="download-glow"></div>
-                        <div class="download-icon">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path d="M8 11L4 7h8l-4 4z" fill="currentColor"/>
-                                <path d="M8 3v8M4 14h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                        </div>
+                    <span id="time-display" class="time-display">0:00</span>
+                </div>
+                <div id="wave-container" class="wave-container"></div>
+                <div class="download-placeholder"></div>
+                <div id="download-btn" class="download-button">
+                    <div class="download-glow"></div>
+                    <div class="download-icon">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 11L4 7h8l-4 4z" fill="currentColor"/>
+                            <path d="M8 3v8M4 14h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
                     </div>
                 </div>
             </div>
