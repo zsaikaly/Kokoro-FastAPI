@@ -485,31 +485,29 @@ class TTSService:
         start_time = time.time()
         try:
             # Get backend and voice path
-            raise ValueError("Not yet implemented")
-            #  linked to https://github.com/hexgrad/kokoro/pull/53 or similiar
             backend = self.model_manager.get_backend()
             voice_name, voice_path = await self._get_voice_path(voice)
 
-            # if isinstance(backend, KokoroV1):
-            #     # For Kokoro V1, pass phonemes directly to pipeline
-            #     result = None
-            #     for r in backend._pipeline(
-            #         phonemes,
-            #         voice=voice_path,
-            #         speed=speed,
-            #         model=backend._model
-            #     ):
-            #         if r.audio is not None:
-            #             result = r
-            #             break
+            if isinstance(backend, KokoroV1):
+                # For Kokoro V1, use generate_from_tokens with raw phonemes
+                result = None
+                for r in backend._pipeline.generate_from_tokens(
+                    tokens=phonemes,  # Pass raw phonemes string
+                    voice=voice_path,
+                    speed=speed,
+                    model=backend._model
+                ):
+                    if r.audio is not None:
+                        result = r
+                        break
                 
-            #     if result is None or result.audio is None:
-            #         raise ValueError("No audio generated")
+                if result is None or result.audio is None:
+                    raise ValueError("No audio generated")
                 
-            #     processing_time = time.time() - start_time
-            #     return result.audio.numpy(), processing_time
-            # else:
-            pass
+                processing_time = time.time() - start_time
+                return result.audio.numpy(), processing_time
+            else:
+                raise ValueError("Phoneme generation only supported with Kokoro V1 backend")
 
         except Exception as e:
             logger.error(f"Error in phoneme audio generation: {str(e)}")

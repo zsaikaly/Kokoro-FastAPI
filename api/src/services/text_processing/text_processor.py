@@ -27,24 +27,12 @@ def process_text_chunk(text: str, language: str = "a", skip_phonemize: bool = Fa
     start_time = time.time()
     
     if skip_phonemize:
-        # Input is already phonemes, just tokenize
-        t0 = time.time()
         tokens = tokenize(text)
-        t1 = time.time()
     else:
         # Normal text processing pipeline
-        t0 = time.time()
         normalized = normalize_text(text)
-        t1 = time.time()
-
-        
-        t0 = time.time()
         phonemes = phonemize(normalized, language, normalize=False)  # Already normalized
-        t1 = time.time()
-        
-        t0 = time.time()
         tokens = tokenize(phonemes)
-        t1 = time.time()
     
     total_time = time.time() - start_time
     logger.debug(f"Total processing took {total_time*1000:.2f}ms for chunk: '{text[:50]}...'")
@@ -95,13 +83,55 @@ def get_sentence_info(text: str) -> List[Tuple[str, List[int], int]]:
     return results
 
 async def smart_split(text: str, max_tokens: int = ABSOLUTE_MAX) -> AsyncGenerator[Tuple[str, List[int]], None]:
-    """Build optimal chunks targeting 300-400 tokens, never exceeding max_tokens."""
+    """Build optimal chunks targeting 300-400 tokens, never exceeding max_tokens.
+    Special symbols:
+    - <<>> : Forces a break between chunks
+    """
+    CHUNK_BREAK = "<<>>"
+    
     start_time = time.time()
     chunk_count = 0
     logger.info(f"Starting smart split for {len(text)} chars")
     
-    # Process all sentences
-    sentences = get_sentence_info(text)
+    # First split on forced break symbol
+    forced_chunks = [chunk.strip() for chunk in text.split(CHUNK_BREAK) if chunk.strip()]
+    
+    # If no forced breaks, process normally
+    if len(forced_chunks) <= 1:
+        sentences = get_sentence_info(text)
+    else:
+        # Process each forced chunk separately
+        for forced_chunk in forced_chunks:
+            # Process sentences within this forced chunk
+            chunk_sentences = get_sentence_info(forced_chunk)
+            
+            # Process and yield all sentences in this chunk before moving to next
+            current_chunk = []
+            current_tokens = []
+            current_count = 0
+            
+            for sentence, tokens, count in chunk_sentences:
+                if current_count + count <= TARGET_MAX:
+                    current_chunk.append(sentence)
+                    current_tokens.extend(tokens)
+                    current_count += count
+                else:
+                    if current_chunk:
+                        chunk_text = " ".join(current_chunk)
+                        chunk_count += 1
+                        yield chunk_text, current_tokens
+                    current_chunk = [sentence]
+                    current_tokens = tokens
+                    current_count = count
+            
+            # Yield remaining sentences in this forced chunk
+            if current_chunk:
+                chunk_text = " ".join(current_chunk)
+                chunk_count += 1
+                yield chunk_text, current_tokens
+            
+        # Skip the rest of the processing since we've handled all chunks
+        return
     
     current_chunk = []
     current_tokens = []

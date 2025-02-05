@@ -1,6 +1,71 @@
+.textarea-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.help-icon {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: var(--text-light);
+    cursor: pointer;
+    z-index: 2;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.help-icon:hover {
+    opacity: 1;
+}
+
+.tooltip-content {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    width: 300px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 1000;
+}
+
+.help-icon:hover .tooltip-content {
+    visibility: visible;
+    opacity: 1;
+    transition: visibility 0s linear 0.2s, opacity 0.3s ease 0.2s;
+}
+
+.tooltip-content {
+    transition: visibility 0s linear 0.3s, opacity 0.3s ease;
+}
+
+.tooltip-content h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--text);
+}
+
+.tooltip-content ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: var(--text-light);
+}
+
+.tooltip-content code {
+    background: rgba(99, 102, 241, 0.1);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-family: monospace;
+}
+
 textarea {
     width: 100%;
-    min-height: 120px;
+    height: calc(100% - 50px);
     padding: 1rem;
     border: 1px solid var(--border);
     border-radius: 0.5rem;
@@ -9,7 +74,8 @@ textarea {
     font-size: 1rem;
     transition: border-color 0.2s ease;
     font-family: var(--font-family);
-    resize: vertical;
+    resize: none;
+    margin-bottom: 0.75rem;
 }
 
 textarea:focus {
@@ -22,19 +88,22 @@ textarea::placeholder {
     color: var(--text-light);
 }
 
-.controls {
-    margin-top: 1.5rem;
+.text-controls {
     display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    gap: 0.75rem;
+    margin-top: auto;
+}
+
+.text-controls button {
+    flex: 1;
 }
 
 .voice-select-container {
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    z-index: 1001;  /* Higher than other elements */
+    gap: 0.5rem;
+    z-index: 1001;
 }
 
 .voice-search {
@@ -83,7 +152,7 @@ textarea::placeholder {
 .voice-option {
     display: flex;
     align-items: center;
-    padding: 0.75rem;
+    padding: 0.5rem;
     cursor: pointer;
     border-radius: 0.25rem;
     transition: background-color 0.2s ease;
@@ -97,19 +166,29 @@ textarea::placeholder {
 .selected-voices {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.25rem;
     margin-top: 0.5rem;
 }
 
 .selected-voice-tag {
     background: rgba(99, 102, 241, 0.2);
-    padding: 0.25rem 0.75rem;
+    padding: 0.25rem 0.4rem;
     border-radius: 1rem;
     font-size: 0.875rem;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.25rem;
     border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.selected-voice-tag input {
+    width: 3em;
+    padding: 0.1rem 0.2rem;
+    min-height: 1.5em;
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: inherit;
 }
 
 .remove-voice {
@@ -125,15 +204,19 @@ textarea::placeholder {
 .options {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 2rem;
+    justify-content: center;
+    gap: 1rem;
     flex-wrap: wrap;
+    padding: 0.5rem;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin: 0.5rem 0;
 }
 
 .option-group {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 1rem;
 }
 
 .speed-control {
@@ -221,14 +304,13 @@ textarea::placeholder {
 }
 
 .button-group {
-    display: flex;
-    gap: 1rem;
+    margin-top: auto;
 }
 
 button {
     background: var(--fg-color);
     color: var(--text);
-    padding: 1rem;
+    padding: 0.75rem 1.5rem;
     border-radius: 0.5rem;
     border: none;
     font-weight: 500;
@@ -238,7 +320,7 @@ button {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    flex: 1;
+    width: 100%;
 }
 
 button:hover {
@@ -255,6 +337,7 @@ button:disabled {
 
 .cancel-btn {
     background: var(--error);
+    margin-top: 0.75rem;
 }
 
 .loader {
@@ -284,7 +367,6 @@ button:disabled {
     border: 1px solid var(--border) !important;
     color: var(--text-light) !important;
     padding: 0.5rem 1rem !important;
-    flex: 0 !important;  /* Don't expand like other buttons */
 }
 
 .clear-btn:hover {

@@ -137,6 +137,12 @@ export class AudioService {
                     // Signal completion
                     onProgress?.(estimatedChunks, estimatedChunks);
                     this.dispatchEvent('complete');
+                    
+                    // Check if we should autoplay for small inputs that didn't trigger during streaming
+                    if (this.shouldAutoplay && !hasStartedPlaying && this.sourceBuffer.buffered.length > 0) {
+                        setTimeout(() => this.play(), 100);
+                    }
+                    
                     setTimeout(() => {
                         this.dispatchEvent('downloadReady');
                     }, 800);

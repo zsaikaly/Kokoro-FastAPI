@@ -64,6 +64,85 @@ class KokoroV1(BaseModelBackend):
         except Exception as e:
             raise RuntimeError(f"Failed to load Kokoro model: {e}")
 
+    async def generate_from_tokens(
+        self,
+        tokens: str,
+        voice: Union[str, Tuple[str, Union[torch.Tensor, str]]],
+        speed: float = 1.0
+    ) -> AsyncGenerator[np.ndarray, None]:
+        """Generate audio from phoneme tokens.
+
+        Args:
+            tokens: Input phoneme tokens to synthesize
+            voice: Either a voice path string or a tuple of (voice_name, voice_tensor/path)
+            speed: Speed multiplier
+
+        Yields:
+            Generated audio chunks
+
+        Raises:
+            RuntimeError: If generation fails
+        """
+        if not self.is_loaded:
+            raise RuntimeError("Model not loaded")
+
+        try:
+            # Memory management for GPU
+            if self._device == "cuda":
+                if self._check_memory():
+                    self._clear_memory()
+
+            # Handle voice input
+            voice_path: str
+            if isinstance(voice, tuple):
+                voice_name, voice_data = voice
+                if isinstance(voice_data, str):
+                    voice_path = voice_data
+                else:
+                    # Save tensor to temporary file
+                    import tempfile
+                    temp_dir = tempfile.gettempdir()
+                    voice_path = os.path.join(temp_dir, f"{voice_name}.pt")
+                    # Save tensor with CPU mapping for portability
+                    torch.save(voice_data.cpu(), voice_path)
+            else:
+                voice_path = voice
+
+            # Load voice tensor with proper device mapping
+            voice_tensor = await paths.load_voice_tensor(voice_path, device=self._device)
+            # Save back to a temporary file with proper device mapping
+            import tempfile
+            temp_dir = tempfile.gettempdir()
+            temp_path = os.path.join(temp_dir, f"temp_voice_{os.path.basename(voice_path)}")
+            await paths.save_voice_tensor(voice_tensor, temp_path)
+            voice_path = temp_path
+
+            # Generate using pipeline's generate_from_tokens method
+            logger.debug(f"Generating audio from tokens: '{tokens[:100]}...'")
+            for result in self._pipeline.generate_from_tokens(
+                tokens=tokens,
+                voice=voice_path,
+                speed=speed,
+                model=self._model
+            ):
+                if result.audio is not None:
+                    logger.debug(f"Got audio chunk with shape: {result.audio.shape}")
+                    yield result.audio.numpy()
+                else:
+                    logger.warning("No audio in chunk")
+
+        except Exception as e:
+            logger.error(f"Generation failed: {e}")
+            if (
+                self._device == "cuda"
+                and model_config.pytorch_gpu.retry_on_oom
+                and "out of memory" in str(e).lower()
+            ):
+                self._clear_memory()
+                async for chunk in self.generate_from_tokens(tokens, voice, speed):
+                    yield chunk
+            raise
+
     async def generate(
         self,
         text: str,
