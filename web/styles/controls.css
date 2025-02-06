@@ -328,6 +328,66 @@
     color: var(--text);
 }
 
+/* Loading Animation */
+.loader {
+    display: none;
+    width: 24px;
+    height: 24px;
+    position: absolute;
+}
+
+.loader::before,
+.loader::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+}
+
+.loader::before {
+    border-top-color: var(--text);
+    animation: spin 1s linear infinite;
+}
+
+.loader::after {
+    border-bottom-color: var(--fg-color);
+    animation: spin 1.5s linear infinite reverse;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#generate-btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#generate-btn.loading .btn-text {
+    visibility: hidden;
+}
+
+#generate-btn.loading .loader {
+    display: block;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.5));
+}
+
+#generate-btn.loading .loader::before {
+    animation: spin 1s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+}
+
+#generate-btn.loading .loader::after {
+    animation: spin 1.5s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite reverse;
+}
+
 /* Responsive Styles */
 @media (max-width: 768px) {
     .voice-options {
