@@ -12,7 +12,6 @@ services:
     environment:
       - PYTHONPATH=/app:/app/api
       - USE_GPU=true
-      - USE_ONNX=false
       - PYTHONUNBUFFERED=1
     deploy:
       resources:

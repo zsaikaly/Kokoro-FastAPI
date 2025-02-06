@@ -5,19 +5,21 @@
 # <sub><sub>_`FastKoko`_ </sub></sub>
 [![Tests](https://img.shields.io/badge/tests-100%20passed-darkgreen)]()
 [![Coverage](https://img.shields.io/badge/coverage-49%25-grey)]()
-[![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-a67f113-blue)](https://huggingface.co/hexgrad/Kokoro-82M/tree/c3b0d86e2a980e027ef71c28819ea02e351c2667) [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero)
+[![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero)
 
-> Support for Kokoro-82M v1.0 coming very soon! Dev build on the `v0.1.5-integration` branch
+[![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-9901c2b-blue)](https://huggingface.co/hexgrad/Kokoro-82M/commit/9901c2b79161b6e898b7ea857ae5298f47b8b0d6)
+[![Kokoro](https://img.shields.io/badge/kokoro-v0.7.6-BB5420)]()
+[![Misaki](https://img.shields.io/badge/misaki-v0.7.6-B8860B)]()
 
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
-- OpenAI-compatible Speech endpoint, with inline voice combination, and mapped naming/models for strict systems
-- NVIDIA GPU accelerated or CPU inference (ONNX or Pytorch for either)
-- very fast generation time
-  - ~35x-100x+ real time speed via 4060Ti+
-  - ~5x+ real time speed via M3 Pro CPU
-- streaming support & tempfile generation, phoneme based dev endpoints
-- (new) Integrated web UI on localhost:8880/web
-- (new) Debug endpoints for monitoring threads, storage, and session pools
+- Multi-language support (English, Japanese, Korean, Chinese, Vietnamese)
+- OpenAI-compatible Speech endpoint, NVIDIA GPU accelerated or CPU inference with PyTorch 
+- ONNX support coming soon, see v0.1.5 and earlier for legacy ONNX support in the interim
+- Debug endpoints for monitoring threads, storage, and session pools
+- Integrated web UI on localhost:8880/web
+- Phoneme-based audio generation, phoneme generation
+- (new) Per-word timestamped caption generation
+- (new) Voice mixing with weighted combinations
 
 
 ## Get Started
@@ -49,18 +51,16 @@ docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.4 #NVI
         git clone https://github.com/remsky/Kokoro-FastAPI.git
         cd Kokoro-FastAPI
 
-        cd docker/gpu # OR
-        # cd docker/cpu # Run this or the above
+        cd docker/gpu  # For GPU support
+        # or cd docker/cpu  # For CPU support
         docker compose up --build
-        # if you are missing any models, run:
-        # python ../scripts/download_model.py --type pth  # for GPU
-        # python ../scripts/download_model.py --type onnx # for CPU
-        ```
 
-        ```bash
-        Or directly via UV
-        ./start-cpu.sh
-        ./start-gpu.sh 
+        # Models will auto-download, but if needed you can manually download:
+        python docker/scripts/download_model.py --output api/src/models/v1_0
+
+        # Or run directly via UV:
+        ./start-gpu.sh  # For GPU support
+        ./start-cpu.sh  # For CPU support
         ```
 </details>
 <details>
@@ -111,7 +111,6 @@ with client.audio.speech.with_streaming_response.create(
 - API Documentation: http://localhost:8880/docs
 
 - Web Interface: http://localhost:8880/web
-- Gradio UI (deprecating) can be accessed at http://localhost:7860 if enabled in docker compose file (it is a separate image!)
 
 <div align="center" style="display: flex; justify-content: center; gap: 10px;">
   <img src="assets/docs-screenshot.png" width="40%" alt="API Documentation" style="border: 2px solid #333; padding: 10px;">
@@ -172,9 +171,10 @@ python examples/assorted_checks/test_voices/test_all_voices.py # Test all availa
 <details>
 <summary>Voice Combination</summary>
 
-- Averages model weights of any existing voicepacks
+- Weighted voice combinations using ratios (e.g., "af_bella(2)+af_heart(1)" for 67%/33% mix)
+- Ratios are automatically normalized to sum to 100%
+- Available through any endpoint by adding weights in parentheses
 - Saves generated voicepacks for future use
-- (new) Available through any endpoint, simply concatenate desired packs with "+"
 
 Combine voices and generate audio:
 ```python
@@ -182,22 +182,46 @@ import requests
 response = requests.get("http://localhost:8880/v1/audio/voices")
 voices = response.json()["voices"]
 
-# Create combined voice (saves locally on server)
-response = requests.post(
-    "http://localhost:8880/v1/audio/voices/combine",
-    json=[voices[0], voices[1]]
-)
-combined_voice = response.json()["voice"]
-
-# Generate audio with combined voice (or, simply pass multiple directly with `+` )
+# Example 1: Simple voice combination (50%/50% mix)
 response = requests.post(
     "http://localhost:8880/v1/audio/speech",
     json={
         "input": "Hello world!",
-        "voice": combined_voice, # or skip the above step with f"{voices[0]}+{voices[1]}"
+        "voice": "af_bella+af_sky",  # Equal weights
         "response_format": "mp3"
     }
 )
+
+# Example 2: Weighted voice combination (67%/33% mix)
+response = requests.post(
+    "http://localhost:8880/v1/audio/speech",
+    json={
+        "input": "Hello world!",
+        "voice": "af_bella(2)+af_sky(1)",  # 2:1 ratio = 67%/33%
+        "response_format": "mp3"
+    }
+)
+
+# Example 3: Download combined voice as .pt file
+response = requests.post(
+    "http://localhost:8880/v1/audio/voices/combine",
+    json="af_bella(2)+af_sky(1)"  # 2:1 ratio = 67%/33%
+)
+
+# Save the .pt file
+with open("combined_voice.pt", "wb") as f:
+    f.write(response.content)
+
+# Use the downloaded voice file
+response = requests.post(
+    "http://localhost:8880/v1/audio/speech",
+    json={
+        "input": "Hello world!",
+        "voice": "combined_voice",  # Use the saved voice file
+        "response_format": "mp3"
+    }
+)
+
 ```
 <p align="center">
   <img src="assets/voice_analysis.png" width="80%" alt="Voice Analysis Comparison" style="border: 2px solid #333; padding: 10px;">
@@ -218,46 +242,6 @@ response = requests.post(
 <img src="assets/format_comparison.png" width="80%" alt="Audio Format Comparison" style="border: 2px solid #333; padding: 10px;">
 </p>
 
-</details>
-
-<details>
-<summary>Gradio Web Utility</summary>
-
-Access the interactive web UI at http://localhost:7860 after starting the service. Features include:
-- Voice/format/speed selection
-- Audio playback and download
-- Text file or direct input
-
-If you only want the API, just comment out everything in the docker-compose.yml under and including `gradio-ui`
-
-Currently, voices created via the API are accessible here, but voice combination/creation has not yet been added
-
-Running the UI Docker Service [deprecating]
-   - If you only want to run the Gradio web interface separately and connect it to an existing API service:
-      ```bash
-      docker run -p 7860:7860 \
-        -e API_HOST=<api-hostname-or-ip> \
-        -e API_PORT=8880 \
-      ```
-
-     - Replace `<api-hostname-or-ip>` with:
-       - `kokoro-tts` if the UI container is running in the same Docker Compose setup.
-       - `localhost` if the API is running on your local machine.
-  
-### Disabling Local Saving
-
-You can disable local saving of audio files and hide the file view in the UI by setting the `DISABLE_LOCAL_SAVING` environment variable to `true`. This is useful when running the service on a server where you don't want to store generated audio files locally.
-
-When using Docker Compose:
-```yaml
-environment:
-  - DISABLE_LOCAL_SAVING=true
-```
-
-When running the Docker image directly:
-```bash
-docker run -p 7860:7860 -e DISABLE_LOCAL_SAVING=true ghcr.io/remsky/kokoro-fastapi-ui:v0.1.4
-```
 </details>
 
 <details>
@@ -357,10 +341,13 @@ Key Performance Metrics:
 
 ```bash
 # GPU: Requires NVIDIA GPU with CUDA 12.1 support (~35x-100x realtime speed)
+cd docker/gpu
 docker compose up --build
 
-# CPU: ONNX optimized inference (~5x+ realtime speed on M3 Pro)
-docker compose -f docker-compose.cpu.yml up --build
+# CPU: PyTorch CPU inference
+cd docker/cpu
+docker compose up --build
+
 ```
 *Note: Overall speed may have reduced somewhat with the structural changes to accomodate streaming. Looking into it* 
 </details>
@@ -370,6 +357,37 @@ docker compose -f docker-compose.cpu.yml up --build
 
 - Automatically splits and stitches at sentence boundaries 
 - Helps to reduce artifacts and allow long form processing as the base model is only currently configured for approximately 30s output 
+</details>
+
+<details>
+<summary>Timestamped Captions & Phonemes</summary>
+
+Generate audio with word-level timestamps:
+```python
+import requests
+import json
+
+response = requests.post(
+    "http://localhost:8880/dev/captioned_speech",
+    json={
+        "model": "kokoro",
+        "input": "Hello world!",
+        "voice": "af_bella",
+        "speed": 1.0,
+        "response_format": "wav"
+    }
+)
+
+# Get timestamps from header
+timestamps = json.loads(response.headers['X-Word-Timestamps'])
+print("Word-level timestamps:")
+for ts in timestamps:
+    print(f"{ts['word']}: {ts['start_time']:.3f}s - {ts['end_time']:.3f}s")
+
+# Save audio
+with open("output.wav", "wb") as f:
+    f.write(response.content)
+```
 </details>
 
 <details>

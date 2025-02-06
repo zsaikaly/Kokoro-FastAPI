@@ -44,10 +44,9 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app:/app/api \
     PATH="/app/.venv/bin:$PATH" \
     UV_LINK_MODE=copy \
-    USE_GPU=true \
-    USE_ONNX=false \
-    DOWNLOAD_MODEL=true
-
+    USE_GPU=true
+    
+ENV DOWNLOAD_MODEL=true
 # Download model if enabled
 RUN if [ "$DOWNLOAD_MODEL" = "true" ]; then \
     python download_model.py --output api/src/models/v1_0; \

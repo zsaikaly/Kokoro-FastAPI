@@ -22,7 +22,11 @@ class Settings(BaseSettings):
     
     # Audio Settings
     sample_rate: int = 24000
-    max_chunk_size: int = 400  # Maximum size of text chunks for processing
+    # Text Processing Settings
+    target_min_tokens: int = 175  # Target minimum tokens per chunk
+    target_max_tokens: int = 250  # Target maximum tokens per chunk
+    absolute_max_tokens: int = 450  # Absolute maximum tokens per chunk
+    
     gap_trim_ms: int = 250  # Amount to trim from streaming chunk ends in milliseconds
 
     # Web Player Settings

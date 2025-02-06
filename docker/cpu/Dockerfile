@@ -46,14 +46,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app:/app/api \
     PATH="/app/.venv/bin:$PATH" \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    USE_GPU=false
 
 # Core settings that differ from config.py defaults
-ENV USE_GPU=false
-
-# Model download flags (container-specific)
-ENV DOWNLOAD_MODEL=false
-
+ENV DOWNLOAD_MODEL=true
 # Download model if enabled
 RUN if [ "$DOWNLOAD_MODEL" = "true" ]; then \
     python download_model.py --output api/src/models/v1_0; \
