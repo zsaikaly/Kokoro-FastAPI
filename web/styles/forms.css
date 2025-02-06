@@ -77,7 +77,7 @@
     color: var(--text-light);
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
-    cursor: pointer;
+    cursor: pointer;  
     transition: all 0.2s ease;
     width: auto;
     font-size: 0.875rem;
@@ -181,111 +181,17 @@
     box-shadow: none;
 }
 
-.help-icon {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    color: var(--text-light);
-    cursor: pointer;
-    z-index: 2;
-    opacity: 0.7;
-    transition: opacity 0.3s ease;
-}
-
-.help-icon:hover {
-    opacity: 1;
-}
-
-.tooltip-content {
-    visibility: hidden;
-    opacity: 0;
-    position: absolute;
-    top: calc(100% + 10px);
-    right: 0;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    padding: 1rem;
-    width: 300px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-                0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    z-index: 1000;
-    transition: visibility 0s linear 0.3s, opacity 0.3s ease;
-}
-
-.help-icon:hover .tooltip-content {
-    visibility: visible;
-    opacity: 1;
-    transition: visibility 0s linear 0.2s, opacity 0.3s ease 0.2s;
-}
-
-.tooltip-content h4 {
-    margin: 0 0 0.5rem 0;
-    color: var(--text);
-}
-
-.tooltip-content ul {
-    margin: 0;
-    padding-left: 1.25rem;
-    color: var(--text-light);
-}
-
-.tooltip-content code {
-    background: rgba(99, 102, 241, 0.1);
-    padding: 0.125rem 0.25rem;
-    border-radius: 0.25rem;
-    font-family: monospace;
-}
 
 main {
     display: grid;
     grid-template-columns: 1fr 300px;
-    grid-template-rows: 1fr auto;
-    gap: 1.25rem;
-    height: auto;
-    min-height: calc(100vh - 3rem);
+    gap: 1.5rem;
+    row-gap: 0;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 1rem 1rem 2rem 1rem;
-    align-items: start;
+    padding: 1.5rem;
 }
 
-.text-editor,
-.controls,
-.player-container {
-    margin-bottom: 0.5rem;
-}
-
-.generation-progress {
-    width: 100%;
-    height: 4px;
-    background: rgba(99, 102, 241, 0.1);
-    border-radius: 2px;
-    margin: 0.75rem 0;
-    overflow: hidden;
-    position: relative;
-}
-
-.generation-progress::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 30%;
-    background: var(--fg-color);
-    border-radius: 2px;
-    animation: progress 1.5s ease-in-out infinite;
-}
-
-@keyframes progress {
-    0% {
-        left: -30%;
-    }
-    100% {
-        left: 100%;
-    }
-}
 
 /* Custom scrollbar styles */
 ::-webkit-scrollbar {
@@ -309,33 +215,30 @@ main {
 
 .text-editor {
     grid-column: 1;
-    grid-row: 1;
-    min-height: 0;
-    height: calc(100vh - 14rem);
+    min-height: 400px;
+    max-height: 600px;
     overflow: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
-    margin: 0;
+    margin-bottom: 1.5rem;
 }
 
 .controls {
     grid-column: 2;
-    grid-row: 1;
-    min-height: 0;
-    height: calc(100vh - 14rem);
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1rem;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 0.5rem;
-    padding: 1.25rem;
+    padding: 1rem;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
-    margin: 0;
-    position: relative;
+    height: fit-content;
+    margin-bottom: 1rem;
+    max-height: 600px;
 }
 
 .voice-select-container {
@@ -347,8 +250,8 @@ main {
     border-radius: 0.5rem;
     padding: 1rem;
     height: auto;
-    min-height: 120px;
-    max-height: 200px;
+    min-height: 160px;
+    max-height: 240px;
     flex-shrink: 0;
     margin: 0.5rem 0;
     overflow: visible;
@@ -356,13 +259,13 @@ main {
 
 .selected-voices {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 4fr));
     gap: 0.5rem;
     margin-top: 0.25rem;
     height: auto;
-    min-height: 60px;
-    max-height: none;
-    overflow-y: visible;
+    min-height: 50px;
+    max-height: 100%;
+    overflow-y: auto;
     padding: 0.75rem;
     background: rgba(15, 23, 42, 0.3);
     border-radius: 0.25rem;
@@ -435,22 +338,36 @@ main {
     padding: 0.375rem 0.75rem;
     border-radius: 1rem;
     font-size: 0.75rem;
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: auto auto 1fr;
     align-items: center;
-    gap: 0.375rem;
+    gap: 0.75rem;
     border: 1px solid rgba(99, 102, 241, 0.3);
     white-space: nowrap;
     flex-shrink: 0;
+    min-width: 180px;
+    max-width: 100%;
+}
+.remove-voice {
+    font-size: 1.2em;
 }
 
 .selected-voice-tag input {
-    width: 2.5em;
-    padding: 0.1rem;
-    min-height: 1.25em;
+    width: 100%;
+    padding: 0.25rem;
+    min-height: 1.5em;
     background: transparent;
     border: none;
     color: inherit;
     font-size: inherit;
+    text-align: center;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+.selected-voice-tag input:hover,
+.selected-voice-tag input:focus {
+    background: rgba(99, 102, 241, 0.1);
 }
 
 .remove-voice {
@@ -569,29 +486,23 @@ main {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    padding: 0.75rem 1.25rem 1.5rem 1.25rem;
+    padding: 0.75rem 1rem 1rem 1rem;
     gap: 1rem;
 }
 
 .player-container {
     grid-column: 1 / -1;
-    grid-row: 2;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 0.5rem;
     padding: 1.25rem 1.5rem;
-    height: auto;
     min-height: 90px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
                 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    margin: 1rem 0;
-    align-self: start;
     width: 100%;
-    position: relative;
-    z-index: 1;
 }
 
 .options {
@@ -613,7 +524,7 @@ main {
     align-items: center;
     gap: 1rem;
     padding: 0.5rem 0;
-    margin-top: 0.5rem;
+    margin-top: auto;
     border-top: 1px solid var(--border);
 }
 
@@ -686,4 +597,8 @@ button:disabled {
 
 .loading .btn-text {
     display: none;
+}
+.text-editor,
+.controls {
+    height: 600px;
 }

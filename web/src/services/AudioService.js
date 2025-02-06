@@ -8,7 +8,7 @@ export class AudioService {
         this.minimumPlaybackSize = 50000; // 50KB minimum before playback
         this.textLength = 0;
         this.shouldAutoplay = false;
-        this.CHARS_PER_CHUNK = 300; // Estimated chars per chunk
+        this.CHARS_PER_CHUNK = 150; // Estimated chars per chunk
         this.serverDownloadPath = null; // Server-side download path
         this.pendingOperations = []; // Queue for buffer operations
     }
