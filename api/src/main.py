@@ -30,7 +30,7 @@ def setup_logger():
                 "{level: <8} | "
                 "{message}",
                 "colorize": True,
-                "level": "INFO",
+                "level": "DEBUG",
             },
         ],
     }
@@ -55,23 +55,23 @@ async def lifespan(app: FastAPI):
     logger.info("Loading TTS model and voice packs...")
 
     try:
-        # Initialize managers globally
+        # Initialize managers
         model_manager = await get_manager()
         voice_manager = await get_voice_manager()
 
         # Initialize model with warmup and get status
-        device, model, voicepack_count = await model_manager.initialize_with_warmup(voice_manager)
+        device, model, voicepack_count = await model_manager\
+            .initialize_with_warmup(voice_manager)
+    
     except FileNotFoundError:
         logger.error("""
-Model files not found! You need to either:
+Model files not found! You need to download the Kokoro V1 model:
 
-1. Download models using the scripts:
-   GPU: python docker/scripts/download_model.py --type pth
-   CPU: python docker/scripts/download_model.py --type onnx
+1. Download model using the script:
+   python docker/scripts/download_model.py --version v1_0 --output api/src/models/v1_0
 
-2. Set environment variables in docker-compose:
-   GPU: DOWNLOAD_PTH=true
-   CPU: DOWNLOAD_ONNX=true
+2. Or set environment variable in docker-compose:
+   DOWNLOAD_MODEL=true
 """)
         raise
     except Exception as e:
