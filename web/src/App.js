@@ -138,7 +138,7 @@ export class App {
     setGenerating(isGenerating) {
         this.playerState.setGenerating(isGenerating);
         this.elements.generateBtn.disabled = isGenerating;
-        this.elements.generateBtn.className = isGenerating ? 'loading' : '';
+        this.elements.generateBtn.classList.toggle('loading', isGenerating);
         this.elements.generateBtnLoader.style.display = isGenerating ? 'block' : 'none';
         this.elements.generateBtnText.style.visibility = isGenerating ? 'hidden' : 'visible';
         this.elements.cancelBtn.style.display = isGenerating ? 'block' : 'none';
