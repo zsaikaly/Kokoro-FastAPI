@@ -23,7 +23,7 @@ async def test_find_file_not_exists():
     """Test finding non-existent file."""
     with patch('aiofiles.os.path.exists') as mock_exists:
         mock_exists.return_value = False
-        with pytest.raises(RuntimeError, match="File not found"):
+        with pytest.raises(FileNotFoundError, match="File not found"):
             await _find_file("test.txt", ["/test/path"])
 
 @pytest.mark.asyncio

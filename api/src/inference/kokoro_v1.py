@@ -60,7 +60,8 @@ class KokoroV1(BaseModelBackend):
                 model=self._model,  # Pass our model directly
                 device=self._device  # Match our device setting
             )
-            
+        except FileNotFoundError as e:
+            raise e
         except Exception as e:
             raise RuntimeError(f"Failed to load Kokoro model: {e}")
 

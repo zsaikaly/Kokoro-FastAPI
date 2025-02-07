@@ -41,7 +41,7 @@ async def _find_file(
             if filter_fn is None or filter_fn(full_path):
                 return full_path
                 
-    raise RuntimeError(f"File not found: {filename} in paths: {search_paths}")
+    raise FileNotFoundError(f"File not found: {filename} in paths: {search_paths}")
 
 
 async def _scan_directories(
