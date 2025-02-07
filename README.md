@@ -7,16 +7,15 @@
 [![Coverage](https://img.shields.io/badge/coverage-53%25-tan)]()
 [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero)
 
-[![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-9901c2b-blue)](https://huggingface.co/hexgrad/Kokoro-82M/commit/9901c2b79161b6e898b7ea857ae5298f47b8b0d6)
-[![Kokoro](https://img.shields.io/badge/kokoro-v0.7.6-BB5420)]()
-[![Misaki](https://img.shields.io/badge/misaki-v0.7.6-B8860B)]()
+[![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-1.0::9901c2b-blue)](https://huggingface.co/hexgrad/Kokoro-82M/commit/9901c2b79161b6e898b7ea857ae5298f47b8b0d6)
+[![Kokoro](https://img.shields.io/badge/kokoro-v0.7.9-BB5420)]()
+[![Misaki](https://img.shields.io/badge/misaki-v0.7.9-B8860B)]()
 
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
 - Multi-language support (English, Japanese, Korean, Chinese, Vietnamese)
 - OpenAI-compatible Speech endpoint, NVIDIA GPU accelerated or CPU inference with PyTorch 
 - ONNX support coming soon, see v0.1.5 and earlier for legacy ONNX support in the interim
-- Debug endpoints for monitoring threads, storage, and session pools
-- Integrated web UI on localhost:8880/web
+- Debug endpoints for monitoring system stats, integrated web UI on localhost:8880/web
 - Phoneme-based audio generation, phoneme generation
 - (new) Per-word timestamped caption generation
 - (new) Voice mixing with weighted combinations
