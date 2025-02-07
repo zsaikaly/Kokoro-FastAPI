@@ -3,6 +3,9 @@ name: Docker Build and Publish
 on:
   push:
     tags: [ 'v*.*.*' ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   workflow_dispatch:
 
 jobs:

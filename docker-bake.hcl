@@ -26,8 +26,6 @@ target "_common" {
         DEBIAN_FRONTEND = "noninteractive"
         DOWNLOAD_MODEL = "${DOWNLOAD_MODEL}"
     }
-    cache-from = ["type=registry,ref=${REGISTRY}/${OWNER}/${REPO}-cache"]
-    cache-to = ["type=registry,ref=${REGISTRY}/${OWNER}/${REPO}-cache,mode=max"]
 }
 
 # Base settings for CPU builds
