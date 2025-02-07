@@ -15,11 +15,16 @@ variable "REPO" {
     default = "kokoro-fastapi"
 }
 
+variable "DOWNLOAD_MODEL" {
+    default = "true"
+}
+
 # Common settings shared between targets
 target "_common" {
     context = "."
     args = {
         DEBIAN_FRONTEND = "noninteractive"
+        DOWNLOAD_MODEL = "${DOWNLOAD_MODEL}"
     }
     cache-from = ["type=registry,ref=${REGISTRY}/${OWNER}/${REPO}-cache"]
     cache-to = ["type=registry,ref=${REGISTRY}/${OWNER}/${REPO}-cache,mode=max"]
