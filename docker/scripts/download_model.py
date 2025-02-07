@@ -64,7 +64,7 @@ def download_model(output_dir: str) -> None:
         logger.info("Downloading Kokoro v1.0 model files")
         
         # GitHub release URLs (to be updated with v0.2.0 release)
-        base_url = "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.2.0"
+        base_url = "https://github.com/remsky/Kokoro-FastAPI/releases/download/v0.1.4"
         model_url = f"{base_url}/{model_file}"
         config_url = f"{base_url}/{config_file}"
         
