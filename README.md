@@ -32,8 +32,8 @@ Refer to the core/config.py file for a full list of variables which can be manag
 
 ```bash
 
-docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.1.4 # CPU, or:
-docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.1.4 #NVIDIA GPU
+docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.0 # CPU, or:
+docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.0 #NVIDIA GPU
 ```
 
 
@@ -462,6 +462,7 @@ Useful for debugging resource exhaustion or performance issues.
 I'm doing what I can to keep things stable, but we are on an early and rapid set of build cycles here.
 If you run into trouble, you may have to roll back a version on the release tags if something comes up, or build up from source and/or troubleshoot + submit a PR. Will leave the branch up here for the last known stable points:
 
+`v0.1.4`
 `v0.0.5post1`
 
 Free and open source is a community effort, and I love working on this project, though there's only really so many hours in a day. If you'd like to support the work, feel free to open a PR, buy me a coffee, or report any bugs/features/etc you find during use.
