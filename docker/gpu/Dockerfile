@@ -38,7 +38,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Copy project files including models and sync again
 COPY --chown=appuser:appuser api ./api
 COPY --chown=appuser:appuser web ./web
-COPY --chown=appuser:appuser docker/scripts/download_model.* ./
+COPY --chown=appuser:appuser docker/scripts/ ./
+RUN chmod +x ./entrypoint.sh
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --extra gpu
 
@@ -57,5 +58,6 @@ RUN if [ "$DOWNLOAD_MODEL" = "true" ]; then \
     python download_model.py --output api/src/models/v1_0; \
     fi
 
-# Run FastAPI server
-CMD ["uv", "run", "python", "-m", "uvicorn", "api.src.main:app", "--host", "0.0.0.0", "--port", "8880", "--log-level", "debug"]
+ENV DEVICE="gpu"
+# Run FastAPI server through entrypoint.sh
+CMD ["./entrypoint.sh"]

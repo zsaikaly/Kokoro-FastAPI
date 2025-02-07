@@ -62,18 +62,7 @@ async def lifespan(app: FastAPI):
         # Initialize model with warmup and get status
         device, model, voicepack_count = await model_manager\
             .initialize_with_warmup(voice_manager)
-    
-    except FileNotFoundError:
-        logger.error("""
-Model files not found! You need to download the Kokoro V1 model:
 
-1. Download model using the script:
-   python docker/scripts/download_model.py --version v1_0 --output api/src/models/v1_0
-
-2. Or set environment variable in docker-compose:
-   DOWNLOAD_MODEL=true
-""")
-        raise
     except Exception as e:
         logger.error(f"Failed to initialize model: {e}")
         raise

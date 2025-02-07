@@ -81,7 +81,17 @@ class ModelManager:
             logger.info(f"Warmup completed in {ms}ms")
             
             return self._device, "kokoro_v1", len(voices)
-            
+        except FileNotFoundError as e:
+            logger.error("""
+Model files not found! You need to download the Kokoro V1 model:
+
+1. Download model using the script:
+   python docker/scripts/download_model.py --output api/src/models/v1_0
+
+2. Or set environment variable in docker-compose:
+   DOWNLOAD_MODEL=true
+""")
+            exit(0)
         except Exception as e:
             raise RuntimeError(f"Warmup failed: {e}")
 
@@ -112,6 +122,8 @@ class ModelManager:
             
         try:
             await self._backend.load_model(path)
+        except FileNotFoundError as e:
+            raise e
         except Exception as e:
             raise RuntimeError(f"Failed to load model: {e}")
 
