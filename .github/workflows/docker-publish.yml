@@ -7,6 +7,11 @@ on:
       - '**.md'
       - 'docs/**'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. v0.2.0)'
+        required: true
+        type: string
 
 jobs:
   prepare-release:
@@ -20,11 +25,16 @@ jobs:
       
       - name: Get version
         id: get-version
-        run: echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
+          fi
       
       - name: Check if prerelease
         id: check-prerelease
-        run: echo "is_prerelease=${{ contains(github.ref, '-pre') }}" >> $GITHUB_OUTPUT
+        run: echo "is_prerelease=${{ contains(steps.get-version.outputs.version, '-pre') }}" >> $GITHUB_OUTPUT
 
   build-images:
     needs: prepare-release
@@ -78,9 +88,15 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: ${{ needs.prepare-release.outputs.version }}
           generate_release_notes: true
           draft: true
           prerelease: ${{ needs.prepare-release.outputs.is_prerelease }}
