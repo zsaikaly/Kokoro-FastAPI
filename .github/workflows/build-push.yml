@@ -1,4 +1,4 @@
-name: Docker Build and Publish
+name: Docker Build and push
 
 on:
   push:
@@ -45,7 +45,7 @@ jobs:
     env:
       DOCKER_BUILDKIT: 1
       BUILDKIT_STEP_LOG_MAX_SIZE: 10485760
-      # The version from the prepare-release job will override the VERSION variable
+      # This environment variable will override the VERSION variable in your HCL file.
       VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
       - name: Checkout repository
@@ -83,5 +83,5 @@ jobs:
 
       - name: Build and push images
         run: |
-          # Override the VERSION variable in your bake file with the provided version.
-          docker buildx bake --push --set VERSION=$VERSION
+          # No need to override VERSION via --set; the env var does the job.
+          docker buildx bake --push
