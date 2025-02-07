@@ -112,8 +112,8 @@ with client.audio.speech.with_streaming_response.create(
 - Web Interface: http://localhost:8880/web
 
 <div align="center" style="display: flex; justify-content: center; gap: 10px;">
-  <img src="assets/docs-screenshot.png" width="40%" alt="API Documentation" style="border: 2px solid #333; padding: 10px;">
-  <img src="assets/webui-screenshot.png" width="49%" alt="Web UI Screenshot" style="border: 2px solid #333; padding: 10px;">
+  <img src="assets/docs-screenshot.png" width="42%" alt="API Documentation" style="border: 2px solid #333; padding: 10px;">
+  <img src="assets/webui-screenshot.png" width="42%" alt="Web UI Screenshot" style="border: 2px solid #333; padding: 10px;">
 </div>
 
 </details>
@@ -355,7 +355,10 @@ docker compose up --build
 <summary>Natural Boundary Detection</summary>
 
 - Automatically splits and stitches at sentence boundaries 
-- Helps to reduce artifacts and allow long form processing as the base model is only currently configured for approximately 30s output 
+- Helps to reduce artifacts and allow long form processing as the base model is only currently configured for approximately 30s output
+
+The model is capable of processing up to a 510 phonemized token chunk at a time, however, this can often lead to 'rushed' speech or other artifacts. An additional layer of chunking is applied in the server, that creates flexible chunks with a `TARGET_MIN_TOKENS` , `TARGET_MAX_TOKENS`, and `ABSOLUTE_MAX_TOKENS` which are configurable via environment variables, and set to 175, 250, 450 by default
+
 </details>
 
 <details>
