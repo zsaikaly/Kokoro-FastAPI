@@ -7,16 +7,15 @@
 [![Coverage](https://img.shields.io/badge/coverage-53%25-tan)]()
 [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero)
 
-[![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-9901c2b-blue)](https://huggingface.co/hexgrad/Kokoro-82M/commit/9901c2b79161b6e898b7ea857ae5298f47b8b0d6)
-[![Kokoro](https://img.shields.io/badge/kokoro-v0.7.6-BB5420)]()
-[![Misaki](https://img.shields.io/badge/misaki-v0.7.6-B8860B)]()
+[![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-1.0::9901c2b-blue)](https://huggingface.co/hexgrad/Kokoro-82M/commit/9901c2b79161b6e898b7ea857ae5298f47b8b0d6)
+[![Kokoro](https://img.shields.io/badge/kokoro-v0.7.9-BB5420)]()
+[![Misaki](https://img.shields.io/badge/misaki-v0.7.9-B8860B)]()
 
 Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) text-to-speech model
 - Multi-language support (English, Japanese, Korean, Chinese, Vietnamese)
 - OpenAI-compatible Speech endpoint, NVIDIA GPU accelerated or CPU inference with PyTorch 
 - ONNX support coming soon, see v0.1.5 and earlier for legacy ONNX support in the interim
-- Debug endpoints for monitoring threads, storage, and session pools
-- Integrated web UI on localhost:8880/web
+- Debug endpoints for monitoring system stats, integrated web UI on localhost:8880/web
 - Phoneme-based audio generation, phoneme generation
 - (new) Per-word timestamped caption generation
 - (new) Voice mixing with weighted combinations
@@ -113,8 +112,8 @@ with client.audio.speech.with_streaming_response.create(
 - Web Interface: http://localhost:8880/web
 
 <div align="center" style="display: flex; justify-content: center; gap: 10px;">
-  <img src="assets/docs-screenshot.png" width="40%" alt="API Documentation" style="border: 2px solid #333; padding: 10px;">
-  <img src="assets/webui-screenshot.png" width="49%" alt="Web UI Screenshot" style="border: 2px solid #333; padding: 10px;">
+  <img src="assets/docs-screenshot.png" width="42%" alt="API Documentation" style="border: 2px solid #333; padding: 10px;">
+  <img src="assets/webui-screenshot.png" width="42%" alt="Web UI Screenshot" style="border: 2px solid #333; padding: 10px;">
 </div>
 
 </details>
@@ -356,7 +355,10 @@ docker compose up --build
 <summary>Natural Boundary Detection</summary>
 
 - Automatically splits and stitches at sentence boundaries 
-- Helps to reduce artifacts and allow long form processing as the base model is only currently configured for approximately 30s output 
+- Helps to reduce artifacts and allow long form processing as the base model is only currently configured for approximately 30s output
+
+The model is capable of processing up to a 510 phonemized token chunk at a time, however, this can often lead to 'rushed' speech or other artifacts. An additional layer of chunking is applied in the server, that creates flexible chunks with a `TARGET_MIN_TOKENS` , `TARGET_MAX_TOKENS`, and `ABSOLUTE_MAX_TOKENS` which are configurable via environment variables, and set to 175, 250, 450 by default
+
 </details>
 
 <details>
