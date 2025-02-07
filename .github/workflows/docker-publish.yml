@@ -23,7 +23,7 @@ jobs:
         id: check-prerelease
         run: echo "is_prerelease=${{ contains(github.ref, '-pre') }}" >> $GITHUB_OUTPUT
 
-  build-cpu:
+  build-images:
     needs: prepare-release
     runs-on: ubuntu-latest
     permissions:
@@ -62,71 +62,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push CPU image
+      - name: Build and push images
         env:
           DOCKER_BUILDKIT: 1
           BUILDKIT_STEP_LOG_MAX_SIZE: 10485760
+          VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
-          docker buildx build --platform linux/amd64,linux/arm64 \
-            -t ghcr.io/remsky/kokoro-fastapi-cpu:${{ needs.prepare-release.outputs.version }} \
-            -t ghcr.io/remsky/kokoro-fastapi-cpu:latest \
-            -f docker/cpu/Dockerfile \
-            --push \
-            --build-arg BUILDKIT_INLINE_CACHE=1 .
-
-  build-gpu:
-    needs: prepare-release
-    runs-on: ubuntu-latest
-    permissions:
-      packages: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Free disk space
-        run: |
-          echo "Listing current disk space"
-          df -h
-          echo "Cleaning up disk space..."
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache
-          docker system prune -af
-          echo "Disk space after cleanup"
-          df -h
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        with:
-          driver-opts: |
-            image=moby/buildkit:latest
-            network=host
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push GPU image
-        env:
-          DOCKER_BUILDKIT: 1
-          BUILDKIT_STEP_LOG_MAX_SIZE: 10485760
-        run: |
-          docker buildx build --platform linux/amd64,linux/arm64 \
-            -t ghcr.io/remsky/kokoro-fastapi-gpu:${{ needs.prepare-release.outputs.version }} \
-            -t ghcr.io/remsky/kokoro-fastapi-gpu:latest \
-            -f docker/gpu/Dockerfile \
-            --push \
-            --build-arg BUILDKIT_INLINE_CACHE=1 .
+          docker buildx bake --push
 
   create-release:
-    needs: [prepare-release, build-cpu, build-gpu]
+    needs: [prepare-release, build-images]
     runs-on: ubuntu-latest
     permissions:
       contents: write

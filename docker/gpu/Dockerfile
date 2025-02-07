@@ -47,7 +47,9 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app:/app/api \
     PATH="/app/.venv/bin:$PATH" \
     UV_LINK_MODE=copy \
-    USE_GPU=true
+    USE_GPU=true \
+    PHONEMIZER_ESPEAK_PATH=/usr/bin \
+    PHONEMIZER_ESPEAK_DATA=/usr/share/espeak-ng-data
     
 ENV DOWNLOAD_MODEL=true
 # Download model if enabled
