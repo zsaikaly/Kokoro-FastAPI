@@ -1,0 +1,82 @@
+name: Docker Build and Publish Package
+
+on:
+  push:
+    tags: [ 'v*.*.*' ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Name of the package to publish (e.g. my-docker-package)'
+        required: true
+        type: string
+
+jobs:
+  prepare-publish:
+    runs-on: ubuntu-latest
+    outputs:
+      package: ${{ steps.get-package.outputs.package }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Get package name
+        id: get-package
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "package=${{ inputs.package }}" >> $GITHUB_OUTPUT
+          else
+            # For non-dispatch events, read the package name from a file called PACKAGE.
+            echo "package=$(cat PACKAGE)" >> $GITHUB_OUTPUT
+          fi
+
+  build-images:
+    needs: prepare-publish
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          echo "Listing current disk space"
+          df -h
+          echo "Cleaning up disk space..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache
+          docker system prune -af
+          echo "Disk space after cleanup"
+          df -h
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        env:
+          DOCKER_BUILDKIT: 1
+          BUILDKIT_STEP_LOG_MAX_SIZE: 10485760
+          PACKAGE: ${{ needs.prepare-publish.outputs.package }}
+        run: |
+          # This command assumes you have a docker-bake configuration that
+          # uses the image tag information. Here we override the tag to use the package name.
+          docker buildx bake --push --set "*.tags=ghcr.io/${{ github.repository_owner }}/${PACKAGE}:latest"
