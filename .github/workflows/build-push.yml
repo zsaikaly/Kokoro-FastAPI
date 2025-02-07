@@ -1,4 +1,4 @@
-name: Docker Build and Publish Package
+name: Docker Build and Publish
 
 on:
   push:
@@ -8,35 +8,45 @@ on:
       - 'docs/**'
   workflow_dispatch:
     inputs:
-      package:
-        description: 'Name of the package to publish (e.g. my-docker-package)'
+      version:
+        description: 'Version to build and publish (e.g. v0.2.0)'
         required: true
         type: string
 
 jobs:
-  prepare-publish:
+  prepare-release:
     runs-on: ubuntu-latest
     outputs:
-      package: ${{ steps.get-package.outputs.package }}
+      version: ${{ steps.get-version.outputs.version }}
+      is_prerelease: ${{ steps.check-prerelease.outputs.is_prerelease }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
-      - name: Get package name
-        id: get-package
+
+      - name: Get version
+        id: get-version
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "package=${{ inputs.package }}" >> $GITHUB_OUTPUT
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
           else
-            # For non-dispatch events, read the package name from a file called PACKAGE.
-            echo "package=$(cat PACKAGE)" >> $GITHUB_OUTPUT
+            echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
           fi
 
+      - name: Check if prerelease
+        id: check-prerelease
+        run: |
+          echo "is_prerelease=${{ contains(steps.get-version.outputs.version, '-pre') }}" >> $GITHUB_OUTPUT
+
   build-images:
-    needs: prepare-publish
+    needs: prepare-release
     runs-on: ubuntu-latest
     permissions:
       packages: write
+    env:
+      DOCKER_BUILDKIT: 1
+      BUILDKIT_STEP_LOG_MAX_SIZE: 10485760
+      # The version from the prepare-release job will override the VERSION variable
+      VERSION: ${{ needs.prepare-release.outputs.version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -71,12 +81,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image
-        env:
-          DOCKER_BUILDKIT: 1
-          BUILDKIT_STEP_LOG_MAX_SIZE: 10485760
-          PACKAGE: ${{ needs.prepare-publish.outputs.package }}
+      - name: Build and push images
         run: |
-          # This command assumes you have a docker-bake configuration that
-          # uses the image tag information. Here we override the tag to use the package name.
-          docker buildx bake --push --set "*.tags=ghcr.io/${{ github.repository_owner }}/${PACKAGE}:latest"
+          # Override the VERSION variable in your bake file with the provided version.
+          docker buildx bake --push --set VERSION=$VERSION
