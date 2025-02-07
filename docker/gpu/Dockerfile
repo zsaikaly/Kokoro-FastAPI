@@ -1,5 +1,4 @@
-FROM --platform=$BUILDPLATFORM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
-
+FROM --platform=$BUILDPLATFORM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 # Set non-interactive frontend
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -8,30 +7,26 @@ RUN apt-get update && apt-get install -y \
     python3.10 \
     python3.10-venv \
     espeak-ng \
+    espeak-ng-data \
     git \
     libsndfile1 \
     curl \
     ffmpeg \
- && ls -la /usr/lib/x86_64-linux-gnu/espeak-ng-data \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+ && apt-get clean && rm -rf /var/lib/apt/lists/* \
+ && mkdir -p /usr/share/espeak-ng-data \
+ && ln -s /usr/lib/x86_64-linux-gnu/espeak-ng-data/* /usr/share/espeak-ng-data/
 
-# Create user and set up permissions 
-RUN useradd -m -u 1000 appuser && \
-    mkdir -p /app/api/src/models/v1_0 && \
-    chown -R appuser:appuser /app && \
-    chown -R appuser:appuser /usr/lib/x86_64-linux-gnu/espeak-ng-data
-
-
-# Rest of your Dockerfile...
-
-# Install UV in a separate step
+# Install UV using the installer script
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/ && \
-    mv /root/.local/bin/uvx /usr/local/bin/
+    mv /root/.local/bin/uvx /usr/local/bin/ && \
+    useradd -m -u 1000 appuser && \
+    mkdir -p /app/api/src/models/v1_0 && \
+    chown -R appuser:appuser /app 
 
 USER appuser
 WORKDIR /app
+
 # Copy dependency files
 COPY --chown=appuser:appuser pyproject.toml ./pyproject.toml
 

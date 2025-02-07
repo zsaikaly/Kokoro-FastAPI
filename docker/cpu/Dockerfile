@@ -3,14 +3,15 @@ FROM --platform=$BUILDPLATFORM python:3.10-slim
 # Install dependencies and check espeak location
 RUN apt-get update && apt-get install -y \
     espeak-ng \
+    espeak-ng-data \
     git \
     libsndfile1 \
     curl \
     ffmpeg \
-    && dpkg -L espeak-ng \
-    && find / -name "espeak-ng-data" \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /usr/share/espeak-ng-data \
+    && ln -s /usr/lib/x86_64-linux-gnu/espeak-ng-data/* /usr/share/espeak-ng-data/
 
 # Install UV using the installer script
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
@@ -20,9 +21,7 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
 # Create non-root user and set up directories and permissions
 RUN useradd -m -u 1000 appuser && \
     mkdir -p /app/api/src/models/v1_0 && \
-    chown -R appuser:appuser /app && \
-    chown -R appuser:appuser /lib/x86_64-linux-gnu/espeak-ng-data
-
+    chown -R appuser:appuser /app
 
 USER appuser
 WORKDIR /app
@@ -33,16 +32,12 @@ COPY --chown=appuser:appuser pyproject.toml ./pyproject.toml
 # Install dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv venv && \
-    uv sync --extra cpu --no-install-project
+    uv sync --extra cpu
 
 # Copy project files including models
 COPY --chown=appuser:appuser api ./api
 COPY --chown=appuser:appuser web ./web
 COPY --chown=appuser:appuser docker/scripts/download_model.* ./
-
-# Install project
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --extra cpu
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \

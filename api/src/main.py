@@ -93,6 +93,7 @@ Model files not found! You need to download the Kokoro V1 model:
 {boundary}
                 """
     startup_msg += f"\nModel warmed up on {device}: {model}"
+    startup_msg += f"CUDA: {torch.cuda.is_available()}"
     startup_msg += f"\n{voicepack_count} voice packs loaded"
     
     # Add web player info if enabled

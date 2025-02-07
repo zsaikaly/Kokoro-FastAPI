@@ -3,8 +3,8 @@
 </p>
 
 # <sub><sub>_`FastKoko`_ </sub></sub>
-[![Tests](https://img.shields.io/badge/tests-100%20passed-darkgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-49%25-grey)]()
+[![Tests](https://img.shields.io/badge/tests-63%20passed-darkgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-53%25-tan)]()
 [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero)
 
 [![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-9901c2b-blue)](https://huggingface.co/hexgrad/Kokoro-82M/commit/9901c2b79161b6e898b7ea857ae5298f47b8b0d6)

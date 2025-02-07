@@ -1,4 +1,4 @@
-name: kokoro-tts
+name: kokoro-tts-gpu
 services:
   kokoro-tts:
     # image: ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.0
