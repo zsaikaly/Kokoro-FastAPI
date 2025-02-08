@@ -33,10 +33,10 @@ dependencies = [
     "matplotlib>=3.10.0",
     "mutagen>=1.47.0",
     "psutil>=6.1.1",
-    "kokoro==0.7.9",
-    'misaki[en,ja,ko,zh,vi]==0.7.9',
-    "spacy>=3.7.6",
-    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+    "kokoro @ git+https://github.com/hexgrad/kokoro.git@31a2b6337b8c1b1418ef68c48142328f640da938",
+    'misaki[en,ja,ko,zh] @ git+https://github.com/hexgrad/misaki.git@ebc76c21b66c5fc4866ed0ec234047177b396170',
+    "spacy==3.7.2",
+    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl"
 ]
 
 [project.optional-dependencies]
@@ -51,7 +51,6 @@ test = [
     "pytest-cov==4.1.0",
     "httpx==0.26.0",
     "pytest-asyncio==0.23.5",
-    "gradio>=5",
     "openai>=1.59.6",
 ]
 

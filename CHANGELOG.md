@@ -2,6 +2,12 @@
 
 Notable changes to this project will be documented in this file.
 
+## [v0.2.0post1] - 2025-02-07
+- Fix: Building Kokoro from source with adjustments, to avoid CUDA lock 
+- Fixed ARM64 compatibility on Spacy dep to avoid emulation slowdown
+- Added g++ for Japanese language support
+- Temporarily disabled Vietnamese language support due to ARM64 compatibility issues
+
 ## [v0.2.0-pre] - 2025-02-06
 ### Added
 - Complete Model Overhaul:
