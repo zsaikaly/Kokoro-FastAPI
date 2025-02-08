@@ -72,12 +72,10 @@ docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.0post3
         ```bash
         git clone https://github.com/remsky/Kokoro-FastAPI.git
         cd Kokoro-FastAPI
-
-        # if you are missing any models, run:
-        # python ../scripts/download_model.py --type pth  # for GPU
-        # python ../scripts/download_model.py --type onnx # for CPU
         ```
-
+        
+        Run the [model download script](https://github.com/remsky/Kokoro-FastAPI/blob/master/docker/scripts/download_model.py) if you haven't already
+     
         Start directly via UV (with hot-reload)
         ```bash
         ./start-cpu.sh OR
