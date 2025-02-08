@@ -88,8 +88,8 @@ export default class TextEditor {
                 this.updatePageDisplay();
             }
             
-            // Update full text and char count
-            this.fullText = this.pages.join('\n');
+            // Update full text and char count - join with space since pages are just for UI
+            this.fullText = this.pages.join(' ');
             this.updateCharCount();
             
             if (this.options.onTextChange) {
@@ -170,8 +170,9 @@ export default class TextEditor {
             return;
         }
 
-        this.fullText = text;
-        const words = text.split(/\s+/);
+        // Store original text to preserve natural line breaks
+        this.fullText = text.trim();
+        const words = text.trim().split(/\s+/);
         this.pages = [];
         let currentPage = '';
         
