@@ -252,6 +252,49 @@
     transform: scale(1.1);
 }
 
+/* Language Control */
+.lang-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(15, 23, 42, 0.3);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+}
+
+.lang-control label {
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+.lang-select {
+    background: rgba(15, 23, 42, 0.3);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-family: var(--font-family);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.lang-select:hover {
+    border-color: var(--fg-color);
+}
+
+.lang-select:focus {
+    outline: none;
+    border-color: var(--fg-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.lang-select option {
+    background: var(--surface);
+    color: var(--text);
+}
+
 /* Generation Controls */
 .button-group {
     display: flex;

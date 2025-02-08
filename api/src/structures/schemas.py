@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Literal, Union
+from typing import List, Literal, Union, Optional
 
 from pydantic import BaseModel, Field
 
@@ -62,6 +62,10 @@ class OpenAISpeechRequest(BaseModel):
         default=False,
         description="If true, returns a download link in X-Download-Path header after streaming completes",
     )
+    lang_code: Optional[str] = Field(
+        default=None,
+        description="Optional language code to use for text processing. If not provided, will use first letter of voice name.",
+    )
 
 class CaptionedSpeechRequest(BaseModel):
     """Request schema for captioned speech endpoint"""
@@ -87,4 +91,8 @@ class CaptionedSpeechRequest(BaseModel):
     return_timestamps: bool = Field(
         default=True,
         description="If true (default), returns word-level timestamps in the response",
+    )
+    lang_code: Optional[str] = Field(
+        default=None,
+        description="Optional language code to use for text processing. If not provided, will use first letter of voice name.",
     )

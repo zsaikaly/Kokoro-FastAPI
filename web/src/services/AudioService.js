@@ -42,7 +42,8 @@ export class AudioService {
                     response_format: 'mp3',
                     stream: true,
                     speed: speed,
-                    return_download_link: true
+                    return_download_link: true,
+                    lang_code: document.getElementById('lang-select').value || undefined
                 }),
                 signal: this.controller.signal
             });

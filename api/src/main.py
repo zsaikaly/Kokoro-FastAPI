@@ -28,6 +28,7 @@ def setup_logger():
                 "sink": sys.stdout,
                 "format": "<fg #2E8B57>{time:hh:mm:ss A}</fg #2E8B57> | "
                 "{level: <8} | "
+                "<fg #4169E1>{module}:{line}</fg #4169E1> | "
                 "{message}",
                 "colorize": True,
                 "level": "DEBUG",
@@ -88,6 +89,7 @@ async def lifespan(app: FastAPI):
     # Add web player info if enabled
     if settings.enable_web_player:
         startup_msg += f"\n\nBeta Web Player: http://{settings.host}:{settings.port}/web/"
+        startup_msg += f"\nor http://localhost:{settings.port}/web/"
     else:
         startup_msg += "\n\nWeb Player: disabled"
         

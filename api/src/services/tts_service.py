@@ -51,6 +51,7 @@ class TTSService:
         is_first: bool = False,
         is_last: bool = False,
         normalizer: Optional[AudioNormalizer] = None,
+        lang_code: Optional[str] = None,
     ) -> AsyncGenerator[Union[np.ndarray, bytes], None]:
         """Process tokens into audio."""
         async with self._chunk_semaphore:
@@ -82,11 +83,12 @@ class TTSService:
 
                 # Generate audio using pre-warmed model
                 if isinstance(backend, KokoroV1):
-                    # For Kokoro V1, pass text and voice info
+                    # For Kokoro V1, pass text and voice info with lang_code
                     async for chunk_audio in self.model_manager.generate(
                         chunk_text,
                         (voice_name, voice_path),
-                        speed=speed
+                        speed=speed,
+                        lang_code=lang_code
                     ):
                         # For streaming, convert to bytes
                         if output_format:
@@ -217,6 +219,7 @@ class TTSService:
         voice: str,
         speed: float = 1.0,
         output_format: str = "wav",
+        lang_code: Optional[str] = None,
     ) -> AsyncGenerator[bytes, None]:
         """Generate and stream audio chunks."""
         stream_normalizer = AudioNormalizer()
@@ -229,6 +232,10 @@ class TTSService:
             # Get voice path, handling combined voices
             voice_name, voice_path = await self._get_voice_path(voice)
             logger.debug(f"Using voice path: {voice_path}")
+
+            # Use provided lang_code or determine from voice name
+            pipeline_lang_code = lang_code if lang_code else voice[:1].lower()
+            logger.info(f"Using lang_code '{pipeline_lang_code}' for voice '{voice_name}' in audio stream")
 
             # Process text in chunks with smart splitting
             async for chunk_text, tokens in smart_split(text):
@@ -243,7 +250,8 @@ class TTSService:
                         output_format,
                         is_first=(chunk_index == 0),
                         is_last=False,  # We'll update the last chunk later
-                        normalizer=stream_normalizer
+                        normalizer=stream_normalizer,
+                        lang_code=pipeline_lang_code  # Pass lang_code
                     ):
                         if result is not None:
                             yield result
@@ -268,7 +276,8 @@ class TTSService:
                         output_format,
                         is_first=False,
                         is_last=True,  # Signal this is the last chunk
-                        normalizer=stream_normalizer
+                        normalizer=stream_normalizer,
+                        lang_code=pipeline_lang_code  # Pass lang_code
                     ):
                         if result is not None:
                             yield result
@@ -280,7 +289,8 @@ class TTSService:
             raise
 
     async def generate_audio(
-        self, text: str, voice: str, speed: float = 1.0, return_timestamps: bool = False
+        self, text: str, voice: str, speed: float = 1.0, return_timestamps: bool = False,
+        lang_code: Optional[str] = None
     ) -> Union[Tuple[np.ndarray, float], Tuple[np.ndarray, float, List[dict]]]:
         """Generate complete audio for text using streaming internally."""
         start_time = time.time()
@@ -293,8 +303,12 @@ class TTSService:
             voice_name, voice_path = await self._get_voice_path(voice)
 
             if isinstance(backend, KokoroV1):
+                # Use provided lang_code or determine from voice name
+                pipeline_lang_code = lang_code if lang_code else voice[:1].lower()
+                logger.info(f"Using lang_code '{pipeline_lang_code}' for voice '{voice_name}' in text chunking")
+
                 # Initialize quiet pipeline for text chunking
-                quiet_pipeline = KPipeline(lang_code='a', model=False)
+                quiet_pipeline = KPipeline(lang_code=pipeline_lang_code, model=False)
                 
                 # Split text into chunks and get initial tokens
                 text_chunks = []
@@ -310,12 +324,13 @@ class TTSService:
                 for chunk_idx, (chunk_text, chunk_phonemes) in enumerate(text_chunks):
                     logger.debug(f"Processing chunk {chunk_idx + 1}/{len(text_chunks)}: '{chunk_text[:50]}...'")
                     
-                    # Generate audio and timestamps for this chunk
-                    for result in backend._pipeline(
+                    # Create a new pipeline with the lang_code
+                    generation_pipeline = KPipeline(lang_code=pipeline_lang_code, model=backend._model)
+                    logger.info(f"Using lang_code '{pipeline_lang_code}' for voice '{voice_name}' in generation pipeline")
+                    for result in generation_pipeline(
                         chunk_text,
                         voice=voice_path,
-                        speed=speed,
-                        model=backend._model
+                        speed=speed
                     ):
                         # Collect audio chunks
                         if result.audio is not None:
@@ -470,7 +485,8 @@ class TTSService:
         self,
         phonemes: str,
         voice: str,
-        speed: float = 1.0
+        speed: float = 1.0,
+        lang_code: Optional[str] = None
     ) -> Tuple[np.ndarray, float]:
         """Generate audio directly from phonemes.
         
@@ -478,6 +494,7 @@ class TTSService:
             phonemes: Phonemes in Kokoro format
             voice: Voice name
             speed: Speed multiplier
+            lang_code: Optional language code override
             
         Returns:
             Tuple of (audio array, processing time)
@@ -491,11 +508,16 @@ class TTSService:
             if isinstance(backend, KokoroV1):
                 # For Kokoro V1, use generate_from_tokens with raw phonemes
                 result = None
-                for r in backend._pipeline.generate_from_tokens(
+                # Use provided lang_code or determine from voice name
+                pipeline_lang_code = lang_code if lang_code else voice[:1].lower()
+                logger.info(f"Using lang_code '{pipeline_lang_code}' for voice '{voice_name}' in phoneme pipeline")
+                
+                # Create a new pipeline with the lang_code
+                phoneme_pipeline = KPipeline(lang_code=pipeline_lang_code, model=backend._model)
+                for r in phoneme_pipeline.generate_from_tokens(
                     tokens=phonemes,  # Pass raw phonemes string
                     voice=voice_path,
-                    speed=speed,
-                    model=backend._model
+                    speed=speed
                 ):
                     if r.audio is not None:
                         result = r

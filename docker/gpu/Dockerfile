@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
  && apt-get clean && rm -rf /var/lib/apt/lists/* \
  && mkdir -p /usr/share/espeak-ng-data \
- && ln -s /usr/lib/x86_64-linux-gnu/espeak-ng-data/* /usr/share/espeak-ng-data/
+ && ln -s /usr/lib/*/espeak-ng-data/* /usr/share/espeak-ng-data/
 
 # Install UV using the installer script
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \

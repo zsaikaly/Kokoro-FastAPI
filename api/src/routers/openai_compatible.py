@@ -130,11 +130,13 @@ async def stream_audio_chunks(
     voice_name = await process_voices(request.voice, tts_service)
     
     try:
+        logger.info(f"Starting audio generation with lang_code: {request.lang_code}")
         async for chunk in tts_service.generate_audio_stream(
             text=request.input,
             voice=voice_name,
             speed=request.speed,
             output_format=request.response_format,
+            lang_code=request.lang_code,
         ):
             # Check if client is still connected
             is_disconnected = client_request.is_disconnected
@@ -250,7 +252,8 @@ async def create_speech(
             audio, _ = await tts_service.generate_audio(
                 text=request.input,
                 voice=voice_name,
-                speed=request.speed
+                speed=request.speed,
+                lang_code=request.lang_code
             )
 
             # Convert to requested format with proper finalization
