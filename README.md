@@ -32,8 +32,8 @@ Refer to the core/config.py file for a full list of variables which can be manag
 
 ```bash
 
-docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.0 # CPU, or:
-docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.0 #NVIDIA GPU
+docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.0post3 # CPU, or:
+docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.0post3  #NVIDIA GPU
 ```
 
 
@@ -67,16 +67,15 @@ docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.0 #NVI
 
 1. Install prerequisites ():
    - Install [astral-uv](https://docs.astral.sh/uv/)
+   - Install [espeak-ng](https://github.com/espeak-ng/espeak-ng) in your system if you want it available as a fallback for unknown words/sounds. The upstream libraries may attempt to handle this, but results have varied.
    - Clone the repository:
         ```bash
         git clone https://github.com/remsky/Kokoro-FastAPI.git
         cd Kokoro-FastAPI
-
-        # if you are missing any models, run:
-        # python ../scripts/download_model.py --type pth  # for GPU
-        # python ../scripts/download_model.py --type onnx # for CPU
         ```
-
+        
+        Run the [model download script](https://github.com/remsky/Kokoro-FastAPI/blob/master/docker/scripts/download_model.py) if you haven't already
+     
         Start directly via UV (with hot-reload)
         ```bash
         ./start-cpu.sh OR
