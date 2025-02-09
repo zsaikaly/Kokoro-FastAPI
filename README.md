@@ -32,8 +32,8 @@ Refer to the core/config.py file for a full list of variables which can be manag
 
 ```bash
 
-docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.0post3 # CPU, or:
-docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.0post3  #NVIDIA GPU
+docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.0post4 # CPU, or:
+docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.0post4  #NVIDIA GPU
 ```
 
 
