@@ -50,7 +50,8 @@ ENV PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \
     USE_GPU=true \
     PHONEMIZER_ESPEAK_PATH=/usr/bin \
-    PHONEMIZER_ESPEAK_DATA=/usr/share/espeak-ng-data
+    PHONEMIZER_ESPEAK_DATA=/usr/share/espeak-ng-data \
+    ESPEAK_DATA_PATH=/usr/share/espeak-ng-data
     
 ENV DOWNLOAD_MODEL=true
 # Download model if enabled

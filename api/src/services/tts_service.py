@@ -307,116 +307,118 @@ class TTSService:
                 pipeline_lang_code = lang_code if lang_code else voice[:1].lower()
                 logger.info(f"Using lang_code '{pipeline_lang_code}' for voice '{voice_name}' in text chunking")
 
-                # Initialize quiet pipeline for text chunking
-                quiet_pipeline = KPipeline(lang_code=pipeline_lang_code, model=False)
-                
-                # Split text into chunks and get initial tokens
-                text_chunks = []
-                current_offset = 0.0  # Track time offset for timestamps
-                
-                logger.debug("Splitting text into chunks...")
-                for result in quiet_pipeline(text):
-                    if result.graphemes and result.phonemes:
-                        text_chunks.append((result.graphemes, result.phonemes))
-                logger.debug(f"Split text into {len(text_chunks)} chunks")
-                
-                # Process each chunk
-                for chunk_idx, (chunk_text, chunk_phonemes) in enumerate(text_chunks):
-                    logger.debug(f"Processing chunk {chunk_idx + 1}/{len(text_chunks)}: '{chunk_text[:50]}...'")
+                # Get pipelines from backend for proper device management
+                try:
+                    # Initialize quiet pipeline for text chunking
+                    text_chunks = []
+                    current_offset = 0.0  # Track time offset for timestamps
                     
-                    # Create a new pipeline with the lang_code
-                    generation_pipeline = KPipeline(lang_code=pipeline_lang_code, model=backend._model)
-                    logger.info(f"Using lang_code '{pipeline_lang_code}' for voice '{voice_name}' in generation pipeline")
-                    for result in generation_pipeline(
-                        chunk_text,
-                        voice=voice_path,
-                        speed=speed
-                    ):
-                        # Collect audio chunks
-                        if result.audio is not None:
-                            chunks.append(result.audio.numpy())
+                    logger.debug("Splitting text into chunks...")
+                    # Use backend's pipeline management
+                    for result in backend._get_pipeline(pipeline_lang_code)(text):
+                        if result.graphemes and result.phonemes:
+                            text_chunks.append((result.graphemes, result.phonemes))
+                    logger.debug(f"Split text into {len(text_chunks)} chunks")
+                    
+                    # Process each chunk
+                    for chunk_idx, (chunk_text, chunk_phonemes) in enumerate(text_chunks):
+                        logger.debug(f"Processing chunk {chunk_idx + 1}/{len(text_chunks)}: '{chunk_text[:50]}...'")
                         
-                        # Process timestamps for this chunk
-                        if return_timestamps and hasattr(result, 'tokens') and result.tokens:
-                            logger.debug(f"Processing chunk timestamps with {len(result.tokens)} tokens")
-                            if result.pred_dur is not None:
+                        # Use backend's pipeline for generation
+                        for result in backend._get_pipeline(pipeline_lang_code)(
+                            chunk_text,
+                            voice=voice_path,
+                            speed=speed
+                        ):
+                            # Collect audio chunks
+                            if result.audio is not None:
+                                chunks.append(result.audio.numpy())
+                            
+                            # Process timestamps for this chunk
+                            if return_timestamps and hasattr(result, 'tokens') and result.tokens:
+                                logger.debug(f"Processing chunk timestamps with {len(result.tokens)} tokens")
+                                if result.pred_dur is not None:
+                                    try:
+                                        # Join timestamps for this chunk's tokens
+                                        KPipeline.join_timestamps(result.tokens, result.pred_dur)
+                                        
+                                        # Add timestamps with offset
+                                        for token in result.tokens:
+                                            if not all(hasattr(token, attr) for attr in ['text', 'start_ts', 'end_ts']):
+                                                continue
+                                            if not token.text or not token.text.strip():
+                                                continue
+                                                
+                                            # Apply offset to timestamps
+                                            start_time = float(token.start_ts) + current_offset
+                                            end_time = float(token.end_ts) + current_offset
+                                            
+                                            word_timestamps.append({
+                                                'word': str(token.text).strip(),
+                                                'start_time': start_time,
+                                                'end_time': end_time
+                                            })
+                                            logger.debug(f"Added timestamp for word '{token.text}': {start_time:.3f}s - {end_time:.3f}s")
+                                        
+                                        # Update offset for next chunk based on pred_dur
+                                        chunk_duration = float(result.pred_dur.sum()) / 80  # Convert frames to seconds
+                                        current_offset = max(current_offset + chunk_duration, end_time)
+                                        logger.debug(f"Updated time offset to {current_offset:.3f}s")
+                                        
+                                    except Exception as e:
+                                        logger.error(f"Failed to process timestamps for chunk: {e}")
+                                logger.debug(f"Processing timestamps with pred_dur shape: {result.pred_dur.shape}")
                                 try:
                                     # Join timestamps for this chunk's tokens
                                     KPipeline.join_timestamps(result.tokens, result.pred_dur)
-                                    
-                                    # Add timestamps with offset
-                                    for token in result.tokens:
-                                        if not all(hasattr(token, attr) for attr in ['text', 'start_ts', 'end_ts']):
-                                            continue
-                                        if not token.text or not token.text.strip():
-                                            continue
-                                            
-                                        # Apply offset to timestamps
-                                        start_time = float(token.start_ts) + current_offset
-                                        end_time = float(token.end_ts) + current_offset
-                                        
-                                        word_timestamps.append({
-                                            'word': str(token.text).strip(),
-                                            'start_time': start_time,
-                                            'end_time': end_time
-                                        })
-                                        logger.debug(f"Added timestamp for word '{token.text}': {start_time:.3f}s - {end_time:.3f}s")
-                                    
-                                    # Update offset for next chunk based on pred_dur
-                                    chunk_duration = float(result.pred_dur.sum()) / 80  # Convert frames to seconds
-                                    current_offset = max(current_offset + chunk_duration, end_time)
-                                    logger.debug(f"Updated time offset to {current_offset:.3f}s")
-                                    
+                                    logger.debug("Successfully joined timestamps for chunk")
                                 except Exception as e:
-                                    logger.error(f"Failed to process timestamps for chunk: {e}")
-                            logger.debug(f"Processing timestamps with pred_dur shape: {result.pred_dur.shape}")
-                            try:
-                                # Join timestamps for this chunk's tokens
-                                KPipeline.join_timestamps(result.tokens, result.pred_dur)
-                                logger.debug("Successfully joined timestamps for chunk")
-                            except Exception as e:
-                                logger.error(f"Failed to join timestamps for chunk: {e}")
-                                continue
-                        
-                        # Convert tokens to timestamps
-                        for token in result.tokens:
-                            try:
-                                # Skip tokens without required attributes
-                                if not all(hasattr(token, attr) for attr in ['text', 'start_ts', 'end_ts']):
-                                    logger.debug(f"Skipping token missing attributes: {dir(token)}")
+                                    logger.error(f"Failed to join timestamps for chunk: {e}")
                                     continue
-                                
-                                # Get and validate text
-                                text = str(token.text).strip() if token.text is not None else ''
-                                if not text:
-                                    logger.debug("Skipping empty token")
-                                    continue
-                                
-                                # Get and validate timestamps
-                                start_ts = getattr(token, 'start_ts', None)
-                                end_ts = getattr(token, 'end_ts', None)
-                                if start_ts is None or end_ts is None:
-                                    logger.debug(f"Skipping token with None timestamps: {text}")
-                                    continue
-                                
-                                # Convert timestamps to float
+                            
+                            # Convert tokens to timestamps
+                            for token in result.tokens:
                                 try:
-                                    start_time = float(start_ts)
-                                    end_time = float(end_ts)
-                                except (TypeError, ValueError):
-                                    logger.debug(f"Skipping token with invalid timestamps: {text}")
+                                    # Skip tokens without required attributes
+                                    if not all(hasattr(token, attr) for attr in ['text', 'start_ts', 'end_ts']):
+                                        logger.debug(f"Skipping token missing attributes: {dir(token)}")
+                                        continue
+                                    
+                                    # Get and validate text
+                                    text = str(token.text).strip() if token.text is not None else ''
+                                    if not text:
+                                        logger.debug("Skipping empty token")
+                                        continue
+                                    
+                                    # Get and validate timestamps
+                                    start_ts = getattr(token, 'start_ts', None)
+                                    end_ts = getattr(token, 'end_ts', None)
+                                    if start_ts is None or end_ts is None:
+                                        logger.debug(f"Skipping token with None timestamps: {text}")
+                                        continue
+                                    
+                                    # Convert timestamps to float
+                                    try:
+                                        start_time = float(start_ts)
+                                        end_time = float(end_ts)
+                                    except (TypeError, ValueError):
+                                        logger.debug(f"Skipping token with invalid timestamps: {text}")
+                                        continue
+                                    
+                                    # Add timestamp
+                                    word_timestamps.append({
+                                        'word': text,
+                                        'start_time': start_time,
+                                        'end_time': end_time
+                                    })
+                                    logger.debug(f"Added timestamp for word '{text}': {start_time:.3f}s - {end_time:.3f}s")
+                                except Exception as e:
+                                    logger.warning(f"Error processing token: {e}")
                                     continue
-                                
-                                # Add timestamp
-                                word_timestamps.append({
-                                    'word': text,
-                                    'start_time': start_time,
-                                    'end_time': end_time
-                                })
-                                logger.debug(f"Added timestamp for word '{text}': {start_time:.3f}s - {end_time:.3f}s")
-                            except Exception as e:
-                                logger.warning(f"Error processing token: {e}")
-                                continue
+
+                except Exception as e:
+                    logger.error(f"Failed to process text with pipeline: {e}")
+                    raise RuntimeError(f"Pipeline processing failed: {e}")
 
                 if not chunks:
                     raise ValueError("No audio chunks were generated successfully")
@@ -512,16 +514,19 @@ class TTSService:
                 pipeline_lang_code = lang_code if lang_code else voice[:1].lower()
                 logger.info(f"Using lang_code '{pipeline_lang_code}' for voice '{voice_name}' in phoneme pipeline")
                 
-                # Create a new pipeline with the lang_code
-                phoneme_pipeline = KPipeline(lang_code=pipeline_lang_code, model=backend._model)
-                for r in phoneme_pipeline.generate_from_tokens(
-                    tokens=phonemes,  # Pass raw phonemes string
-                    voice=voice_path,
-                    speed=speed
-                ):
-                    if r.audio is not None:
-                        result = r
-                        break
+                try:
+                    # Use backend's pipeline management
+                    for r in backend._get_pipeline(pipeline_lang_code).generate_from_tokens(
+                        tokens=phonemes,  # Pass raw phonemes string
+                        voice=voice_path,
+                        speed=speed
+                    ):
+                        if r.audio is not None:
+                            result = r
+                            break
+                except Exception as e:
+                    logger.error(f"Failed to generate from phonemes: {e}")
+                    raise RuntimeError(f"Phoneme generation failed: {e}")
                 
                 if result is None or result.audio is None:
                     raise ValueError("No audio generated")
