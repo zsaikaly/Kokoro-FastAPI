@@ -1,7 +1,7 @@
 """Base interface for Kokoro inference."""
 
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Optional, Union, Tuple
+from typing import AsyncGenerator, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -13,10 +13,10 @@ class ModelBackend(ABC):
     @abstractmethod
     async def load_model(self, path: str) -> None:
         """Load model from path.
-        
+
         Args:
             path: Path to model file
-            
+
         Raises:
             RuntimeError: If model loading fails
         """
@@ -27,18 +27,18 @@ class ModelBackend(ABC):
         self,
         text: str,
         voice: Union[str, Tuple[str, Union[torch.Tensor, str]]],
-        speed: float = 1.0
+        speed: float = 1.0,
     ) -> AsyncGenerator[np.ndarray, None]:
         """Generate audio from text.
-        
+
         Args:
             text: Input text to synthesize
             voice: Either a voice path or tuple of (name, tensor/path)
             speed: Speed multiplier
-            
+
         Yields:
             Generated audio chunks
-            
+
         Raises:
             RuntimeError: If generation fails
         """
@@ -53,7 +53,7 @@ class ModelBackend(ABC):
     @abstractmethod
     def is_loaded(self) -> bool:
         """Check if model is loaded.
-        
+
         Returns:
             True if model is loaded, False otherwise
         """
@@ -63,7 +63,7 @@ class ModelBackend(ABC):
     @abstractmethod
     def device(self) -> str:
         """Get device model is running on.
-        
+
         Returns:
             Device string ('cpu' or 'cuda')
         """

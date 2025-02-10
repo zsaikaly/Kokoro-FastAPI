@@ -14,19 +14,21 @@ class Settings(BaseSettings):
     output_dir_size_limit_mb: float = 500.0  # Maximum size of output directory in MB
     default_voice: str = "af_heart"
     use_gpu: bool = True  # Whether to use GPU acceleration if available
-    allow_local_voice_saving: bool = False  # Whether to allow saving combined voices locally
-    
+    allow_local_voice_saving: bool = (
+        False  # Whether to allow saving combined voices locally
+    )
+
     # Container absolute paths
     model_dir: str = "/app/api/src/models"  # Absolute path in container
     voices_dir: str = "/app/api/src/voices/v1_0"  # Absolute path in container
-    
+
     # Audio Settings
     sample_rate: int = 24000
     # Text Processing Settings
     target_min_tokens: int = 175  # Target minimum tokens per chunk
     target_max_tokens: int = 250  # Target maximum tokens per chunk
     absolute_max_tokens: int = 450  # Absolute maximum tokens per chunk
-    
+
     gap_trim_ms: int = 250  # Amount to trim from streaming chunk ends in milliseconds
 
     # Web Player Settings

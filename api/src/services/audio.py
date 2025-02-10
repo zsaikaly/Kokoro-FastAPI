@@ -1,7 +1,7 @@
 """Audio conversion service"""
 
-from io import BytesIO
 import struct
+from io import BytesIO
 
 import numpy as np
 import scipy.io.wavfile as wavfile
@@ -11,6 +11,7 @@ from pydub import AudioSegment
 
 from ..core.config import settings
 from .streaming_audio_writer import StreamingAudioWriter
+
 
 class AudioNormalizer:
     """Handles audio normalization state for a single stream"""
@@ -22,20 +23,20 @@ class AudioNormalizer:
 
     async def normalize(self, audio_data: np.ndarray) -> np.ndarray:
         """Convert audio data to int16 range and trim silence from start and end
-        
+
         Args:
             audio_data: Input audio data as numpy array
-            
+
         Returns:
             Normalized and trimmed audio data
         """
         if len(audio_data) == 0:
             raise ValueError("Empty audio data")
-            
+
         # Trim start and end if enough samples
         if len(audio_data) > (2 * self.samples_to_trim):
-            audio_data = audio_data[self.samples_to_trim:-self.samples_to_trim]
-        
+            audio_data = audio_data[self.samples_to_trim : -self.samples_to_trim]
+
         # Scale directly to int16 range with clipping
         return np.clip(audio_data * 32767, -32768, 32767).astype(np.int16)
 
@@ -113,10 +114,12 @@ class AudioService:
             if is_last_chunk:
                 final_data = writer.write_chunk(finalize=True)
                 del AudioService._writers[writer_key]
-                return final_data if final_data else b''
-            
-            return chunk_data if chunk_data else b''
+                return final_data if final_data else b""
+
+            return chunk_data if chunk_data else b""
 
         except Exception as e:
             logger.error(f"Error converting audio stream to {output_format}: {str(e)}")
-            raise ValueError(f"Failed to convert audio stream to {output_format}: {str(e)}")
+            raise ValueError(
+                f"Failed to convert audio stream to {output_format}: {str(e)}"
+            )

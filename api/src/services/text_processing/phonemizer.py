@@ -4,7 +4,9 @@ from abc import ABC, abstractmethod
 import phonemizer
 
 from .normalizer import normalize_text
+
 phonemizers = {}
+
 
 class PhonemizerBackend(ABC):
     """Abstract base class for phonemization backends"""
@@ -96,5 +98,5 @@ def phonemize(text: str, language: str = "a", normalize: bool = True) -> str:
     if normalize:
         text = normalize_text(text)
     if language not in phonemizers:
-        phonemizers[language]=create_phonemizer(language)
+        phonemizers[language] = create_phonemizer(language)
     return phonemizers[language].phonemize(text)

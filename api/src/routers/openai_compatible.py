@@ -1,21 +1,22 @@
 """OpenAI-compatible router for text-to-speech"""
 
+import io
 import json
 import os
-import io
 import tempfile
 from typing import AsyncGenerator, Dict, List, Union
 
-import torch
 import aiofiles
+import torch
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from loguru import logger
 
+from ..core.config import settings
 from ..services.audio import AudioService
 from ..services.tts_service import TTSService
 from ..structures import OpenAISpeechRequest
-from ..core.config import settings
+
 
 # Load OpenAI mappings
 def load_openai_mappings() -> Dict:
@@ -23,11 +24,12 @@ def load_openai_mappings() -> Dict:
     api_dir = os.path.dirname(os.path.dirname(__file__))
     mapping_path = os.path.join(api_dir, "core", "openai_mappings.json")
     try:
-        with open(mapping_path, 'r') as f:
+        with open(mapping_path, "r") as f:
             return json.load(f)
     except Exception as e:
         logger.error(f"Failed to load OpenAI mappings: {e}")
         return {"models": {}, "voices": {}}
+
 
 # Global mappings
 _openai_mappings = load_openai_mappings()
@@ -46,12 +48,13 @@ _init_lock = None
 async def get_tts_service() -> TTSService:
     """Get global TTSService instance"""
     global _tts_service, _init_lock
-    
+
     # Create lock if needed
     if _init_lock is None:
         import asyncio
+
         _init_lock = asyncio.Lock()
-    
+
     # Initialize service if needed
     if _tts_service is None:
         async with _init_lock:
@@ -59,7 +62,7 @@ async def get_tts_service() -> TTSService:
             if _tts_service is None:
                 _tts_service = await TTSService.create()
                 logger.info("Created global TTSService instance")
-    
+
     return _tts_service
 
 
@@ -75,7 +78,7 @@ async def process_voices(
     voice_input: Union[str, List[str]], tts_service: TTSService
 ) -> str:
     """Process voice input, handling both string and list formats
-    
+
     Returns:
         Voice name to use (with weights if specified)
     """
@@ -122,13 +125,11 @@ async def process_voices(
 
 
 async def stream_audio_chunks(
-    tts_service: TTSService,
-    request: OpenAISpeechRequest,
-    client_request: Request
+    tts_service: TTSService, request: OpenAISpeechRequest, client_request: Request
 ) -> AsyncGenerator[bytes, None]:
     """Stream audio chunks as they're generated with client disconnect handling"""
     voice_name = await process_voices(request.voice, tts_service)
-    
+
     try:
         logger.info(f"Starting audio generation with lang_code: {request.lang_code}")
         async for chunk in tts_service.generate_audio_stream(
@@ -166,10 +167,10 @@ async def create_speech(
             detail={
                 "error": "invalid_model",
                 "message": f"Unsupported model: {request.model}",
-                "type": "invalid_request_error"
-            }
+                "type": "invalid_request_error",
+            },
         )
-    
+
     try:
         # model_name = get_model_name(request.model)
         tts_service = await get_tts_service()
@@ -189,24 +190,24 @@ async def create_speech(
         if request.stream:
             # Create generator but don't start it yet
             generator = stream_audio_chunks(tts_service, request, client_request)
-            
+
             # If download link requested, wrap generator with temp file writer
             if request.return_download_link:
                 from ..services.temp_manager import TempFileWriter
-                
+
                 temp_writer = TempFileWriter(request.response_format)
                 await temp_writer.__aenter__()  # Initialize temp file
-                
+
                 # Get download path immediately after temp file creation
                 download_path = temp_writer.download_path
-                
+
                 # Create response headers with download path
                 headers = {
                     "Content-Disposition": f"attachment; filename=speech.{request.response_format}",
                     "X-Accel-Buffering": "no",
                     "Cache-Control": "no-cache",
                     "Transfer-Encoding": "chunked",
-                    "X-Download-Path": download_path
+                    "X-Download-Path": download_path,
                 }
 
                 # Create async generator for streaming
@@ -231,11 +232,9 @@ async def create_speech(
 
                 # Stream with temp file writing
                 return StreamingResponse(
-                    dual_output(),
-                    media_type=content_type,
-                    headers=headers
+                    dual_output(), media_type=content_type, headers=headers
                 )
-            
+
             # Standard streaming without download link
             return StreamingResponse(
                 generator,
@@ -244,8 +243,8 @@ async def create_speech(
                     "Content-Disposition": f"attachment; filename=speech.{request.response_format}",
                     "X-Accel-Buffering": "no",
                     "Cache-Control": "no-cache",
-                    "Transfer-Encoding": "chunked"
-                }
+                    "Transfer-Encoding": "chunked",
+                },
             )
         else:
             # Generate complete audio using public interface
@@ -253,14 +252,16 @@ async def create_speech(
                 text=request.input,
                 voice=voice_name,
                 speed=request.speed,
-                lang_code=request.lang_code
+                lang_code=request.lang_code,
             )
 
             # Convert to requested format with proper finalization
             content = await AudioService.convert_audio(
-                audio, 24000, request.response_format,
+                audio,
+                24000,
+                request.response_format,
                 is_first_chunk=True,
-                is_last_chunk=True
+                is_last_chunk=True,
             )
 
             return Response(
@@ -280,8 +281,8 @@ async def create_speech(
             detail={
                 "error": "validation_error",
                 "message": str(e),
-                "type": "invalid_request_error"
-            }
+                "type": "invalid_request_error",
+            },
         )
     except RuntimeError as e:
         # Handle runtime/processing errors
@@ -291,8 +292,8 @@ async def create_speech(
             detail={
                 "error": "processing_error",
                 "message": str(e),
-                "type": "server_error"
-            }
+                "type": "server_error",
+            },
         )
     except Exception as e:
         # Handle unexpected errors
@@ -302,8 +303,8 @@ async def create_speech(
             detail={
                 "error": "processing_error",
                 "message": str(e),
-                "type": "server_error"
-            }
+                "type": "server_error",
+            },
         )
 
 
@@ -312,26 +313,25 @@ async def download_audio_file(filename: str):
     """Download a generated audio file from temp storage"""
     try:
         from ..core.paths import _find_file, get_content_type
-        
+
         # Search for file in temp directory
         file_path = await _find_file(
-            filename=filename,
-            search_paths=[settings.temp_file_dir]
+            filename=filename, search_paths=[settings.temp_file_dir]
         )
-        
+
         # Get content type from path helper
         content_type = await get_content_type(file_path)
-        
+
         return FileResponse(
             file_path,
             media_type=content_type,
             filename=filename,
             headers={
                 "Cache-Control": "no-cache",
-                "Content-Disposition": f"attachment; filename={filename}"
-            }
+                "Content-Disposition": f"attachment; filename={filename}",
+            },
         )
-        
+
     except Exception as e:
         logger.error(f"Error serving download file {filename}: {e}")
         raise HTTPException(
@@ -339,8 +339,8 @@ async def download_audio_file(filename: str):
             detail={
                 "error": "server_error",
                 "message": "Failed to serve audio file",
-                "type": "server_error"
-            }
+                "type": "server_error",
+            },
         )
 
 
@@ -358,8 +358,8 @@ async def list_voices():
             detail={
                 "error": "server_error",
                 "message": "Failed to retrieve voice list",
-                "type": "server_error"
-            }
+                "type": "server_error",
+            },
         )
 
 
@@ -386,8 +386,8 @@ async def combine_voices(request: Union[str, List[str]]):
             detail={
                 "error": "permission_denied",
                 "message": "Local voice saving is disabled",
-                "type": "permission_error"
-            }
+                "type": "permission_error",
+            },
         )
 
     try:
@@ -424,17 +424,17 @@ async def combine_voices(request: Union[str, List[str]]):
         voice_path = os.path.join(temp_dir, f"{combined_name}.pt")
         buffer = io.BytesIO()
         torch.save(combined_tensor, buffer)
-        async with aiofiles.open(voice_path, 'wb') as f:
+        async with aiofiles.open(voice_path, "wb") as f:
             await f.write(buffer.getvalue())
-        
+
         return FileResponse(
             voice_path,
             media_type="application/octet-stream",
             filename=f"{combined_name}.pt",
             headers={
                 "Content-Disposition": f"attachment; filename={combined_name}.pt",
-                "Cache-Control": "no-cache"
-            }
+                "Cache-Control": "no-cache",
+            },
         )
 
     except ValueError as e:
@@ -444,8 +444,8 @@ async def combine_voices(request: Union[str, List[str]]):
             detail={
                 "error": "validation_error",
                 "message": str(e),
-                "type": "invalid_request_error"
-            }
+                "type": "invalid_request_error",
+            },
         )
     except RuntimeError as e:
         logger.error(f"Voice combination processing error: {str(e)}")
@@ -454,8 +454,8 @@ async def combine_voices(request: Union[str, List[str]]):
             detail={
                 "error": "processing_error",
                 "message": "Failed to process voice combination request",
-                "type": "server_error"
-            }
+                "type": "server_error",
+            },
         )
     except Exception as e:
         logger.error(f"Unexpected error in voice combination: {str(e)}")
@@ -464,6 +464,6 @@ async def combine_voices(request: Union[str, List[str]]):
             detail={
                 "error": "server_error",
                 "message": "An unexpected error occurred",
-                "type": "server_error"
-            }
+                "type": "server_error",
+            },
         )

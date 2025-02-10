@@ -2,8 +2,8 @@
 
 from typing import Dict, List, Optional
 
-import torch
 import aiofiles
+import torch
 from loguru import logger
 
 from ..core import paths
@@ -24,28 +24,30 @@ class VoiceManager:
 
     async def get_voice_path(self, voice_name: str) -> str:
         """Get path to voice file.
-        
+
         Args:
             voice_name: Name of voice
-            
+
         Returns:
             Path to voice file
-            
+
         Raises:
             RuntimeError: If voice not found
         """
         return await paths.get_voice_path(voice_name)
 
-    async def load_voice(self, voice_name: str, device: Optional[str] = None) -> torch.Tensor:
+    async def load_voice(
+        self, voice_name: str, device: Optional[str] = None
+    ) -> torch.Tensor:
         """Load voice tensor.
-        
+
         Args:
             voice_name: Name of voice to load
             device: Optional override for target device
-            
+
         Returns:
             Voice tensor
-            
+
         Raises:
             RuntimeError: If voice not found
         """
@@ -58,34 +60,36 @@ class VoiceManager:
         except Exception as e:
             raise RuntimeError(f"Failed to load voice {voice_name}: {e}")
 
-    async def combine_voices(self, voices: List[str], device: Optional[str] = None) -> torch.Tensor:
+    async def combine_voices(
+        self, voices: List[str], device: Optional[str] = None
+    ) -> torch.Tensor:
         """Combine multiple voices.
-        
+
         Args:
             voices: List of voice names to combine
             device: Optional override for target device
-            
+
         Returns:
             Combined voice tensor
-            
+
         Raises:
             RuntimeError: If any voice not found
         """
         if len(voices) < 2:
             raise ValueError("Need at least 2 voices to combine")
-            
+
         target_device = device or self._device
         voice_tensors = []
         for name in voices:
             voice = await self.load_voice(name, target_device)
             voice_tensors.append(voice)
-            
+
         combined = torch.mean(torch.stack(voice_tensors), dim=0)
         return combined
 
     async def list_voices(self) -> List[str]:
         """List available voice names.
-        
+
         Returns:
             List of voice names
         """
@@ -93,19 +97,16 @@ class VoiceManager:
 
     def cache_info(self) -> Dict[str, int]:
         """Get cache statistics.
-        
+
         Returns:
             Dict with cache statistics
         """
-        return {
-            "loaded_voices": len(self._voices),
-            "device": self._device
-        }
+        return {"loaded_voices": len(self._voices), "device": self._device}
 
 
 async def get_manager() -> VoiceManager:
     """Get voice manager instance.
-    
+
     Returns:
         VoiceManager instance
     """

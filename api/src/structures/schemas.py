@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List, Literal, Union, Optional
+from typing import List, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -24,20 +24,25 @@ class TTSStatus(str, Enum):
 # OpenAI-compatible schemas
 class WordTimestamp(BaseModel):
     """Word-level timestamp information"""
+
     word: str = Field(..., description="The word or token")
     start_time: float = Field(..., description="Start time in seconds")
     end_time: float = Field(..., description="End time in seconds")
 
+
 class CaptionedSpeechResponse(BaseModel):
     """Response schema for captioned speech endpoint"""
+
     audio: bytes = Field(..., description="The generated audio data")
     words: List[WordTimestamp] = Field(..., description="Word-level timestamps")
 
+
 class OpenAISpeechRequest(BaseModel):
     """Request schema for OpenAI-compatible speech endpoint"""
+
     model: str = Field(
         default="kokoro",
-        description="The model to use for generation. Supported models: tts-1, tts-1-hd, kokoro"
+        description="The model to use for generation. Supported models: tts-1, tts-1-hd, kokoro",
     )
     input: str = Field(..., description="The text to generate audio for")
     voice: str = Field(
@@ -67,11 +72,13 @@ class OpenAISpeechRequest(BaseModel):
         description="Optional language code to use for text processing. If not provided, will use first letter of voice name.",
     )
 
+
 class CaptionedSpeechRequest(BaseModel):
     """Request schema for captioned speech endpoint"""
+
     model: str = Field(
         default="kokoro",
-        description="The model to use for generation. Supported models: tts-1, tts-1-hd, kokoro"
+        description="The model to use for generation. Supported models: tts-1, tts-1-hd, kokoro",
     )
     input: str = Field(..., description="The text to generate audio for")
     voice: str = Field(

@@ -4,22 +4,18 @@ import numpy as np
 import torch
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
+from kokoro import KPipeline
 from loguru import logger
 
-from ..services.audio import AudioService, AudioNormalizer
+from ..services.audio import AudioNormalizer, AudioService
 from ..services.streaming_audio_writer import StreamingAudioWriter
 from ..services.text_processing import smart_split
-from kokoro import KPipeline
 from ..services.tts_service import TTSService
+from ..structures import CaptionedSpeechRequest, CaptionedSpeechResponse, WordTimestamp
 from ..structures.text_schemas import (
     GenerateFromPhonemesRequest,
     PhonemeRequest,
     PhonemeResponse,
-)
-from ..structures import (
-    CaptionedSpeechRequest,
-    CaptionedSpeechResponse,
-    WordTimestamp
 )
 
 router = APIRouter(tags=["text processing"])
@@ -27,7 +23,10 @@ router = APIRouter(tags=["text processing"])
 
 async def get_tts_service() -> TTSService:
     """Dependency to get TTSService instance"""
-    return await TTSService.create()  # Create service with properly initialized managers
+    return (
+        await TTSService.create()
+    )  # Create service with properly initialized managers
+
 
 @router.post("/dev/phonemize", response_model=PhonemeResponse)
 async def phonemize_text(request: PhonemeRequest) -> PhonemeResponse:
@@ -45,7 +44,7 @@ async def phonemize_text(request: PhonemeRequest) -> PhonemeResponse:
 
         # Initialize Kokoro pipeline in quiet mode (no model)
         pipeline = KPipeline(lang_code=request.language, model=False)
-        
+
         # Get first result from pipeline (we only need one since we're not chunking)
         for result in pipeline(request.text):
             # result.graphemes = original text
@@ -64,6 +63,8 @@ async def phonemize_text(request: PhonemeRequest) -> PhonemeResponse:
         raise HTTPException(
             status_code=500, detail={"error": "Server error", "message": str(e)}
         )
+
+
 @router.post("/dev/generate_from_phonemes")
 async def generate_from_phonemes(
     request: GenerateFromPhonemesRequest,
@@ -88,9 +89,9 @@ async def generate_from_phonemes(
                 chunk_audio, _ = await tts_service.generate_from_phonemes(
                     phonemes=request.phonemes,  # Pass complete phoneme string
                     voice=request.voice,
-                    speed=1.0
+                    speed=1.0,
                 )
-                
+
                 if chunk_audio is not None:
                     # Normalize audio before writing
                     normalized_audio = await normalizer.normalize(chunk_audio)
@@ -98,14 +99,14 @@ async def generate_from_phonemes(
                     chunk_bytes = writer.write_chunk(normalized_audio)
                     if chunk_bytes:
                         yield chunk_bytes
-                    
+
                     # Finalize and yield remaining bytes
                     final_bytes = writer.write_chunk(finalize=True)
                     if final_bytes:
                         yield final_bytes
                 else:
                     raise ValueError("Failed to generate audio data")
-                    
+
             except Exception as e:
                 logger.error(f"Error in audio generation: {str(e)}")
                 # Clean up writer on error
@@ -120,8 +121,8 @@ async def generate_from_phonemes(
                 "Content-Disposition": "attachment; filename=speech.wav",
                 "X-Accel-Buffering": "no",
                 "Cache-Control": "no-cache",
-                "Transfer-Encoding": "chunked"
-            }
+                "Transfer-Encoding": "chunked",
+            },
         )
 
     except ValueError as e:
@@ -131,8 +132,8 @@ async def generate_from_phonemes(
             detail={
                 "error": "validation_error",
                 "message": str(e),
-                "type": "invalid_request_error"
-            }
+                "type": "invalid_request_error",
+            },
         )
     except Exception as e:
         logger.error(f"Error generating audio: {str(e)}")
@@ -141,9 +142,10 @@ async def generate_from_phonemes(
             detail={
                 "error": "processing_error",
                 "message": str(e),
-                "type": "server_error"
-            }
+                "type": "server_error",
+            },
         )
+
 
 @router.post("/dev/captioned_speech")
 async def create_captioned_speech(
@@ -160,11 +162,13 @@ async def create_captioned_speech(
             text=request.input,
             voice=voice_name,
             speed=request.speed,
-            return_timestamps=True
+            return_timestamps=True,
         )
 
         # Create streaming audio writer
-        writer = StreamingAudioWriter(format=request.response_format, sample_rate=24000, channels=1)
+        writer = StreamingAudioWriter(
+            format=request.response_format, sample_rate=24000, channels=1
+        )
         normalizer = AudioNormalizer()
 
         async def generate_chunks():
@@ -176,14 +180,14 @@ async def create_captioned_speech(
                     chunk_bytes = writer.write_chunk(normalized_audio)
                     if chunk_bytes:
                         yield chunk_bytes
-                    
+
                     # Finalize and yield remaining bytes
                     final_bytes = writer.write_chunk(finalize=True)
                     if final_bytes:
                         yield final_bytes
                 else:
                     raise ValueError("Failed to generate audio data")
-                    
+
             except Exception as e:
                 logger.error(f"Error in audio generation: {str(e)}")
                 # Clean up writer on error
@@ -193,12 +197,20 @@ async def create_captioned_speech(
 
         # Convert timestamps to JSON and add as header
         import json
+
         logger.debug(f"Processing {len(word_timestamps)} word timestamps")
-        timestamps_json = json.dumps([{
-            'word': str(ts['word']),  # Ensure string for text
-            'start_time': float(ts['start_time']),  # Ensure float for timestamps
-            'end_time': float(ts['end_time'])
-        } for ts in word_timestamps])
+        timestamps_json = json.dumps(
+            [
+                {
+                    "word": str(ts["word"]),  # Ensure string for text
+                    "start_time": float(
+                        ts["start_time"]
+                    ),  # Ensure float for timestamps
+                    "end_time": float(ts["end_time"]),
+                }
+                for ts in word_timestamps
+            ]
+        )
         logger.debug(f"Generated timestamps JSON: {timestamps_json}")
 
         return StreamingResponse(
@@ -209,8 +221,8 @@ async def create_captioned_speech(
                 "X-Accel-Buffering": "no",
                 "Cache-Control": "no-cache",
                 "Transfer-Encoding": "chunked",
-                "X-Word-Timestamps": timestamps_json
-            }
+                "X-Word-Timestamps": timestamps_json,
+            },
         )
 
     except ValueError as e:
@@ -220,8 +232,8 @@ async def create_captioned_speech(
             detail={
                 "error": "validation_error",
                 "message": str(e),
-                "type": "invalid_request_error"
-            }
+                "type": "invalid_request_error",
+            },
         )
     except Exception as e:
         logger.error(f"Error in captioned speech generation: {str(e)}")
@@ -230,6 +242,6 @@ async def create_captioned_speech(
             detail={
                 "error": "processing_error",
                 "message": str(e),
-                "type": "server_error"
-            }
+                "type": "server_error",
+            },
         )

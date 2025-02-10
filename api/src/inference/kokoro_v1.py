@@ -1,17 +1,18 @@
 """Clean Kokoro implementation with controlled resource management."""
 
 import os
-from typing import AsyncGenerator, Optional, Union, Tuple, Dict
+from typing import AsyncGenerator, Dict, Optional, Tuple, Union
 
 import numpy as np
 import torch
+from kokoro import KModel, KPipeline
 from loguru import logger
 
 from ..core import paths
-from ..core.model_config import model_config
 from ..core.config import settings
+from ..core.model_config import model_config
 from .base import BaseModelBackend
-from kokoro import KModel, KPipeline
+
 
 class KokoroV1(BaseModelBackend):
     """Kokoro backend with controlled resource management."""
@@ -26,34 +27,31 @@ class KokoroV1(BaseModelBackend):
 
     async def load_model(self, path: str) -> None:
         """Load pre-baked model.
-        
+
         Args:
             path: Path to model file
-            
+
         Raises:
             RuntimeError: If model loading fails
         """
         try:
             # Get verified model path
             model_path = await paths.get_model_path(path)
-            config_path = os.path.join(os.path.dirname(model_path), 'config.json')
-            
+            config_path = os.path.join(os.path.dirname(model_path), "config.json")
+
             if not os.path.exists(config_path):
                 raise RuntimeError(f"Config file not found: {config_path}")
-            
+
             logger.info(f"Loading Kokoro model on {self._device}")
             logger.info(f"Config path: {config_path}")
             logger.info(f"Model path: {model_path}")
-            
+
             # Load model and let KModel handle device mapping
-            self._model = KModel(
-                config=config_path,
-                model=model_path
-            ).eval()
+            self._model = KModel(config=config_path, model=model_path).eval()
             # Move to CUDA if needed
             if self._device == "cuda":
                 self._model = self._model.cuda()
-            
+
         except FileNotFoundError as e:
             raise e
         except Exception as e:
@@ -61,22 +59,20 @@ class KokoroV1(BaseModelBackend):
 
     def _get_pipeline(self, lang_code: str) -> KPipeline:
         """Get or create pipeline for language code.
-        
+
         Args:
             lang_code: Language code to use
-            
+
         Returns:
             KPipeline instance for the language
         """
         if not self._model:
             raise RuntimeError("Model not loaded")
-            
+
         if lang_code not in self._pipelines:
             logger.info(f"Creating new pipeline for language code: {lang_code}")
             self._pipelines[lang_code] = KPipeline(
-                lang_code=lang_code,
-                model=self._model,
-                device=self._device
+                lang_code=lang_code, model=self._model, device=self._device
             )
         return self._pipelines[lang_code]
 
@@ -85,7 +81,7 @@ class KokoroV1(BaseModelBackend):
         tokens: str,
         voice: Union[str, Tuple[str, Union[torch.Tensor, str]]],
         speed: float = 1.0,
-        lang_code: Optional[str] = None
+        lang_code: Optional[str] = None,
     ) -> AsyncGenerator[np.ndarray, None]:
         """Generate audio from phoneme tokens.
 
@@ -120,6 +116,7 @@ class KokoroV1(BaseModelBackend):
                 else:
                     # Save tensor to temporary file
                     import tempfile
+
                     temp_dir = tempfile.gettempdir()
                     voice_path = os.path.join(temp_dir, f"{voice_name}.pt")
                     # Save tensor with CPU mapping for portability
@@ -129,24 +126,28 @@ class KokoroV1(BaseModelBackend):
                 voice_name = os.path.splitext(os.path.basename(voice_path))[0]
 
             # Load voice tensor with proper device mapping
-            voice_tensor = await paths.load_voice_tensor(voice_path, device=self._device)
+            voice_tensor = await paths.load_voice_tensor(
+                voice_path, device=self._device
+            )
             # Save back to a temporary file with proper device mapping
             import tempfile
+
             temp_dir = tempfile.gettempdir()
-            temp_path = os.path.join(temp_dir, f"temp_voice_{os.path.basename(voice_path)}")
+            temp_path = os.path.join(
+                temp_dir, f"temp_voice_{os.path.basename(voice_path)}"
+            )
             await paths.save_voice_tensor(voice_tensor, temp_path)
             voice_path = temp_path
 
             # Use provided lang_code or get from voice name
             pipeline_lang_code = lang_code if lang_code else voice_name[0].lower()
             pipeline = self._get_pipeline(pipeline_lang_code)
-            
-            logger.debug(f"Generating audio from tokens with lang_code '{pipeline_lang_code}': '{tokens[:100]}...'")
+
+            logger.debug(
+                f"Generating audio from tokens with lang_code '{pipeline_lang_code}': '{tokens[:100]}...'"
+            )
             for result in pipeline.generate_from_tokens(
-                tokens=tokens,
-                voice=voice_path,
-                speed=speed,
-                model=self._model
+                tokens=tokens, voice=voice_path, speed=speed, model=self._model
             ):
                 if result.audio is not None:
                     logger.debug(f"Got audio chunk with shape: {result.audio.shape}")
@@ -162,7 +163,9 @@ class KokoroV1(BaseModelBackend):
                 and "out of memory" in str(e).lower()
             ):
                 self._clear_memory()
-                async for chunk in self.generate_from_tokens(tokens, voice, speed, lang_code):
+                async for chunk in self.generate_from_tokens(
+                    tokens, voice, speed, lang_code
+                ):
                     yield chunk
             raise
 
@@ -171,7 +174,7 @@ class KokoroV1(BaseModelBackend):
         text: str,
         voice: Union[str, Tuple[str, Union[torch.Tensor, str]]],
         speed: float = 1.0,
-        lang_code: Optional[str] = None
+        lang_code: Optional[str] = None,
     ) -> AsyncGenerator[np.ndarray, None]:
         """Generate audio using model.
 
@@ -206,6 +209,7 @@ class KokoroV1(BaseModelBackend):
                 else:
                     # Save tensor to temporary file
                     import tempfile
+
                     temp_dir = tempfile.gettempdir()
                     voice_path = os.path.join(temp_dir, f"{voice_name}.pt")
                     # Save tensor with CPU mapping for portability
@@ -215,24 +219,28 @@ class KokoroV1(BaseModelBackend):
                 voice_name = os.path.splitext(os.path.basename(voice_path))[0]
 
             # Load voice tensor with proper device mapping
-            voice_tensor = await paths.load_voice_tensor(voice_path, device=self._device)
+            voice_tensor = await paths.load_voice_tensor(
+                voice_path, device=self._device
+            )
             # Save back to a temporary file with proper device mapping
             import tempfile
+
             temp_dir = tempfile.gettempdir()
-            temp_path = os.path.join(temp_dir, f"temp_voice_{os.path.basename(voice_path)}")
+            temp_path = os.path.join(
+                temp_dir, f"temp_voice_{os.path.basename(voice_path)}"
+            )
             await paths.save_voice_tensor(voice_tensor, temp_path)
             voice_path = temp_path
 
             # Use provided lang_code or get from voice name
             pipeline_lang_code = lang_code if lang_code else voice_name[0].lower()
             pipeline = self._get_pipeline(pipeline_lang_code)
-            
-            logger.debug(f"Generating audio for text with lang_code '{pipeline_lang_code}': '{text[:100]}...'")
+
+            logger.debug(
+                f"Generating audio for text with lang_code '{pipeline_lang_code}': '{text[:100]}...'"
+            )
             for result in pipeline(
-                text,
-                voice=voice_path,
-                speed=speed,
-                model=self._model
+                text, voice=voice_path, speed=speed, model=self._model
             ):
                 if result.audio is not None:
                     logger.debug(f"Got audio chunk with shape: {result.audio.shape}")

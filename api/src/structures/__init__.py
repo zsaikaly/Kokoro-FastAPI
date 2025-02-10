@@ -1,10 +1,10 @@
 from .schemas import (
-    OpenAISpeechRequest,
     CaptionedSpeechRequest,
     CaptionedSpeechResponse,
-    WordTimestamp,
+    OpenAISpeechRequest,
     TTSStatus,
-    VoiceCombineRequest
+    VoiceCombineRequest,
+    WordTimestamp,
 )
 
 __all__ = [
@@ -13,5 +13,5 @@ __all__ = [
     "CaptionedSpeechResponse",
     "WordTimestamp",
     "TTSStatus",
-    "VoiceCombineRequest"
+    "VoiceCombineRequest",
 ]

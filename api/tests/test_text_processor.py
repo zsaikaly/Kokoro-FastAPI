@@ -1,9 +1,11 @@
 import pytest
+
 from api.src.services.text_processing.text_processor import (
-    process_text_chunk,
     get_sentence_info,
-    smart_split
+    process_text_chunk,
+    smart_split,
 )
+
 
 def test_process_text_chunk_basic():
     """Test basic text chunk processing."""
@@ -12,12 +14,14 @@ def test_process_text_chunk_basic():
     assert isinstance(tokens, list)
     assert len(tokens) > 0
 
+
 def test_process_text_chunk_empty():
     """Test processing empty text."""
     text = ""
     tokens = process_text_chunk(text)
     assert isinstance(tokens, list)
     assert len(tokens) == 0
+
 
 def test_process_text_chunk_phonemes():
     """Test processing with skip_phonemize."""
@@ -26,11 +30,12 @@ def test_process_text_chunk_phonemes():
     assert isinstance(tokens, list)
     assert len(tokens) > 0
 
+
 def test_get_sentence_info():
     """Test sentence splitting and info extraction."""
     text = "This is sentence one. This is sentence two! What about three?"
     results = get_sentence_info(text)
-    
+
     assert len(results) == 3
     for sentence, tokens, count in results:
         assert isinstance(sentence, str)
@@ -39,6 +44,7 @@ def test_get_sentence_info():
         assert count == len(tokens)
         assert count > 0
 
+
 @pytest.mark.asyncio
 async def test_smart_split_short_text():
     """Test smart splitting with text under max tokens."""
@@ -46,35 +52,37 @@ async def test_smart_split_short_text():
     chunks = []
     async for chunk_text, chunk_tokens in smart_split(text):
         chunks.append((chunk_text, chunk_tokens))
-    
+
     assert len(chunks) == 1
     assert isinstance(chunks[0][0], str)
     assert isinstance(chunks[0][1], list)
+
 
 @pytest.mark.asyncio
 async def test_smart_split_long_text():
     """Test smart splitting with longer text."""
     # Create text that should split into multiple chunks
     text = ". ".join(["This is test sentence number " + str(i) for i in range(20)])
-    
+
     chunks = []
     async for chunk_text, chunk_tokens in smart_split(text):
         chunks.append((chunk_text, chunk_tokens))
-    
+
     assert len(chunks) > 1
     for chunk_text, chunk_tokens in chunks:
         assert isinstance(chunk_text, str)
         assert isinstance(chunk_tokens, list)
         assert len(chunk_tokens) > 0
 
+
 @pytest.mark.asyncio
 async def test_smart_split_with_punctuation():
     """Test smart splitting handles punctuation correctly."""
     text = "First sentence! Second sentence? Third sentence; Fourth sentence: Fifth sentence."
-    
+
     chunks = []
     async for chunk_text, chunk_tokens in smart_split(text):
         chunks.append(chunk_text)
-    
+
     # Verify punctuation is preserved
-    assert all(any(p in chunk for p in "!?;:." ) for chunk in chunks)
+    assert all(any(p in chunk for p in "!?;:.") for chunk in chunks)
