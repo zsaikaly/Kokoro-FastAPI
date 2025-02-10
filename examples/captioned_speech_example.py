@@ -33,9 +33,19 @@ def generate_captioned_speech(
         return None, None
         
     try:
-        # Get timestamps from header
-        timestamps_json = response.headers.get('X-Word-Timestamps', '[]')
-        word_timestamps = json.loads(timestamps_json)
+        # Get timestamps path from header
+        timestamps_filename = response.headers.get('X-Timestamps-Path')
+        if not timestamps_filename:
+            print("Error: No timestamps path in response headers")
+            return None, None
+
+        # Get timestamps from the path
+        timestamps_response = requests.get(f"http://localhost:8880/dev/timestamps/{timestamps_filename}")
+        if timestamps_response.status_code != 200:
+            print(f"Error getting timestamps: {timestamps_response.text}")
+            return None, None
+
+        word_timestamps = timestamps_response.json()
         
         # Get audio bytes from content
         audio_bytes = response.content
@@ -47,6 +57,9 @@ def generate_captioned_speech(
         return audio_bytes, word_timestamps
     except json.JSONDecodeError as e:
         print(f"Error parsing timestamps: {e}")
+        return None, None
+    except requests.RequestException as e:
+        print(f"Error retrieving timestamps: {e}")
         return None, None
 
 def main():
