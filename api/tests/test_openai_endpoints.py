@@ -69,6 +69,49 @@ def test_load_openai_mappings_file_not_found():
         assert mappings == {"models": {}, "voices": {}}
 
 
+def test_list_models(mock_openai_mappings):
+    """Test listing available models endpoint"""
+    response = client.get("/v1/models")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["object"] == "list"
+    assert isinstance(data["data"], list)
+    assert len(data["data"]) == 3  # tts-1, tts-1-hd, and kokoro
+    
+    # Verify all expected models are present
+    model_ids = [model["id"] for model in data["data"]]
+    assert "tts-1" in model_ids
+    assert "tts-1-hd" in model_ids
+    assert "kokoro" in model_ids
+    
+    # Verify model format
+    for model in data["data"]:
+        assert model["object"] == "model"
+        assert "created" in model
+        assert model["owned_by"] == "kokoro"
+
+
+def test_retrieve_model(mock_openai_mappings):
+    """Test retrieving a specific model endpoint"""
+    # Test successful model retrieval
+    response = client.get("/v1/models/tts-1")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == "tts-1"
+    assert data["object"] == "model"
+    assert data["owned_by"] == "kokoro"
+    assert "created" in data
+
+    # Test non-existent model
+    response = client.get("/v1/models/nonexistent-model")
+    assert response.status_code == 404
+    error = response.json()
+    assert error["detail"]["error"] == "model_not_found"
+    assert "not found" in error["detail"]["message"]
+    assert error["detail"]["type"] == "invalid_request_error"
+
+
+
 @pytest.mark.asyncio
 async def test_get_tts_service_initialization():
     """Test TTSService initialization"""

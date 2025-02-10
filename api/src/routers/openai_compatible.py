@@ -344,6 +344,99 @@ async def download_audio_file(filename: str):
         )
 
 
+@router.get("/models")
+async def list_models():
+    """List all available models"""
+    try:
+        # Create standard model list
+        models = [
+            {
+                "id": "tts-1",
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "kokoro"
+            },
+            {
+                "id": "tts-1-hd",
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "kokoro"
+            },
+            {
+                "id": "kokoro",
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "kokoro"
+            }
+        ]
+        
+        return {
+            "object": "list",
+            "data": models
+        }
+    except Exception as e:
+        logger.error(f"Error listing models: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "server_error",
+                "message": "Failed to retrieve model list",
+                "type": "server_error",
+            },
+        )
+
+@router.get("/models/{model}")
+async def retrieve_model(model: str):
+    """Retrieve a specific model"""
+    try:
+        # Define available models
+        models = {
+            "tts-1": {
+                "id": "tts-1",
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "kokoro"
+            },
+            "tts-1-hd": {
+                "id": "tts-1-hd",
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "kokoro"
+            },
+            "kokoro": {
+                "id": "kokoro",
+                "object": "model",
+                "created": 1686935002,
+                "owned_by": "kokoro"
+            }
+        }
+        
+        # Check if requested model exists
+        if model not in models:
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": "model_not_found",
+                    "message": f"Model '{model}' not found",
+                    "type": "invalid_request_error"
+                }
+            )
+        
+        # Return the specific model
+        return models[model]
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving model {model}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "server_error",
+                "message": "Failed to retrieve model information",
+                "type": "server_error",
+            },
+        )
+
 @router.get("/audio/voices")
 async def list_voices():
     """List all available voices for text-to-speech"""

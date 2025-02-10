@@ -15,3 +15,15 @@ Accept: application/json
 # Useful for debugging resource exhaustion issues
 GET http://localhost:8880/debug/session_pools
 Accept: application/json
+
+### List Available Models
+# Returns list of all available models in OpenAI format
+# Response includes tts-1, tts-1-hd, and kokoro models
+GET http://localhost:8880/v1/models
+Accept: application/json
+
+### Get Specific Model
+# Returns same model list as above for compatibility
+# Works with any model name (e.g., tts-1, tts-1-hd, kokoro)
+GET http://localhost:8880/v1/models/tts-1
+Accept: application/json
