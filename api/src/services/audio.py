@@ -174,7 +174,7 @@ class AudioService:
                 del AudioService._writers[writer_key]
                 return final_data if final_data else b""
 
-            return chunk_data if chunk_data else b""
+            return chunk_data if chunk_data else b"", audio_chunk
 
         except Exception as e:
             logger.error(f"Error converting audio stream to {output_format}: {str(e)}")
