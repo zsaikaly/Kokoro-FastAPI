@@ -86,17 +86,18 @@ class TTSService:
                 # Generate audio using pre-warmed model
                 if isinstance(backend, KokoroV1):
                     # For Kokoro V1, pass text and voice info with lang_code
-                    async for chunk_audio in self.model_manager.generate(
+                    async for chunk_data in self.model_manager.generate(
                         chunk_text,
                         (voice_name, voice_path),
                         speed=speed,
                         lang_code=lang_code,
+                        return_timestamps=True,
                     ):
                         # For streaming, convert to bytes
                         if output_format:
                             try:
-                                converted = await AudioService.convert_audio(
-                                    chunk_audio,
+                                converted, chunk_data = await AudioService.convert_audio(
+                                    chunk_data,
                                     24000,
                                     output_format,
                                     speed,
@@ -105,17 +106,20 @@ class TTSService:
                                     is_last_chunk=is_last,
                                     normalizer=normalizer,
                                 )
+                                print(chunk_data.word_timestamps)
                                 yield converted
                             except Exception as e:
                                 logger.error(f"Failed to convert audio: {str(e)}")
                         else:
-                            trimmed = await AudioService.trim_audio(chunk_audio,
+                            chunk_data = await AudioService.trim_audio(chunk_data,
                                                                     chunk_text,
                                                                     speed,
                                                                     is_last,
                                                                     normalizer)
-                            yield trimmed
+                            print(chunk_data.word_timestamps)
+                            yield chunk_data.audio
                 else:
+                    print("old backend")
                     # For legacy backends, load voice tensor
                     voice_tensor = await self._voice_manager.load_voice(
                         voice_name, device=backend.device

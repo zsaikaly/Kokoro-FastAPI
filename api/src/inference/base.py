@@ -1,12 +1,21 @@
 """Base interface for Kokoro inference."""
 
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Optional, Tuple, Union
+from typing import AsyncGenerator, Optional, Tuple, Union, List
 
 import numpy as np
 import torch
 
-
+class AudioChunk:
+    """Class for audio chunks returned by model backends"""
+    
+    def __init__(self,
+                 audio: np.ndarray,
+                 word_timestamps: Optional[List]=None
+                 ):
+        self.audio=audio
+        self.word_timestamps=word_timestamps
+        
 class ModelBackend(ABC):
     """Abstract base class for model inference backend."""
 
@@ -28,7 +37,7 @@ class ModelBackend(ABC):
         text: str,
         voice: Union[str, Tuple[str, Union[torch.Tensor, str]]],
         speed: float = 1.0,
-    ) -> AsyncGenerator[np.ndarray, None]:
+    ) -> AsyncGenerator[AudioChunk, None]:
         """Generate audio from text.
 
         Args:
