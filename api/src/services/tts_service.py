@@ -6,6 +6,7 @@ import tempfile
 import time
 from typing import AsyncGenerator, List, Optional, Tuple, Union
 
+from ..inference.base import AudioChunk
 import numpy as np
 import torch
 from kokoro import KPipeline
@@ -62,9 +63,8 @@ class TTSService:
                     if not output_format:
                         yield np.array([], dtype=np.float32)
                         return
-
-                    result = await AudioService.convert_audio(
-                        np.array([0], dtype=np.float32),  # Dummy data for type checking
+                    result, _ = await AudioService.convert_audio(
+                        AudioChunk(np.array([0], dtype=np.float32)),  # Dummy data for type checking
                         24000,
                         output_format,
                         speed,
@@ -119,7 +119,7 @@ class TTSService:
                             print(chunk_data.word_timestamps)
                             yield chunk_data.audio
                 else:
-                    print("old backend")
+
                     # For legacy backends, load voice tensor
                     voice_tensor = await self._voice_manager.load_voice(
                         voice_name, device=backend.device
@@ -315,7 +315,8 @@ class TTSService:
 
         except Exception as e:
             logger.error(f"Error in phoneme audio generation: {str(e)}")
-            raise
+            raise e
+        
 
     async def generate_audio(
         self,

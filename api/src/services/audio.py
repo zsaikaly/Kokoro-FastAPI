@@ -57,7 +57,6 @@ class AudioNormalizer:
         non_silent_index_start, non_silent_index_end = None,None 
 
         for X in range(0,len(audio_data)):
-            #print(audio_data[X])
             if audio_data[X] > amplitude_threshold:
                 non_silent_index_start=X
                 break
@@ -149,11 +148,9 @@ class AudioService:
             if normalizer is None:
                 normalizer = AudioNormalizer()
             
-            print("1")
             audio_chunk.audio = await normalizer.normalize(audio_chunk.audio)
-            print("2")
             audio_chunk = AudioService.trim_audio(audio_chunk,chunk_text,speed,is_last_chunk,normalizer)
-            print("3")
+
             # Get or create format-specific writer
             writer_key = f"{output_format}_{sample_rate}"
             if is_first_chunk or writer_key not in AudioService._writers:
@@ -161,18 +158,16 @@ class AudioService:
                     output_format, sample_rate
                 )
             writer = AudioService._writers[writer_key]
-            print("4")
+            
             # Write audio data first
             if len(audio_chunk.audio) > 0:
                 chunk_data = writer.write_chunk(audio_chunk.audio)
-            print("5")
+
             # Then finalize if this is the last chunk
             if is_last_chunk:
-                print("6")
                 final_data = writer.write_chunk(finalize=True)
-                print("7")
                 del AudioService._writers[writer_key]
-                return final_data if final_data else b""
+                return final_data if final_data else b"", audio_chunk
 
             return chunk_data if chunk_data else b"", audio_chunk
 
@@ -206,8 +201,10 @@ class AudioService:
         start_index,end_index=normalizer.find_first_last_non_silent(audio_chunk.audio,chunk_text,speed,is_last_chunk=is_last_chunk)
         
         audio_chunk.audio=audio_chunk.audio[start_index:end_index]
-        for timestamp in audio_chunk.word_timestamps:
-            timestamp["start_time"]-=start_index * 24000
-            timestamp["end_time"]-=start_index * 24000
+        
+        if audio_chunk.word_timestamps is not None:
+            for timestamp in audio_chunk.word_timestamps:
+                timestamp["start_time"]-=start_index / 24000
+                timestamp["end_time"]-=start_index / 24000
         return audio_chunk
     

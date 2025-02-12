@@ -11,7 +11,7 @@ class AudioChunk:
     
     def __init__(self,
                  audio: np.ndarray,
-                 word_timestamps: Optional[List]=None
+                 word_timestamps: Optional[List]=[]
                  ):
         self.audio=audio
         self.word_timestamps=word_timestamps
