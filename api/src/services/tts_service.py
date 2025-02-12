@@ -328,10 +328,21 @@ class TTSService:
     ) -> Tuple[Tuple[np.ndarray,AudioChunk]]:
         """Generate complete audio for text using streaming internally."""
         start_time = time.time()
+        audio_chunks = []
+        audio_data_chunks=[]
+        word_timestamps = []
+        
+        start_time = time.time()
         chunks = []
         word_timestamps = []
-
         try:
+            async for audio_stream,audio_stream_data in self.generate_audio_stream(text,voice,speed=speed,return_timestamps=return_timestamps,lang_code=lang_code):
+                print("common")
+                audio_chunks.append(audio_stream_data.audio)
+                audio_data_chunks.append(audio_stream_data)
+                
+            print(audio_data_chunks)
+            """
             # Get backend and voice path
             backend = self.model_manager.get_backend()
             voice_name, voice_path = await self._get_voice_path(voice)
@@ -574,10 +585,11 @@ class TTSService:
                         [],
                     )  # Empty timestamps for legacy backends
                 return audio, processing_time
-
+        """
         except Exception as e:
             logger.error(f"Error in audio generation: {str(e)}")
             raise
+        
 
     async def combine_voices(self, voices: List[str]) -> torch.Tensor:
         """Combine multiple voices.

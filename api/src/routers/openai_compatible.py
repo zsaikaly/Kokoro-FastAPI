@@ -8,7 +8,7 @@ import tempfile
 from typing import AsyncGenerator, Dict, List, Union, Tuple
 
 import aiofiles
-from inference.base import AudioChunk
+from ..inference.base import AudioChunk
 import torch
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
@@ -214,16 +214,16 @@ async def create_speech(
                 }
 
                 # Create async generator for streaming
-                async def dual_output(return_json:bool=False):
+                async def dual_output():
                     try:
                         # Write chunks to temp file and stream
                         async for chunk, chunk_data in generator:
                             if chunk:  # Skip empty chunks
                                 await temp_writer.write(chunk)
-                                if return_json:
-                                    yield chunk, chunk_data
-                                else:
-                                    yield chunk
+                                #if return_json:
+                                #    yield chunk, chunk_data
+                                #else:
+                                yield chunk
 
                         # Finalize the temp file
                         await temp_writer.finalize()

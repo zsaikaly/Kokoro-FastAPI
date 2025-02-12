@@ -291,17 +291,6 @@ class KokoroV1(BaseModelBackend):
                                         f"Added timestamp for word '{token.text}': {start_time:.3f}s - {end_time:.3f}s"
                                     )
 
-                                # Update offset for next chunk based on pred_dur
-                                chunk_duration = (
-                                    float(result.pred_dur.sum()) / 80
-                                )  # Convert frames to seconds
-                                current_offset = max(
-                                    current_offset + chunk_duration, end_time
-                                )
-                                logger.debug(
-                                    f"Updated time offset to {current_offset:.3f}s"
-                                )
-
                             except Exception as e:
                                 logger.error(
                                     f"Failed to process timestamps for chunk: {e}"
