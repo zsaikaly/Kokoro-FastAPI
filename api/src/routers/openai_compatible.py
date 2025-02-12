@@ -5,9 +5,10 @@ import json
 import os
 import re
 import tempfile
-from typing import AsyncGenerator, Dict, List, Union
+from typing import AsyncGenerator, Dict, List, Union, Tuple
 
 import aiofiles
+from inference.base import AudioChunk
 import torch
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
@@ -127,13 +128,13 @@ async def process_voices(
 
 async def stream_audio_chunks(
     tts_service: TTSService, request: OpenAISpeechRequest, client_request: Request
-) -> AsyncGenerator[bytes, None]:
+) -> AsyncGenerator[Tuple[bytes,AudioChunk], None]:
     """Stream audio chunks as they're generated with client disconnect handling"""
     voice_name = await process_voices(request.voice, tts_service)
 
     try:
         logger.info(f"Starting audio generation with lang_code: {request.lang_code}")
-        async for chunk in tts_service.generate_audio_stream(
+        async for chunk, chunk_data in tts_service.generate_audio_stream(
             text=request.input,
             voice=voice_name,
             speed=request.speed,
@@ -148,7 +149,7 @@ async def stream_audio_chunks(
             if is_disconnected:
                 logger.info("Client disconnected, stopping audio generation")
                 break
-            yield chunk
+            yield chunk, chunk_data
     except Exception as e:
         logger.error(f"Error in audio streaming: {str(e)}")
         # Let the exception propagate to trigger cleanup
@@ -213,13 +214,16 @@ async def create_speech(
                 }
 
                 # Create async generator for streaming
-                async def dual_output():
+                async def dual_output(return_json:bool=False):
                     try:
                         # Write chunks to temp file and stream
-                        async for chunk in generator:
+                        async for chunk, chunk_data in generator:
                             if chunk:  # Skip empty chunks
                                 await temp_writer.write(chunk)
-                                yield chunk
+                                if return_json:
+                                    yield chunk, chunk_data
+                                else:
+                                    yield chunk
 
                         # Finalize the temp file
                         await temp_writer.finalize()
