@@ -7,6 +7,7 @@ import re
 import tempfile
 from typing import AsyncGenerator, Dict, List, Union, Tuple
 from urllib import response
+import numpy as np
 
 import aiofiles
 from ..inference.base import AudioChunk
@@ -259,24 +260,31 @@ async def create_speech(
             )
         else:
             # Generate complete audio using public interface
-            audio, audio_data = await tts_service.generate_audio(
+            _, audio_data = await tts_service.generate_audio(
                 text=request.input,
                 voice=voice_name,
                 speed=request.speed,
                 lang_code=request.lang_code,
             )
-
-            # Convert to requested format with proper finalization
             content, audio_data = await AudioService.convert_audio(
                 audio_data,
                 24000,
                 request.response_format,
                 is_first_chunk=True,
+                is_last_chunk=False,
+            )
+            
+            # Convert to requested format with proper finalization
+            final, _ = await AudioService.convert_audio(
+                AudioChunk(np.array([], dtype=np.int16)),
+                24000,
+                request.response_format,
+                is_first_chunk=False,
                 is_last_chunk=True,
             )
-            print(content,request.response_format)
+            output=content+final
             return Response(
-                content=content,
+                content=output,
                 media_type=content_type,
                 headers={
                     "Content-Disposition": f"attachment; filename=speech.{request.response_format}",

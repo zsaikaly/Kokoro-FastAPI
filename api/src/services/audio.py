@@ -72,7 +72,7 @@ class AudioNormalizer:
 
         return max(non_silent_index_start - self.samples_to_pad_start,0), min(non_silent_index_end + math.ceil(samples_to_pad_end / speed),len(audio_data))
 
-    async def normalize(self, audio_data: np.ndarray) -> np.ndarray:
+    def normalize(self, audio_data: np.ndarray) -> np.ndarray:
         """Convert audio data to int16 range
 
         Args:
@@ -80,12 +80,10 @@ class AudioNormalizer:
         Returns:
             Normalized audio data
         """
-        if len(audio_data) == 0:
-            raise ValueError("Empty audio data")
-
-        # Scale directly to int16 range with clipping
-        return np.clip(audio_data * 32767, -32768, 32767).astype(np.int16)
-
+        if audio_data.dtype != np.int16:
+            # Scale directly to int16 range with clipping
+            return np.clip(audio_data * 32767, -32768, 32767).astype(np.int16)
+        return audio_data
 
 class AudioService:
     """Service for audio format conversions with streaming support"""
@@ -148,11 +146,9 @@ class AudioService:
             if normalizer is None:
                 normalizer = AudioNormalizer()
             
-            print(len(audio_chunk.audio),"1")
-            audio_chunk.audio = await normalizer.normalize(audio_chunk.audio)
-            print(len(audio_chunk.audio),"2")
+            audio_chunk.audio = normalizer.normalize(audio_chunk.audio)
             audio_chunk = AudioService.trim_audio(audio_chunk,chunk_text,speed,is_last_chunk,normalizer)
-            print(len(audio_chunk.audio),"3")
+            
             # Get or create format-specific writer
             writer_key = f"{output_format}_{sample_rate}"
             if is_first_chunk or writer_key not in AudioService._writers:
@@ -169,7 +165,6 @@ class AudioService:
             if is_last_chunk:
                 final_data = writer.write_chunk(finalize=True)
                 del AudioService._writers[writer_key]
-                print(audio_chunk.audio)
                 return final_data if final_data else b"", audio_chunk
 
             return chunk_data if chunk_data else b"", audio_chunk
@@ -196,6 +191,7 @@ class AudioService:
         if normalizer is None:
             normalizer = AudioNormalizer()
         
+        audio_chunk.audio=normalizer.normalize(audio_chunk.audio)
         # Trim start and end if enough samples
         if len(audio_chunk.audio) > (2 * normalizer.samples_to_trim):
             audio_chunk.audio = audio_chunk.audio[normalizer.samples_to_trim : -normalizer.samples_to_trim]

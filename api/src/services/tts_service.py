@@ -62,7 +62,7 @@ class TTSService:
                 if is_last:
                     # Skip format conversion for raw audio mode
                     if not output_format:
-                        yield np.array([], dtype=np.float32)
+                        yield np.array([], dtype=np.int16), AudioChunk(np.array([], dtype=np.int16))
                         return
                     result, chunk_data = await AudioService.convert_audio(
                         AudioChunk(np.array([0], dtype=np.float32)),  # Dummy data for type checking
@@ -111,7 +111,7 @@ class TTSService:
                             except Exception as e:
                                 logger.error(f"Failed to convert audio: {str(e)}")
                         else:
-                            chunk_data = await AudioService.trim_audio(chunk_data,
+                            chunk_data = AudioService.trim_audio(chunk_data,
                                                                     chunk_text,
                                                                     speed,
                                                                     is_last,
@@ -152,7 +152,7 @@ class TTSService:
                         except Exception as e:
                             logger.error(f"Failed to convert audio: {str(e)}")
                     else:
-                        trimmed = await AudioService.trim_audio(chunk_data,
+                        trimmed = AudioService.trim_audio(chunk_data,
                                                                     chunk_text,
                                                                     speed,
                                                                     is_last,
@@ -288,7 +288,6 @@ class TTSService:
                         current_offset+=len(chunk_data.audio) / 24000
                         
                         if result is not None:
-                            print(chunk_data.word_timestamps)
                             yield result,chunk_data
                             chunk_index += 1
                         else:
@@ -342,17 +341,14 @@ class TTSService:
         audio_data_chunks=[]
   
         try:
-            async for audio_stream,audio_stream_data in self.generate_audio_stream(text,voice,speed=speed,return_timestamps=return_timestamps,lang_code=lang_code):
+            async for audio_stream,audio_stream_data in self.generate_audio_stream(text,voice,speed=speed,return_timestamps=return_timestamps,lang_code=lang_code,output_format=None):
                 audio_chunks.append(audio_stream_data.audio)
                 audio_data_chunks.append(audio_stream_data)
             
-            print(audio_data_chunks[0].audio.shape)
+
             
-            combined_audio=np.concatenate(audio_chunks)
-            print("1")
+            combined_audio=np.concatenate(audio_chunks,dtype=np.int16)
             combined_audio_data=AudioChunk.combine(audio_data_chunks)
-            print("2")
-            print(len(combined_audio_data.audio))
             return combined_audio,combined_audio_data
             """
             # Get backend and voice path
