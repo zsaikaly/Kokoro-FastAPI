@@ -106,11 +106,23 @@ class CaptionedSpeechRequest(BaseModel):
         le=4.0,
         description="The speed of the generated audio. Select a value from 0.25 to 4.0.",
     )
+    stream: bool = Field(
+        default=True,  # Default to streaming for OpenAI compatibility
+        description="If true (default), audio will be streamed as it's generated. Each chunk will be a complete sentence.",
+    )
     return_timestamps: bool = Field(
         default=True,
         description="If true (default), returns word-level timestamps in the response",
     )
+    return_download_link: bool = Field(
+        default=False,
+        description="If true, returns a download link in X-Download-Path header after streaming completes",
+    )
     lang_code: Optional[str] = Field(
         default=None,
         description="Optional language code to use for text processing. If not provided, will use first letter of voice name.",
+    )
+    normalization_options: Optional[NormalizationOptions] = Field(
+        default= NormalizationOptions(),
+        description= "Options for the normalization system"
     )

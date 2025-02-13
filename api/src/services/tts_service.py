@@ -332,24 +332,23 @@ class TTSService:
         text: str,
         voice: str,
         speed: float = 1.0,
-        return_timestamps: bool = True,
+        return_timestamps: bool = False,
         lang_code: Optional[str] = None,
     ) -> Tuple[Tuple[np.ndarray,AudioChunk]]:
         """Generate complete audio for text using streaming internally."""
         start_time = time.time()
-        audio_chunks = []
         audio_data_chunks=[]
   
         try:
-            async for audio_stream,audio_stream_data in self.generate_audio_stream(text,voice,speed=speed,return_timestamps=return_timestamps,lang_code=lang_code,output_format=None):
-                audio_chunks.append(audio_stream_data.audio)
+            async for _,audio_stream_data in self.generate_audio_stream(text,voice,speed=speed,return_timestamps=return_timestamps,lang_code=lang_code,output_format=None):
+
                 audio_data_chunks.append(audio_stream_data)
             
 
             
-            combined_audio=np.concatenate(audio_chunks,dtype=np.int16)
+
             combined_audio_data=AudioChunk.combine(audio_data_chunks)
-            return combined_audio,combined_audio_data
+            return combined_audio_data.audio,combined_audio_data
             """
             # Get backend and voice path
             backend = self.model_manager.get_backend()

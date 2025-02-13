@@ -10,12 +10,13 @@ from urllib import response
 import numpy as np
 
 import aiofiles
-from ..inference.base import AudioChunk
+
 import torch
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from loguru import logger
 
+from ..inference.base import AudioChunk
 from ..core.config import settings
 from ..services.audio import AudioService
 from ..services.tts_service import TTSService
@@ -130,7 +131,7 @@ async def process_voices(
 
 async def stream_audio_chunks(
     tts_service: TTSService, request: OpenAISpeechRequest, client_request: Request
-) -> AsyncGenerator[list, None]:
+) -> AsyncGenerator[Tuple[Union[np.ndarray,bytes],AudioChunk], None]:
     """Stream audio chunks as they're generated with client disconnect handling"""
     voice_name = await process_voices(request.voice, tts_service)
 
@@ -154,7 +155,7 @@ async def stream_audio_chunks(
                 logger.info("Client disconnected, stopping audio generation")
                 break
 
-            yield chunk
+            yield (chunk,chunk_data)
     except Exception as e:
         logger.error(f"Error in audio streaming: {str(e)}")
         # Let the exception propagate to trigger cleanup
@@ -223,7 +224,7 @@ async def create_speech(
                 async def dual_output():
                     try:
                         # Write chunks to temp file and stream
-                        async for chunk in generator:
+                        async for chunk,chunk_data in generator:
                             if chunk:  # Skip empty chunks
                                 await temp_writer.write(chunk)
                                 #if return_json:
@@ -247,9 +248,19 @@ async def create_speech(
                     dual_output(), media_type=content_type, headers=headers
                 )
 
+            async def single_output():
+                try:
+                    # Stream chunks
+                    async for chunk,chunk_data in generator:
+                        if chunk:  # Skip empty chunks
+                            yield chunk
+                except Exception as e:
+                    logger.error(f"Error in single output streaming: {e}")
+                    raise
+                
             # Standard streaming without download link
             return StreamingResponse(
-                generator,
+                single_output(),
                 media_type=content_type,
                 headers={
                     "Content-Disposition": f"attachment; filename=speech.{request.response_format}",
