@@ -12,7 +12,8 @@ response = requests.post(
         "input": "http://localhost:8880/web/",
         "voice": "af_heart",
         "response_format": "mp3",  # Supported: mp3, wav, opus, flac
-        "speed": 1.0
+        "speed": 1.0,
+        "stream":False,
     }
 )
 

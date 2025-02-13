@@ -6,6 +6,7 @@ import os
 import re
 import tempfile
 from typing import AsyncGenerator, Dict, List, Union, Tuple
+from urllib import response
 
 import aiofiles
 from ..inference.base import AudioChunk
@@ -141,7 +142,7 @@ async def stream_audio_chunks(
             output_format=request.response_format,
             lang_code=request.lang_code or request.voice[0],
             normalization_options=request.normalization_options,
-            return_timestamps=True,
+            return_timestamps=False,
         ):
 
             # Check if client is still connected
@@ -258,7 +259,7 @@ async def create_speech(
             )
         else:
             # Generate complete audio using public interface
-            audio, _ = await tts_service.generate_audio(
+            audio, audio_data = await tts_service.generate_audio(
                 text=request.input,
                 voice=voice_name,
                 speed=request.speed,
@@ -266,14 +267,14 @@ async def create_speech(
             )
 
             # Convert to requested format with proper finalization
-            content = await AudioService.convert_audio(
-                audio,
+            content, audio_data = await AudioService.convert_audio(
+                audio_data,
                 24000,
                 request.response_format,
                 is_first_chunk=True,
                 is_last_chunk=True,
             )
-
+            print(content,request.response_format)
             return Response(
                 content=content,
                 media_type=content_type,

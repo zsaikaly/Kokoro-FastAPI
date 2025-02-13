@@ -16,6 +16,17 @@ class AudioChunk:
         self.audio=audio
         self.word_timestamps=word_timestamps
         
+    @staticmethod
+    def combine(audio_chunk_list: List):
+        output=AudioChunk(audio_chunk_list[0].audio,audio_chunk_list[0].word_timestamps)
+        
+        for audio_chunk in audio_chunk_list[1:]:
+            output.audio=np.concatenate((output.audio,audio_chunk.audio))
+            if output.word_timestamps is not None:
+                output.word_timestamps+=output.word_timestamps
+                
+        return output
+            
 class ModelBackend(ABC):
     """Abstract base class for model inference backend."""
 

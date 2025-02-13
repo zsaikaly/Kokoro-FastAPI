@@ -148,9 +148,11 @@ class AudioService:
             if normalizer is None:
                 normalizer = AudioNormalizer()
             
+            print(len(audio_chunk.audio),"1")
             audio_chunk.audio = await normalizer.normalize(audio_chunk.audio)
+            print(len(audio_chunk.audio),"2")
             audio_chunk = AudioService.trim_audio(audio_chunk,chunk_text,speed,is_last_chunk,normalizer)
-
+            print(len(audio_chunk.audio),"3")
             # Get or create format-specific writer
             writer_key = f"{output_format}_{sample_rate}"
             if is_first_chunk or writer_key not in AudioService._writers:
@@ -167,6 +169,7 @@ class AudioService:
             if is_last_chunk:
                 final_data = writer.write_chunk(finalize=True)
                 del AudioService._writers[writer_key]
+                print(audio_chunk.audio)
                 return final_data if final_data else b"", audio_chunk
 
             return chunk_data if chunk_data else b"", audio_chunk
