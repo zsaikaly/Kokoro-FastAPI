@@ -295,7 +295,8 @@ class KokoroV1(BaseModelBackend):
                                 logger.error(
                                     f"Failed to process timestamps for chunk: {e}"
                                 )
-                        
+                      
+                      
                     yield AudioChunk(result.audio.numpy(),word_timestamps=word_timestamps)
                 else:
                     logger.warning("No audio in chunk")

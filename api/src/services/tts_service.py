@@ -247,7 +247,7 @@ class TTSService:
         """Generate and stream audio chunks."""
         stream_normalizer = AudioNormalizer()
         chunk_index = 0
-
+        current_offset=0.0
         try:
             # Get backend
             backend = self.model_manager.get_backend()
@@ -261,7 +261,8 @@ class TTSService:
             logger.info(
                 f"Using lang_code '{pipeline_lang_code}' for voice '{voice_name}' in audio stream"
             )
-
+            
+            
             # Process text in chunks with smart splitting
             async for chunk_text, tokens in smart_split(text,normalization_options=normalization_options):
                 try:
@@ -277,8 +278,17 @@ class TTSService:
                         is_last=False,  # We'll update the last chunk later
                         normalizer=stream_normalizer,
                         lang_code=pipeline_lang_code,  # Pass lang_code
+                        return_timestamps=return_timestamps,
                     ):
+                        if chunk_data.word_timestamps is not None:
+                            for timestamp in chunk_data.word_timestamps:
+                                timestamp["start_time"]+=current_offset
+                                timestamp["end_time"]+=current_offset
+                        
+                        current_offset+=len(chunk_data.audio) / 24000
+                        
                         if result is not None:
+                            print(chunk_data.word_timestamps)
                             yield result,chunk_data
                             chunk_index += 1
                         else:

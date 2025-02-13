@@ -128,7 +128,7 @@ async def process_voices(
 
 async def stream_audio_chunks(
     tts_service: TTSService, request: OpenAISpeechRequest, client_request: Request
-) -> AsyncGenerator[Tuple[bytes,AudioChunk], None]:
+) -> AsyncGenerator[list, None]:
     """Stream audio chunks as they're generated with client disconnect handling"""
     voice_name = await process_voices(request.voice, tts_service)
 
@@ -140,8 +140,10 @@ async def stream_audio_chunks(
             speed=request.speed,
             output_format=request.response_format,
             lang_code=request.lang_code or request.voice[0],
-            normalization_options=request.normalization_options
+            normalization_options=request.normalization_options,
+            return_timestamps=True,
         ):
+
             # Check if client is still connected
             is_disconnected = client_request.is_disconnected
             if callable(is_disconnected):
@@ -149,7 +151,8 @@ async def stream_audio_chunks(
             if is_disconnected:
                 logger.info("Client disconnected, stopping audio generation")
                 break
-            yield chunk, chunk_data
+
+            yield chunk
     except Exception as e:
         logger.error(f"Error in audio streaming: {str(e)}")
         # Let the exception propagate to trigger cleanup
@@ -158,6 +161,7 @@ async def stream_audio_chunks(
 
 @router.post("/audio/speech")
 async def create_speech(
+    
     request: OpenAISpeechRequest,
     client_request: Request,
     x_raw_response: str = Header(None, alias="x-raw-response"),
@@ -217,7 +221,7 @@ async def create_speech(
                 async def dual_output():
                     try:
                         # Write chunks to temp file and stream
-                        async for chunk, chunk_data in generator:
+                        async for chunk in generator:
                             if chunk:  # Skip empty chunks
                                 await temp_writer.write(chunk)
                                 #if return_json:
