@@ -150,7 +150,7 @@ async def stream_audio_chunks(
             speed=request.speed,
             output_format=request.response_format,
             lang_code=request.lang_code or settings.default_voice_code or voice_name[0].lower(),
-            normalization_options=request.normalization_options
+            normalization_options=request.normalization_options,
             return_timestamps=unique_properties["return_timestamps"],
         ):
 
