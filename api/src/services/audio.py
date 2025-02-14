@@ -192,18 +192,22 @@ class AudioService:
             normalizer = AudioNormalizer()
         
         audio_chunk.audio=normalizer.normalize(audio_chunk.audio)
+        
+        trimed_samples=0
         # Trim start and end if enough samples
         if len(audio_chunk.audio) > (2 * normalizer.samples_to_trim):
             audio_chunk.audio = audio_chunk.audio[normalizer.samples_to_trim : -normalizer.samples_to_trim]
+            trimed_samples+=normalizer.samples_to_trim
             
         # Find non silent portion and trim 
         start_index,end_index=normalizer.find_first_last_non_silent(audio_chunk.audio,chunk_text,speed,is_last_chunk=is_last_chunk)
         
         audio_chunk.audio=audio_chunk.audio[start_index:end_index]
+        trimed_samples+=start_index
         
         if audio_chunk.word_timestamps is not None:
             for timestamp in audio_chunk.word_timestamps:
-                timestamp["start_time"]-=start_index / 24000
-                timestamp["end_time"]-=start_index / 24000
+                timestamp.start_time-=trimed_samples / 24000
+                timestamp.end_time-=trimed_samples / 24000
         return audio_chunk
     

@@ -282,8 +282,8 @@ class TTSService:
                     ):
                         if chunk_data.word_timestamps is not None:
                             for timestamp in chunk_data.word_timestamps:
-                                timestamp["start_time"]+=current_offset
-                                timestamp["end_time"]+=current_offset
+                                timestamp.start_time+=current_offset
+                                timestamp.end_time+=current_offset
                         
                         current_offset+=len(chunk_data.audio) / 24000
                         

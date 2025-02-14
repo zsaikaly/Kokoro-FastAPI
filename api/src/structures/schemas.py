@@ -33,7 +33,8 @@ class WordTimestamp(BaseModel):
 class CaptionedSpeechResponse(BaseModel):
     """Response schema for captioned speech endpoint"""
 
-    audio: bytes = Field(..., description="The generated audio data")
+    audio: str = Field(..., description="The generated audio data encoded in base 64")
+    audio_format: str = Field(..., description="The format of the output audio")
     words: List[WordTimestamp] = Field(..., description="Word-level timestamps")
 
 class NormalizationOptions(BaseModel):

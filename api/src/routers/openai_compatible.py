@@ -11,6 +11,7 @@ import numpy as np
 
 import aiofiles
 
+from structures.schemas import CaptionedSpeechRequest
 import torch
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
@@ -130,11 +131,17 @@ async def process_voices(
 
 
 async def stream_audio_chunks(
-    tts_service: TTSService, request: OpenAISpeechRequest, client_request: Request
+    tts_service: TTSService, request: Union[OpenAISpeechRequest,CaptionedSpeechRequest], client_request: Request
 ) -> AsyncGenerator[Tuple[Union[np.ndarray,bytes],AudioChunk], None]:
     """Stream audio chunks as they're generated with client disconnect handling"""
     voice_name = await process_voices(request.voice, tts_service)
 
+    unique_properties={
+        "return_timestamps":False
+    }
+    if hasattr(request, "return_timestamps"):
+        unique_properties["return_timestamps"]=request.return_timestamps
+    
     try:
         logger.info(f"Starting audio generation with lang_code: {request.lang_code}")
         async for chunk, chunk_data in tts_service.generate_audio_stream(
@@ -144,7 +151,7 @@ async def stream_audio_chunks(
             output_format=request.response_format,
             lang_code=request.lang_code or request.voice[0],
             normalization_options=request.normalization_options,
-            return_timestamps=False,
+            return_timestamps=unique_properties["return_timestamps"],
         ):
 
             # Check if client is still connected

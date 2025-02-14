@@ -13,7 +13,7 @@ from ..core.config import settings
 from ..core.model_config import model_config
 from .base import BaseModelBackend
 from .base import AudioChunk
-
+from ..structures.schemas import WordTimestamp
 class KokoroV1(BaseModelBackend):
     """Kokoro backend with controlled resource management."""
 
@@ -281,11 +281,11 @@ class KokoroV1(BaseModelBackend):
                                     start_time = float(token.start_ts) + current_offset
                                     end_time = float(token.end_ts) + current_offset
                                     word_timestamps.append(
-                                        {
-                                            "word": str(token.text).strip(),
-                                            "start_time": start_time,
-                                            "end_time": end_time,
-                                        }
+                                        WordTimestamp(
+                                            word=str(token.text).strip(),
+                                            start_time=start_time,
+                                            end_time=end_time
+                                        )
                                     )
                                     logger.debug(
                                         f"Added timestamp for word '{token.text}': {start_time:.3f}s - {end_time:.3f}s"
