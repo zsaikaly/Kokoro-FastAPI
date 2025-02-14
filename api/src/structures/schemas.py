@@ -35,7 +35,7 @@ class CaptionedSpeechResponse(BaseModel):
 
     audio: str = Field(..., description="The generated audio data encoded in base 64")
     audio_format: str = Field(..., description="The format of the output audio")
-    words: List[WordTimestamp] = Field(..., description="Word-level timestamps")
+    timestamps: Optional[List[WordTimestamp]] = Field(..., description="Word-level timestamps")
 
 class NormalizationOptions(BaseModel):
     """Options for the normalization system"""

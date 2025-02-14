@@ -23,7 +23,7 @@ class AudioChunk:
         for audio_chunk in audio_chunk_list[1:]:
             output.audio=np.concatenate((output.audio,audio_chunk.audio),dtype=np.int16)
             if output.word_timestamps is not None:
-                output.word_timestamps+=output.word_timestamps
+                output.word_timestamps+=audio_chunk.word_timestamps
                 
         return output
             

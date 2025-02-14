@@ -282,8 +282,10 @@ async def create_speech(
                 text=request.input,
                 voice=voice_name,
                 speed=request.speed,
+                normalization_options=request.normalization_options,
                 lang_code=request.lang_code,
             )
+
             content, audio_data = await AudioService.convert_audio(
                 audio_data,
                 24000,

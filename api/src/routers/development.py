@@ -1,9 +1,10 @@
+import re
 from typing import List, Union, AsyncGenerator, Tuple
 
 import numpy as np
 import torch
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from kokoro import KPipeline
 from loguru import logger
 
@@ -156,40 +157,6 @@ async def generate_from_phonemes(
             },
         )
 
-
-@router.get("/dev/timestamps/{filename}")
-async def get_timestamps(filename: str):
-    """Download timestamps from temp storage"""
-    try:
-        from ..core.paths import _find_file
-
-        # Search for file in temp directory
-        file_path = await _find_file(
-            filename=filename, search_paths=[settings.temp_file_dir]
-        )
-
-        return FileResponse(
-            file_path,
-            media_type="application/json",
-            filename=filename,
-            headers={
-                "Cache-Control": "no-cache",
-                "Content-Disposition": f"attachment; filename={filename}",
-            },
-        )
-
-    except Exception as e:
-        logger.error(f"Error serving timestamps file {filename}: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "error": "server_error",
-                "message": "Failed to serve timestamps file",
-                "type": "server_error",
-            },
-        )
-
-
 @router.post("/dev/captioned_speech")
 async def create_captioned_speech(
     request: CaptionedSpeechRequest,
@@ -245,8 +212,9 @@ async def create_captioned_speech(
                         async for chunk,chunk_data in generator:
                             if chunk:  # Skip empty chunks
                                 await temp_writer.write(chunk)
-
-                                yield chunk
+                                base64_chunk= base64.b64encode(chunk).decode("utf-8")
+                            
+                                yield CaptionedSpeechResponse(audio=base64_chunk,audio_format=content_type,timestamps=chunk_data.word_timestamps)
 
                         # Finalize the temp file
                         await temp_writer.finalize()
@@ -272,13 +240,11 @@ async def create_captioned_speech(
                             # Encode the chunk bytes into base 64
                             base64_chunk= base64.b64encode(chunk).decode("utf-8")
                             
-                            yield CaptionedSpeechResponse(audio=base64_chunk,audio_format=content_type,words=chunk_data.word_timestamps)
+                            yield CaptionedSpeechResponse(audio=base64_chunk,audio_format=content_type,timestamps=chunk_data.word_timestamps)
                 except Exception as e:
                     logger.error(f"Error in single output streaming: {e}")
                     raise
-                
-            # NEED TO DO REPLACE THE RETURN WITH A JSON OBJECT CONTAINING BOTH THE FILE AND THE WORD TIMESTAMPS
-                
+
             # Standard streaming without download link
             return JSONStreamingResponse(
                 single_output(),
@@ -296,6 +262,8 @@ async def create_captioned_speech(
                 text=request.input,
                 voice=voice_name,
                 speed=request.speed,
+                return_timestamps=request.return_timestamps,
+                normalization_options=request.normalization_options,
                 lang_code=request.lang_code,
             )
             
@@ -316,9 +284,13 @@ async def create_captioned_speech(
                 is_last_chunk=True,
             )
             output=content+final
-            return Response(
-                content=output,
-                media_type=content_type,
+            
+            base64_output= base64.b64encode(output).decode("utf-8")
+            
+            content=CaptionedSpeechResponse(audio=base64_output,audio_format=content_type,timestamps=audio_data.word_timestamps).model_dump()
+            return JSONResponse(
+                content=content,
+                media_type="application/json",
                 headers={
                     "Content-Disposition": f"attachment; filename=speech.{request.response_format}",
                     "Cache-Control": "no-cache",  # Prevent caching
