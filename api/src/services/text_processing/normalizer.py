@@ -136,10 +136,10 @@ def handle_money(m: re.Match[str]) -> str:
     m = m.group()
     bill = "dollar" if m[0] == "$" else "pound"
     if m[-1].isalpha():
-        return f"{m[1:]} {bill}s"
+        return f"{INFLECT_ENGINE.number_to_words(m[1:])} {bill}s"
     elif "." not in m:
         s = "" if m[1:] == "1" else "s"
-        return f"{m[1:]} {bill}{s}"
+        return f"{INFLECT_ENGINE.number_to_words(m[1:])} {bill}{s}"
     b, c = m[1:].split(".")
     s = "" if b == "1" else "s"
     c = int(c.ljust(2, "0"))
@@ -148,7 +148,7 @@ def handle_money(m: re.Match[str]) -> str:
         if m[0] == "$"
         else ("penny" if c == 1 else "pence")
     )
-    return f"{b} {bill}{s} and {c} {coins}"
+    return f"{INFLECT_ENGINE.number_to_words(b)} {bill}{s} and {INFLECT_ENGINE.number_to_words(c)} {coins}"
 
 
 def handle_decimal(num: re.Match[str]) -> str:
@@ -259,15 +259,16 @@ def normalize_text(text: str,normalization_options: NormalizationOptions) -> str
     text = re.sub(r"(?i)\b(y)eah?\b", r"\1e'a", text)
 
     # Handle numbers and money
-    text = re.sub(
-        r"\d*\.\d+|\b\d{4}s?\b|(?<!:)\b(?:[1-9]|1[0-2]):[0-5]\d\b(?!:)", split_num, text
-    )
-    
     text = re.sub(r"(?<=\d),(?=\d)", "", text)
+    
     text = re.sub(
         r"(?i)[$£]\d+(?:\.\d+)?(?: hundred| thousand| (?:[bm]|tr)illion)*\b|[$£]\d+\.\d\d?\b",
         handle_money,
         text,
+    )
+    
+    text = re.sub(
+        r"\d*\.\d+|\b\d{4}s?\b|(?<!:)\b(?:[1-9]|1[0-2]):[0-5]\d\b(?!:)", split_num, text
     )
     
     text = re.sub(r"\d*\.\d+", handle_decimal, text)
