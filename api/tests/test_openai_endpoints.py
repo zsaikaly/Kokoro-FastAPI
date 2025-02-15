@@ -258,7 +258,7 @@ def test_openai_speech_endpoint(
     """Test the OpenAI-compatible speech endpoint with basic MP3 generation"""
     # Configure mocks
     mock_tts_service.generate_audio.return_value = (np.zeros(1000), AudioChunk(np.zeros(1000,np.int16)))
-    mock_convert.return_value = mock_audio_bytes
+    mock_convert.return_value = (mock_audio_bytes,AudioChunk(np.zeros(1000,np.int16)))
 
     response = client.post(
         "/v1/audio/speech",
@@ -273,10 +273,10 @@ def test_openai_speech_endpoint(
     assert response.status_code == 200
     assert response.headers["content-type"] == "audio/mpeg"
     assert len(response.content) > 0
-    assert response.content == mock_audio_bytes
+    assert response.content == mock_audio_bytes + mock_audio_bytes
 
     mock_tts_service.generate_audio.assert_called_once()
-    mock_convert.assert_called_once()
+    assert mock_convert.call_count == 2
 
 
 def test_openai_speech_streaming(mock_tts_service, test_voice, mock_audio_bytes):
