@@ -264,7 +264,7 @@ class TTSService:
             
             
             # Process text in chunks with smart splitting
-            async for chunk_text, tokens in smart_split(text,normalization_options=normalization_options):
+            async for chunk_text, tokens in smart_split(text,lang_code=lang_code,normalization_options=normalization_options):
                 try:
                     # Process audio for chunk
                     async for result, chunk_data in self._process_chunk(
