@@ -54,7 +54,7 @@ class TTSService:
         normalizer: Optional[AudioNormalizer] = None,
         lang_code: Optional[str] = None,
         return_timestamps: Optional[bool] = False,
-    ) -> AsyncGenerator[Tuple[Union[np.ndarray, bytes],AudioChunk], Tuple[None,None]]:
+    ) -> AsyncGenerator[AudioChunk, None]:
         """Process tokens into audio."""
         async with self._chunk_semaphore:
             try:
@@ -62,9 +62,9 @@ class TTSService:
                 if is_last:
                     # Skip format conversion for raw audio mode
                     if not output_format:
-                        yield np.array([], dtype=np.int16), AudioChunk(np.array([], dtype=np.int16))
+                        yield AudioChunk(np.array([], dtype=np.int16),output=b'')
                         return
-                    result, chunk_data = await AudioService.convert_audio(
+                    chunk_data = await AudioService.convert_audio(
                         AudioChunk(np.array([0], dtype=np.float32)),  # Dummy data for type checking
                         24000,
                         output_format,
@@ -74,7 +74,7 @@ class TTSService:
                         normalizer=normalizer,
                         is_last_chunk=True,
                     )
-                    yield result, chunk_data
+                    yield chunk_data
                     return
 
                 # Skip empty chunks
@@ -97,7 +97,7 @@ class TTSService:
                         # For streaming, convert to bytes
                         if output_format:
                             try:
-                                converted, chunk_data = await AudioService.convert_audio(
+                                chunk_data = await AudioService.convert_audio(
                                     chunk_data,
                                     24000,
                                     output_format,
@@ -107,7 +107,7 @@ class TTSService:
                                     is_last_chunk=is_last,
                                     normalizer=normalizer,
                                 )
-                                yield converted, chunk_data
+                                yield chunk_data
                             except Exception as e:
                                 logger.error(f"Failed to convert audio: {str(e)}")
                         else:
@@ -116,7 +116,7 @@ class TTSService:
                                                                     speed,
                                                                     is_last,
                                                                     normalizer)
-                            yield chunk_data.audio, chunk_data
+                            yield chunk_data
                 else:
 
                     # For legacy backends, load voice tensor
@@ -138,7 +138,7 @@ class TTSService:
                     # For streaming, convert to bytes
                     if output_format:
                         try:
-                            converted, chunk_data = await AudioService.convert_audio(
+                            chunk_data = await AudioService.convert_audio(
                                 chunk_data,
                                 24000,
                                 output_format,
@@ -148,7 +148,7 @@ class TTSService:
                                 normalizer=normalizer,
                                 is_last_chunk=is_last,
                             )
-                            yield converted, chunk_data
+                            yield chunk_data
                         except Exception as e:
                             logger.error(f"Failed to convert audio: {str(e)}")
                     else:
@@ -157,7 +157,7 @@ class TTSService:
                                                                     speed,
                                                                     is_last,
                                                                     normalizer)
-                        yield trimmed.audio, trimmed
+                        yield trimmed
             except Exception as e:
                 logger.error(f"Failed to process tokens: {str(e)}")
 
@@ -243,7 +243,7 @@ class TTSService:
         lang_code: Optional[str] = None,
         normalization_options: Optional[NormalizationOptions] = NormalizationOptions(),
         return_timestamps: Optional[bool] = False,
-    ) -> AsyncGenerator[Tuple[bytes,AudioChunk], None]:
+    ) -> AsyncGenerator[AudioChunk, None]:
         """Generate and stream audio chunks."""
         stream_normalizer = AudioNormalizer()
         chunk_index = 0
@@ -267,7 +267,7 @@ class TTSService:
             async for chunk_text, tokens in smart_split(text,lang_code=lang_code,normalization_options=normalization_options):
                 try:
                     # Process audio for chunk
-                    async for result, chunk_data in self._process_chunk(
+                    async for chunk_data in self._process_chunk(
                         chunk_text,  # Pass text for Kokoro V1
                         tokens,  # Pass tokens for legacy backends
                         voice_name,  # Pass voice name
@@ -287,8 +287,8 @@ class TTSService:
                         
                         current_offset+=len(chunk_data.audio) / 24000
                         
-                        if result is not None:
-                            yield result,chunk_data
+                        if chunk_data.output is not None:
+                            yield chunk_data
                             chunk_index += 1
                         else:
                             logger.warning(
@@ -305,7 +305,7 @@ class TTSService:
             if chunk_index > 0:
                 try:
                     # Empty tokens list to finalize audio
-                    async for result,chunk_data in self._process_chunk(
+                    async for chunk_data in self._process_chunk(
                         "",  # Empty text
                         [],  # Empty tokens
                         voice_name,
@@ -317,8 +317,8 @@ class TTSService:
                         normalizer=stream_normalizer,
                         lang_code=pipeline_lang_code,  # Pass lang_code
                     ):
-                        if result is not None:
-                            yield result, chunk_data
+                        if chunk_data.output is not None:
+                            yield chunk_data
                 except Exception as e:
                     logger.error(f"Failed to finalize audio stream: {str(e)}")
 
@@ -335,17 +335,17 @@ class TTSService:
         return_timestamps: bool = False,
         normalization_options: Optional[NormalizationOptions] = NormalizationOptions(),
         lang_code: Optional[str] = None,
-    ) -> Tuple[Tuple[np.ndarray,AudioChunk]]:
+    ) -> AudioChunk:
         """Generate complete audio for text using streaming internally."""
         audio_data_chunks=[]
   
         try:
-            async for _,audio_stream_data in self.generate_audio_stream(text,voice,speed=speed,normalization_options=normalization_options,return_timestamps=return_timestamps,lang_code=lang_code,output_format=None):
+            async for audio_stream_data in self.generate_audio_stream(text,voice,speed=speed,normalization_options=normalization_options,return_timestamps=return_timestamps,lang_code=lang_code,output_format=None):
 
                 audio_data_chunks.append(audio_stream_data)
 
             combined_audio_data=AudioChunk.combine(audio_data_chunks)
-            return combined_audio_data.audio,combined_audio_data
+            return combined_audio_data
         except Exception as e:
             logger.error(f"Error in audio generation: {str(e)}")
             raise

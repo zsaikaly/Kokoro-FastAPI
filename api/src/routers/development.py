@@ -209,10 +209,10 @@ async def create_captioned_speech(
                 async def dual_output():
                     try:
                         # Write chunks to temp file and stream
-                        async for chunk,chunk_data in generator:
-                            if chunk:  # Skip empty chunks
-                                await temp_writer.write(chunk)
-                                base64_chunk= base64.b64encode(chunk).decode("utf-8")
+                        async for chunk_data in generator:
+                            if chunk_data.output:  # Skip empty chunks
+                                await temp_writer.write(chunk_data.output)
+                                base64_chunk= base64.b64encode(chunk_data.output).decode("utf-8")
                             
                                 yield CaptionedSpeechResponse(audio=base64_chunk,audio_format=content_type,timestamps=chunk_data.word_timestamps)
 
@@ -235,10 +235,10 @@ async def create_captioned_speech(
             async def single_output():
                 try:
                     # Stream chunks
-                    async for chunk,chunk_data in generator:
-                        if chunk:  # Skip empty chunks
+                    async for chunk_data in generator:
+                        if chunk_data.output:  # Skip empty chunks
                             # Encode the chunk bytes into base 64
-                            base64_chunk= base64.b64encode(chunk).decode("utf-8")
+                            base64_chunk= base64.b64encode(chunk_data.output).decode("utf-8")
                             
                             yield CaptionedSpeechResponse(audio=base64_chunk,audio_format=content_type,timestamps=chunk_data.word_timestamps)
                 except Exception as e:
@@ -258,7 +258,7 @@ async def create_captioned_speech(
             )
         else:
             # Generate complete audio using public interface
-            _, audio_data = await tts_service.generate_audio(
+            audio_data = await tts_service.generate_audio(
                 text=request.input,
                 voice=voice_name,
                 speed=request.speed,
@@ -267,7 +267,7 @@ async def create_captioned_speech(
                 lang_code=request.lang_code,
             )
             
-            content, audio_data = await AudioService.convert_audio(
+            audio_data = await AudioService.convert_audio(
                 audio_data,
                 24000,
                 request.response_format,
@@ -276,14 +276,14 @@ async def create_captioned_speech(
             )
             
             # Convert to requested format with proper finalization
-            final, _ = await AudioService.convert_audio(
+            final = await AudioService.convert_audio(
                 AudioChunk(np.array([], dtype=np.int16)),
                 24000,
                 request.response_format,
                 is_first_chunk=False,
                 is_last_chunk=True,
             )
-            output=content+final
+            output=content.output + final.output
             
             base64_output= base64.b64encode(output).decode("utf-8")
             

@@ -132,7 +132,7 @@ async def process_voices(
 
 async def stream_audio_chunks(
     tts_service: TTSService, request: Union[OpenAISpeechRequest,CaptionedSpeechRequest], client_request: Request
-) -> AsyncGenerator[Tuple[Union[np.ndarray,bytes],AudioChunk], None]:
+) -> AsyncGenerator[AudioChunk, None]:
     """Stream audio chunks as they're generated with client disconnect handling"""
     voice_name = await process_voices(request.voice, tts_service)
 
@@ -144,7 +144,7 @@ async def stream_audio_chunks(
     
     try:
         logger.info(f"Starting audio generation with lang_code: {request.lang_code}")
-        async for chunk, chunk_data in tts_service.generate_audio_stream(
+        async for chunk_data in tts_service.generate_audio_stream(
             text=request.input,
             voice=voice_name,
             speed=request.speed,
@@ -162,7 +162,7 @@ async def stream_audio_chunks(
                 logger.info("Client disconnected, stopping audio generation")
                 break
 
-            yield (chunk,chunk_data)
+            yield chunk_data
     except Exception as e:
         logger.error(f"Error in audio streaming: {str(e)}")
         # Let the exception propagate to trigger cleanup
@@ -233,13 +233,13 @@ async def create_speech(
                 async def dual_output():
                     try:
                         # Write chunks to temp file and stream
-                        async for chunk,chunk_data in generator:
-                            if chunk:  # Skip empty chunks
-                                await temp_writer.write(chunk)
+                        async for chunk_data in generator:
+                            if chunk_data.output:  # Skip empty chunks
+                                await temp_writer.write(chunk_data.output)
                                 #if return_json:
                                 #    yield chunk, chunk_data
                                 #else:
-                                yield chunk
+                                yield chunk_data.output
 
                         # Finalize the temp file
                         await temp_writer.finalize()
@@ -260,9 +260,9 @@ async def create_speech(
             async def single_output():
                 try:
                     # Stream chunks
-                    async for chunk,chunk_data in generator:
-                        if chunk:  # Skip empty chunks
-                            yield chunk
+                    async for chunk_data in generator:
+                        if chunk_data.output:  # Skip empty chunks
+                            yield chunk_data.output
                 except Exception as e:
                     logger.error(f"Error in single output streaming: {e}")
                     raise
@@ -280,7 +280,7 @@ async def create_speech(
             )
         else:
             # Generate complete audio using public interface
-            _, audio_data = await tts_service.generate_audio(
+            audio_data = await tts_service.generate_audio(
                 text=request.input,
                 voice=voice_name,
                 speed=request.speed,
@@ -288,7 +288,7 @@ async def create_speech(
                 lang_code=request.lang_code,
             )
 
-            content, audio_data = await AudioService.convert_audio(
+            audio_data = await AudioService.convert_audio(
                 audio_data,
                 24000,
                 request.response_format,
@@ -297,14 +297,14 @@ async def create_speech(
             )
             
             # Convert to requested format with proper finalization
-            final, _ = await AudioService.convert_audio(
+            final = await AudioService.convert_audio(
                 AudioChunk(np.array([], dtype=np.int16)),
                 24000,
                 request.response_format,
                 is_first_chunk=False,
                 is_last_chunk=True,
             )
-            output=content+final
+            output=audio_data.output + final.output
             return Response(
                 content=output,
                 media_type=content_type,

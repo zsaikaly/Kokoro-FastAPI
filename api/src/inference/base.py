@@ -11,10 +11,12 @@ class AudioChunk:
     
     def __init__(self,
                  audio: np.ndarray,
-                 word_timestamps: Optional[List]=[]
+                 word_timestamps: Optional[List]=[],
+                 output: Optional[Union[bytes,np.ndarray]]=b""
                  ):
         self.audio=audio
         self.word_timestamps=word_timestamps
+        self.output=output
         
     @staticmethod
     def combine(audio_chunk_list: List):

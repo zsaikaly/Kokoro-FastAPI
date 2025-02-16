@@ -120,7 +120,7 @@ class AudioService:
         is_first_chunk: bool = True,
         is_last_chunk: bool = False,
         normalizer: AudioNormalizer = None,
-    ) -> Tuple[bytes,AudioChunk]:
+    ) -> Tuple[AudioChunk]:
         """Convert audio data to specified format with streaming support
 
         Args:
@@ -165,9 +165,13 @@ class AudioService:
             if is_last_chunk:
                 final_data = writer.write_chunk(finalize=True)
                 del AudioService._writers[writer_key]
-                return final_data if final_data else b"", audio_chunk
-
-            return chunk_data if chunk_data else b"", audio_chunk
+                if final_data:
+                    audio_chunk.output=final_data
+                return audio_chunk
+            
+            if chunk_data:
+                    audio_chunk.output=chunk_data
+            return audio_chunk
 
         except Exception as e:
             logger.error(f"Error converting audio stream to {output_format}: {str(e)}")

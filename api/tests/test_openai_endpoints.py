@@ -145,7 +145,7 @@ async def test_stream_audio_chunks_client_disconnect():
 
     async def mock_stream(*args, **kwargs):
         for i in range(5):
-            yield (b"chunk",AudioChunk(np.ndarray([],np.int16)))
+            yield AudioChunk(np.ndarray([],np.int16),output=b"chunk")
 
     mock_service.generate_audio_stream = mock_stream
     mock_service.list_voices.return_value = ["test_voice"]
@@ -160,7 +160,7 @@ async def test_stream_audio_chunks_client_disconnect():
     )
 
     chunks = []
-    async for chunk, _ in stream_audio_chunks(mock_service, request, mock_request):
+    async for chunk in stream_audio_chunks(mock_service, request, mock_request):
         chunks.append(chunk)
 
     assert len(chunks) == 0  # Should stop immediately due to disconnect
@@ -237,10 +237,10 @@ def mock_tts_service(mock_audio_bytes):
     """Mock TTS service for testing."""
     with patch("api.src.routers.openai_compatible.get_tts_service") as mock_get:
         service = AsyncMock(spec=TTSService)
-        service.generate_audio.return_value = (np.zeros(1000), AudioChunk(np.zeros(1000,np.int16)))
+        service.generate_audio.return_value = AudioChunk(np.zeros(1000,np.int16))
 
-        async def mock_stream(*args, **kwargs) -> AsyncGenerator[Tuple[bytes,AudioChunk], None]:
-            yield (mock_audio_bytes, AudioChunk(np.ndarray([],np.int16)))
+        async def mock_stream(*args, **kwargs) -> AsyncGenerator[AudioChunk, None]:
+            yield AudioChunk(np.ndarray([],np.int16),output=mock_audio_bytes)
 
         service.generate_audio_stream = mock_stream
         service.list_voices.return_value = ["test_voice", "voice1", "voice2"]
@@ -257,8 +257,8 @@ def test_openai_speech_endpoint(
 ):
     """Test the OpenAI-compatible speech endpoint with basic MP3 generation"""
     # Configure mocks
-    mock_tts_service.generate_audio.return_value = (np.zeros(1000), AudioChunk(np.zeros(1000,np.int16)))
-    mock_convert.return_value = (mock_audio_bytes,AudioChunk(np.zeros(1000,np.int16)))
+    mock_tts_service.generate_audio.return_value = AudioChunk(np.zeros(1000,np.int16))
+    mock_convert.return_value = AudioChunk(np.zeros(1000,np.int16),output=mock_audio_bytes)
 
     response = client.post(
         "/v1/audio/speech",
