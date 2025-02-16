@@ -304,7 +304,7 @@ async def create_captioned_speech(
                 is_first_chunk=False,
                 is_last_chunk=True,
             )
-            output=content.output + final.output
+            output=audio_data.output + final.output
             
             base64_output= base64.b64encode(output).decode("utf-8")
             
