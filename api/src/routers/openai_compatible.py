@@ -294,6 +294,7 @@ async def create_speech(
                 request.response_format,
                 is_first_chunk=True,
                 is_last_chunk=False,
+                trim_audio=False
             )
             
             # Convert to requested format with proper finalization

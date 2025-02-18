@@ -119,6 +119,7 @@ class AudioService:
         chunk_text: str = "",
         is_first_chunk: bool = True,
         is_last_chunk: bool = False,
+        trim_audio: bool = True,
         normalizer: AudioNormalizer = None,
     ) -> Tuple[AudioChunk]:
         """Convert audio data to specified format with streaming support
@@ -147,7 +148,9 @@ class AudioService:
                 normalizer = AudioNormalizer()
             
             audio_chunk.audio = normalizer.normalize(audio_chunk.audio)
-            audio_chunk = AudioService.trim_audio(audio_chunk,chunk_text,speed,is_last_chunk,normalizer)
+            
+            if trim_audio == True:
+                audio_chunk = AudioService.trim_audio(audio_chunk,chunk_text,speed,is_last_chunk,normalizer)
             
             # Get or create format-specific writer
             writer_key = f"{output_format}_{sample_rate}"

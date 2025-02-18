@@ -65,7 +65,7 @@ class TTSService:
                         yield AudioChunk(np.array([], dtype=np.int16),output=b'')
                         return
                     chunk_data = await AudioService.convert_audio(
-                        AudioChunk(np.array([0], dtype=np.float32)),  # Dummy data for type checking
+                        AudioChunk(np.array([], dtype=np.float32)),  # Dummy data for type checking
                         24000,
                         output_format,
                         speed,
@@ -225,6 +225,8 @@ class TTSService:
                 return voice, combined_path
             else:
                 # Single voice
+                if "(" in voice and ")" in voice:
+                    voice = voice.split("(")[0].strip()
                 path = await self._voice_manager.get_voice_path(voice)
                 if not path:
                     raise RuntimeError(f"Voice not found: {voice}")
@@ -341,8 +343,9 @@ class TTSService:
   
         try:
             async for audio_stream_data in self.generate_audio_stream(text,voice,speed=speed,normalization_options=normalization_options,return_timestamps=return_timestamps,lang_code=lang_code,output_format=None):
+                if len(audio_stream_data.audio) > 0:
+                    audio_data_chunks.append(audio_stream_data)
 
-                audio_data_chunks.append(audio_stream_data)
 
             combined_audio_data=AudioChunk.combine(audio_data_chunks)
             return combined_audio_data
