@@ -86,6 +86,7 @@ class TTSService:
 
                 # Generate audio using pre-warmed model
                 if isinstance(backend, KokoroV1):
+                    chunk_index=0
                     # For Kokoro V1, pass text and voice info with lang_code
                     async for chunk_data in self.model_manager.generate(
                         chunk_text,
@@ -103,7 +104,7 @@ class TTSService:
                                     output_format,
                                     speed,
                                     chunk_text,
-                                    is_first_chunk=is_first,
+                                    is_first_chunk=is_first and chunk_index == 0,
                                     is_last_chunk=is_last,
                                     normalizer=normalizer,
                                 )
@@ -117,6 +118,7 @@ class TTSService:
                                                                     is_last,
                                                                     normalizer)
                             yield chunk_data
+                        chunk_index+=1
                 else:
 
                     # For legacy backends, load voice tensor
@@ -291,12 +293,12 @@ class TTSService:
                         
                         if chunk_data.output is not None:
                             yield chunk_data
-                            chunk_index += 1
+                            
                         else:
                             logger.warning(
                                 f"No audio generated for chunk: '{chunk_text[:100]}...'"
                             )
-
+                        chunk_index += 1
                 except Exception as e:
                     logger.error(
                         f"Failed to process audio for chunk: '{chunk_text[:100]}...'. Error: {str(e)}"

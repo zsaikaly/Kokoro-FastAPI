@@ -1,7 +1,7 @@
 import requests
 import base64
 import json
-
+import pydub
 text="""Delving into the Abyss: A Deeper Exploration of Meaning in 5 Seconds of Summer's "Jet Black Heart"
 
 5 Seconds of Summer, initially perceived as purveyors of upbeat, radio-friendly pop-punk, embarked on a significant artistic evolution with their album Sounds Good Feels Good. Among its tracks, "Jet Black Heart" stands out as a powerful testament to this shift, moving beyond catchy melodies and embracing a darker, more emotionally complex sound. Released in 2015, the song transcends the typical themes of youthful exuberance and romantic angst, instead plunging into the depths of personal turmoil and the corrosive effects of inner darkness on interpersonal relationships. "Jet Black Heart" is not merely a song about heartbreak; it is a raw and vulnerable exploration of internal struggle, self-destructive patterns, and the precarious flicker of hope that persists even in the face of profound emotional chaos. Through potent metaphors, starkly honest lyrics, and a sonic landscape that mirrors its thematic weight, the song offers a profound meditation on the human condition, grappling with the shadows that reside within us all and their far-reaching consequences.
@@ -18,16 +18,14 @@ Beyond the lyrical content, the musical elements of "Jet Black Heart" contribute
 
 In conclusion, "Jet Black Heart" by 5 Seconds of Summer is far more than a typical pop song; it is a poignant and deeply resonant exploration of inner darkness, self-destructive tendencies, and the fragile yet persistent hope for human connection and redemption. Through its powerful central metaphor of the "jet black heart," its unflinching portrayal of internal turmoil, and its subtle yet potent message of vulnerability and potential transformation, the song resonates with anyone who has grappled with their own inner demons and the complexities of human relationships. It is a reminder that even in the deepest darkness, a flicker of hope can endure, and that true healing and connection often emerge from the courageous act of confronting and sharing our most vulnerable selves. "Jet Black Heart" stands as a testament to 5 Seconds of Summer's artistic growth, showcasing their capacity to delve into profound emotional territories and create music that is not only catchy and engaging but also deeply meaningful and emotionally resonant, solidifying their position as a band capable of capturing the complexities of the human experience."""
 
-text="""Delving into the Abyss: A Deeper Exploration of Meaning in 5 Seconds of Summer's "Jet Black Heart"
+"""Delving into the Abyss: A Deeper Exploration of Meaning in 5 Seconds of Summer's "Jet Black Heart"
 
 5 Seconds of Summer, initially perceived as purveyors of upbeat, radio-friendly pop-punk, embarked on a significant artistic evolution with their album Sounds Good Feels Good. Among its tracks, "Jet Black Heart" stands out as a powerful testament to this shift, moving beyond catchy melodies and embracing a darker, more emotionally complex sound. Released in 2015, the song transcends the typical themes of youthful exuberance and romantic angst, instead plunging into the depths of personal turmoil and the corrosive effects of inner darkness on interpersonal relationships. "Jet Black Heart" is not merely a song about heartbreak; it is a raw and vulnerable exploration of internal struggle, self-destructive patterns, and the precarious flicker of hope that persists even in the face of profound emotional chaos."""
 
 
-Type="aac"
-
-
+Type="mp3"
 response = requests.post(
-    "http://localhost:8880/v1/audio/speech",
+    "http://localhost:8880/dev/captioned_speech",
     json={
         "model": "kokoro",
         "input": text,
@@ -39,15 +37,32 @@ response = requests.post(
     stream=True
 )
 
-
 f=open(f"outputstream.{Type}","wb")
-for chunk in response.iter_content():
+for chunk in response.iter_lines(decode_unicode=True):
     if chunk:
+        temp_json=json.loads(chunk)
+        if temp_json["timestamps"] != []:
+            chunk_json=temp_json
+            
+        # Decode base 64 stream to bytes
+        chunk_audio=base64.b64decode(temp_json["audio"].encode("utf-8"))
+        
         # Process streaming chunks
-        f.write(chunk)
+        f.write(chunk_audio)
+        
+        # Print word level timestamps
+last3=chunk_json["timestamps"][-3]
 
+print(f"CUTTING TO {last3['word']}")
+
+audioseg=pydub.AudioSegment.from_file(f"outputstream.{Type}",format=Type)
+audioseg=audioseg[last3["start_time"]*1000:last3["end_time"] * 1000]
+audioseg.export(f"outputstreamcut.{Type}",format=Type)
+
+
+"""
 response = requests.post(
-    "http://localhost:8880/v1/audio/speech",
+    "http://localhost:8880/dev/captioned_speech",
     json={
         "model": "kokoro",
         "input": text,
@@ -60,4 +75,14 @@ response = requests.post(
 )
 
 with open(f"outputnostream.{Type}", "wb") as f:
-    f.write(response.content)
+    audio_json=json.loads(response.content)
+    
+    # Decode base 64 stream to bytes
+    chunk_audio=base64.b64decode(audio_json["audio"].encode("utf-8"))
+    
+    # Process streaming chunks
+    f.write(chunk_audio)
+    
+    # Print word level timestamps
+    print(audio_json["timestamps"])
+"""

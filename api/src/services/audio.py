@@ -89,7 +89,7 @@ class AudioService:
     """Service for audio format conversions with streaming support"""
 
     # Supported formats
-    SUPPORTED_FORMATS = {"wav", "mp3", "opus", "flac", "aac", "pcm", "ogg"}
+    SUPPORTED_FORMATS = {"wav", "mp3", "opus", "flac", "aac", "pcm"}
 
     # Default audio format settings balanced for speed and compression
     DEFAULT_SETTINGS = {
@@ -158,6 +158,7 @@ class AudioService:
                 AudioService._writers[writer_key] = StreamingAudioWriter(
                     output_format, sample_rate
                 )
+                
             writer = AudioService._writers[writer_key]
             
             # Write audio data first

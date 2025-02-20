@@ -175,7 +175,7 @@ async def create_captioned_speech(
         content_type = {
             "mp3": "audio/mpeg",
             "opus": "audio/opus",
-            "aac": "audio/aac",
+            "m4a": "audio/mp4",
             "flac": "audio/flac",
             "wav": "audio/wav",
             "pcm": "audio/pcm",

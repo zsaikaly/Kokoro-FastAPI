@@ -85,11 +85,11 @@ async def test_convert_to_flac(sample_audio):
 
 
 @pytest.mark.asyncio
-async def test_convert_to_aac(sample_audio):
-    """Test converting to AAC format"""
+async def test_convert_to_m4a(sample_audio):
+    """Test converting to M4A format"""
     audio_data, sample_rate = sample_audio
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(audio_data), sample_rate, "aac"
+        AudioChunk(audio_data), sample_rate, "m4a"
     )
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
