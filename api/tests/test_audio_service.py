@@ -32,7 +32,7 @@ async def test_convert_to_wav(sample_audio):
     audio_data, sample_rate = sample_audio
     # Write and finalize in one step for WAV
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(audio_data), sample_rate, "wav", is_first_chunk=True, is_last_chunk=True
+        AudioChunk(audio_data), sample_rate, "wav", is_first_chunk=True, is_last_chunk=False
     )
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
@@ -85,11 +85,11 @@ async def test_convert_to_flac(sample_audio):
 
 
 @pytest.mark.asyncio
-async def test_convert_to_m4a(sample_audio):
+async def test_convert_to_aac(sample_audio):
     """Test converting to M4A format"""
     audio_data, sample_rate = sample_audio
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(audio_data), sample_rate, "m4a"
+        AudioChunk(audio_data), sample_rate, "aac"
     )
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
@@ -127,7 +127,7 @@ async def test_normalization_wav(sample_audio):
     large_audio = audio_data * 1e5
     # Write and finalize in one step for WAV
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(large_audio), sample_rate, "wav", is_first_chunk=True, is_last_chunk=True
+        AudioChunk(large_audio), sample_rate, "wav", is_first_chunk=True
     )
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
@@ -165,7 +165,7 @@ async def test_different_sample_rates(sample_audio):
 
     for rate in sample_rates:
         audio_chunk = await AudioService.convert_audio(
-            AudioChunk(audio_data), rate, "wav", is_first_chunk=True, is_last_chunk=True
+            AudioChunk(audio_data), rate, "wav", is_first_chunk=True
         )
         assert isinstance(audio_chunk.output, bytes)
         assert isinstance(audio_chunk, AudioChunk)
