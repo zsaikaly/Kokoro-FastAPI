@@ -28,6 +28,7 @@ class StreamingAudioWriter:
                 self.container = av.open(self.output_buffer, mode="w", format=self.format)
                 #print(av.codecs_available)
                 self.stream = self.container.add_stream(codec_map[self.format], rate=self.sample_rate,sample_rate=self.sample_rate,layout='mono' if self.channels == 1 else 'stereo')
+                self.stream.bit_rate = 96000
         else:
             raise ValueError(f"Unsupported format: {format}")
 
