@@ -92,7 +92,7 @@ def get_sentence_info(text: str, custom_phenomes_list: Dict[str, str]) -> List[T
     """Process all sentences and return info."""
     sentences = re.split(r"([.!?;:])(?=\s|$)", text)
     phoneme_length, min_value = len(custom_phenomes_list), 0
-    1
+    
     results = []
     for i in range(0, len(sentences), 2):
         sentence = sentences[i].strip()
