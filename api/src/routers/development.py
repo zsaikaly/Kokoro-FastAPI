@@ -254,7 +254,10 @@ async def create_captioned_speech(
                             base64_chunk= base64.b64encode(chunk_data.output).decode("utf-8")
                             
                             # Add any chunks that may be in the acumulator into the return word_timestamps
-                            chunk_data.word_timestamps=timestamp_acumulator + chunk_data.word_timestamps
+                            if chunk_data.word_timestamps != None:
+                                chunk_data.word_timestamps = timestamp_acumulator + chunk_data.word_timestamps
+                            else:
+                                chunk_data.word_timestamps = []
                             timestamp_acumulator=[]
                             
                             yield CaptionedSpeechResponse(audio=base64_chunk,audio_format=content_type,timestamps=chunk_data.word_timestamps)

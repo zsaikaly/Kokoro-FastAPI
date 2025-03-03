@@ -259,10 +259,6 @@ class KokoroV1(BaseModelBackend):
                                 )
                         if result.pred_dur is not None:
                             try:
-                                # Join timestamps for this chunk's tokens
-                                KPipeline.join_timestamps(
-                                    result.tokens, result.pred_dur
-                                )
 
                                 # Add timestamps with offset
                                 for token in result.tokens:
