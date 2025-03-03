@@ -270,7 +270,6 @@ def normalize_text(text: str,normalization_options: NormalizationOptions) -> str
     text = text.replace(chr(8216), "'").replace(chr(8217), "'")
     text = text.replace("«", chr(8220)).replace("»", chr(8221))
     text = text.replace(chr(8220), '"').replace(chr(8221), '"')
-    text = text.replace("(", "«").replace(")", "»")
 
     # Handle CJK punctuation and some non standard chars
     for a, b in zip("、。！，：；？–", ",.!,:;?-"):
