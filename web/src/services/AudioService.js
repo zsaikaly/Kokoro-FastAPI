@@ -258,29 +258,56 @@ export class AudioService {
     }
 
     processNextOperation() {
-        if (this.sourceBuffer.updating || this.pendingOperations.length === 0) {
-            return;
-        }
+		if (this.sourceBuffer.updating || this.pendingOperations.length === 0) {
+			return;
+		}
 
-        // Don't process if audio is in error state
-        if (this.audio.error) {
-            console.warn('Skipping operation due to audio error');
-            return;
-        }
+		// Don't process if audio is in error state
+		if (this.audio.error) {
+			console.warn("Skipping operation due to audio error");
+			return;
+		}
 
-        const operation = this.pendingOperations.shift();
-        
-        try {
-            this.sourceBuffer.appendBuffer(operation.chunk);
-            operation.resolve();
-        } catch (error) {
-            operation.reject(error);
-            // Only continue processing if it's not a fatal error
-            if (error.name !== 'InvalidStateError') {
-                this.processNextOperation();
-            }
-        }
-    }
+		const operation = this.pendingOperations.shift();
+
+		try {
+			this.sourceBuffer.appendBuffer(operation.chunk);
+
+			// Set up event listeners
+			const onUpdateEnd = () => {
+				operation.resolve();
+				this.sourceBuffer.removeEventListener("updateend", onUpdateEnd);
+				this.sourceBuffer.removeEventListener(
+					"updateerror",
+					onUpdateError
+				);
+				// Process the next operation
+				this.processNextOperation();
+			};
+
+			const onUpdateError = (event) => {
+				operation.reject(event);
+				this.sourceBuffer.removeEventListener("updateend", onUpdateEnd);
+				this.sourceBuffer.removeEventListener(
+					"updateerror",
+					onUpdateError
+				);
+				// Decide whether to continue processing
+				if (event.name !== "InvalidStateError") {
+					this.processNextOperation();
+				}
+			};
+
+			this.sourceBuffer.addEventListener("updateend", onUpdateEnd);
+			this.sourceBuffer.addEventListener("updateerror", onUpdateError);
+		} catch (error) {
+			operation.reject(error);
+			// Only continue processing if it's not a fatal error
+			if (error.name !== "InvalidStateError") {
+				this.processNextOperation();
+			}
+		}
+	}
 
     play() {
         if (this.audio && this.audio.readyState >= 2 && !this.audio.error) {
@@ -360,56 +387,64 @@ export class AudioService {
     }
 
     cancel() {
-        if (this.controller) {
-            this.controller.abort();
-            this.controller = null;
-        }
-        
-        if (this.audio) {
-            this.audio.pause();
-            this.audio.src = '';
-            this.audio = null;
-        }
+		if (this.controller) {
+			this.controller.abort();
+			this.controller = null;
+		}
 
-        if (this.mediaSource && this.mediaSource.readyState === 'open') {
-            try {
-                this.mediaSource.endOfStream();
-            } catch (e) {
-                // Ignore errors during cleanup
-            }
-        }
+		if (this.audio) {
+			this.audio.pause();
+			this.audio.src = "";
+			this.audio = null;
+		}
 
-        this.mediaSource = null;
-        this.sourceBuffer = null;
-        this.serverDownloadPath = null;
-        this.pendingOperations = [];
+		if (this.mediaSource && this.mediaSource.readyState === "open") {
+			try {
+				this.mediaSource.endOfStream();
+			} catch (e) {
+				// Ignore errors during cleanup
+			}
+		}
+
+		this.mediaSource = null;
+		if (this.sourceBuffer) {
+			this.sourceBuffer.removeEventListener("updateend", () => {});
+			this.sourceBuffer.removeEventListener("updateerror", () => {});
+			this.sourceBuffer = null;
+		}
+		this.serverDownloadPath = null;
+		this.pendingOperations = [];
     }
 
     cleanup() {
-        if (this.audio) {
-            this.eventListeners.forEach((listeners, event) => {
-                listeners.forEach(callback => {
-                    this.audio.removeEventListener(event, callback);
-                });
-            });
-            
-            this.audio.pause();
-            this.audio.src = '';
-            this.audio = null;
-        }
+		if (this.audio) {
+			this.eventListeners.forEach((listeners, event) => {
+				listeners.forEach((callback) => {
+					this.audio.removeEventListener(event, callback);
+				});
+			});
 
-        if (this.mediaSource && this.mediaSource.readyState === 'open') {
-            try {
-                this.mediaSource.endOfStream();
-            } catch (e) {
-                // Ignore errors during cleanup
-            }
-        }
+			this.audio.pause();
+			this.audio.src = "";
+			this.audio = null;
+		}
 
-        this.mediaSource = null;
-        this.sourceBuffer = null;
-        this.serverDownloadPath = null;
-        this.pendingOperations = [];
+		if (this.mediaSource && this.mediaSource.readyState === "open") {
+			try {
+				this.mediaSource.endOfStream();
+			} catch (e) {
+				// Ignore errors during cleanup
+			}
+		}
+
+		this.mediaSource = null;
+		if (this.sourceBuffer) {
+			this.sourceBuffer.removeEventListener("updateend", () => {});
+			this.sourceBuffer.removeEventListener("updateerror", () => {});
+			this.sourceBuffer = null;
+		}
+		this.serverDownloadPath = null;
+		this.pendingOperations = [];
     }
 
     getDownloadUrl() {
