@@ -1,20 +1,24 @@
+import base64
+import json
+import os
 import re
-from typing import List, Union, AsyncGenerator, Tuple
+from pathlib import Path
+from typing import AsyncGenerator, List, Tuple, Union
 
 import numpy as np
 import torch
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
-from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from kokoro import KPipeline
 from loguru import logger
 
-from ..inference.base import AudioChunk
 from ..core.config import settings
+from ..inference.base import AudioChunk
 from ..services.audio import AudioNormalizer, AudioService
 from ..services.streaming_audio_writer import StreamingAudioWriter
+from ..services.temp_manager import TempFileWriter
 from ..services.text_processing import smart_split
 from ..services.tts_service import TTSService
-from ..services.temp_manager import TempFileWriter
 from ..structures import CaptionedSpeechRequest, CaptionedSpeechResponse, WordTimestamp
 from ..structures.custom_responses import JSONStreamingResponse
 from ..structures.text_schemas import (
@@ -22,12 +26,7 @@ from ..structures.text_schemas import (
     PhonemeRequest,
     PhonemeResponse,
 )
-from .openai_compatible import process_voices, stream_audio_chunks
-import json
-import os
-import base64
-from pathlib import Path
-
+from .openai_compatible import process_and_validate_voices, stream_audio_chunks
 
 router = APIRouter(tags=["text processing"])
 
@@ -169,7 +168,7 @@ async def create_captioned_speech(
     try:
         # model_name = get_model_name(request.model)
         tts_service = await get_tts_service()
-        voice_name = await process_voices(request.voice, tts_service)
+        voice_name = await process_and_validate_voices(request.voice, tts_service)
 
         # Set content type based on format
         content_type = {

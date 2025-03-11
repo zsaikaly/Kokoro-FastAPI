@@ -2,24 +2,26 @@
 
 import asyncio
 import os
+import re
 import tempfile
 import time
 from typing import AsyncGenerator, List, Optional, Tuple, Union
 
-from ..inference.base import AudioChunk
 import numpy as np
 import torch
 from kokoro import KPipeline
 from loguru import logger
 
 from ..core.config import settings
+from ..inference.base import AudioChunk
 from ..inference.kokoro_v1 import KokoroV1
 from ..inference.model_manager import get_manager as get_model_manager
 from ..inference.voice_manager import get_manager as get_voice_manager
+from ..structures.schemas import NormalizationOptions
 from .audio import AudioNormalizer, AudioService
 from .text_processing import tokenize
 from .text_processing.text_processor import process_text_chunk, smart_split
-from ..structures.schemas import NormalizationOptions
+
 
 class TTSService:
     """Text-to-speech service."""
@@ -163,7 +165,15 @@ class TTSService:
             except Exception as e:
                 logger.error(f"Failed to process tokens: {str(e)}")
 
-    async def _get_voice_path(self, voice: str) -> Tuple[str, str]:
+    async def _load_voice_from_path(self, path: str, weight: float):
+        # Check if the path is None and raise a ValueError if it is not
+        if not path:
+            raise ValueError(f"Voice not found at path: {path}")
+        
+        logger.debug(f"Loading voice tensor from path: {path}")
+        return torch.load(path, map_location="cpu") * weight
+
+    async def _get_voices_path(self, voice: str) -> Tuple[str, str]:
         """Get voice path, handling combined voices.
 
         Args:
@@ -176,64 +186,62 @@ class TTSService:
             RuntimeError: If voice not found
         """
         try:
-            # Check if it's a combined voice
-            if "+" in voice:
-                # Split on + but preserve any parentheses
-                voice_parts = []
-                weights = []
-                for part in voice.split("+"):
-                    part = part.strip()
-                    if not part:
-                        continue
-                    # Extract voice name and weight if present
-                    if "(" in part and ")" in part:
-                        voice_name = part.split("(")[0].strip()
-                        weight = float(part.split("(")[1].split(")")[0])
-                    else:
-                        voice_name = part
-                        weight = 1.0
-                    voice_parts.append(voice_name)
-                    weights.append(weight)
+            # Split the voice on + and - and ensure that they get added to the list eg: hi+bob = ["hi","+","bob"]
+            split_voice = re.split(r"([-+])", voice)
 
-                if len(voice_parts) < 2:
-                    raise RuntimeError(f"Invalid combined voice name: {voice}")
+            # If it is only once voice there is no point in loading it up, doing nothing with it, then saving it
+            if len(split_voice) == 1:
 
-                # Normalize weights to sum to 1
-                total_weight = sum(weights)
-                weights = [w / total_weight for w in weights]
+                # Since its a single voice the only time that the weight would matter is if voice_weight_normalization is off
+                if ("(" not in voice and ")" not in voice) or settings.voice_weight_normalization == True:
 
-                # Load and combine voices
-                voice_tensors = []
-                for v, w in zip(voice_parts, weights):
-                    path = await self._voice_manager.get_voice_path(v)
+                    path = await self._voice_manager.get_voice_path(voice)
                     if not path:
-                        raise RuntimeError(f"Voice not found: {v}")
-                    logger.debug(f"Loading voice tensor from: {path}")
-                    voice_tensor = torch.load(path, map_location="cpu")
-                    voice_tensors.append(voice_tensor * w)
+                        raise RuntimeError(f"Voice not found: {voice}")
+                    logger.debug(f"Using single voice path: {path}")
+                    return voice, path
 
-                # Sum the weighted voice tensors
-                logger.debug(
-                    f"Combining {len(voice_tensors)} voice tensors with weights {weights}"
-                )
-                combined = torch.sum(torch.stack(voice_tensors), dim=0)
+            total_weight = 0
+            
+            for voice_index in range(0,len(split_voice),2):
+                voice_object = split_voice[voice_index]
 
-                # Save combined tensor
-                temp_dir = tempfile.gettempdir()
-                combined_path = os.path.join(temp_dir, f"{voice}.pt")
-                logger.debug(f"Saving combined voice to: {combined_path}")
-                torch.save(combined, combined_path)
+                if "(" in voice_object and ")" in voice_object:
+                    voice_name = voice_object.split("(")[0].strip()
+                    voice_weight = float(voice_object.split("(")[1].split(")")[0])
+                else:
+                    voice_name = voice_object
+                    voice_weight = 1
 
-                return voice, combined_path
-            else:
-                # Single voice
-                if "(" in voice and ")" in voice:
-                    voice = voice.split("(")[0].strip()
-                path = await self._voice_manager.get_voice_path(voice)
-                if not path:
-                    raise RuntimeError(f"Voice not found: {voice}")
-                logger.debug(f"Using single voice path: {path}")
-                return voice, path
+                total_weight += voice_weight
+                split_voice[voice_index] = (voice_name, voice_weight)
+            
+            # If voice_weight_normalization is false prevent normalizing the weights by setting the total_weight to 1 so it divides each weight by 1
+            if settings.voice_weight_normalization == False:
+                total_weight = 1
+
+            # Load the first voice as the starting point for voices to be combined onto
+            path = await self._voice_manager.get_voice_path(split_voice[0][0])
+            combined_tensor = await self._load_voice_from_path(path, split_voice[0][1] / total_weight)
+
+            # Loop through each + or - in split_voice so they can be applied to combined voice
+            for operation_index in range(1,len(split_voice) - 1, 2):
+                # Get the voice path of the voice 1 index ahead of the operator
+                path = await self._voice_manager.get_voice_path(split_voice[operation_index+1][0])
+                voice_tensor = await self._load_voice_from_path(path, split_voice[operation_index + 1][1] / total_weight)
+
+                # Either add or subtract the voice from the current combined voice
+                if split_voice[operation_index] == "+":
+                    combined_tensor += voice_tensor
+                else:
+                    combined_tensor -= voice_tensor
+            
+            # Save the new combined voice so it can be loaded latter
+            temp_dir = tempfile.gettempdir()
+            combined_path = os.path.join(temp_dir, f"{voice}.pt")
+            logger.debug(f"Saving combined voice to: {combined_path}")
+            torch.save(combined_tensor, combined_path)
+            return voice, combined_path
         except Exception as e:
             logger.error(f"Failed to get voice path: {e}")
             raise
@@ -257,7 +265,7 @@ class TTSService:
             backend = self.model_manager.get_backend()
 
             # Get voice path, handling combined voices
-            voice_name, voice_path = await self._get_voice_path(voice)
+            voice_name, voice_path = await self._get_voices_path(voice)
             logger.debug(f"Using voice path: {voice_path}")
 
             # Use provided lang_code or determine from voice name
@@ -362,6 +370,7 @@ class TTSService:
         Returns:
             Combined voice tensor
         """
+
         return await self._voice_manager.combine_voices(voices)
 
     async def list_voices(self) -> List[str]:
@@ -390,7 +399,7 @@ class TTSService:
         try:
             # Get backend and voice path
             backend = self.model_manager.get_backend()
-            voice_name, voice_path = await self._get_voice_path(voice)
+            voice_name, voice_path = await self._get_voices_path(voice)
 
             if isinstance(backend, KokoroV1):
                 # For Kokoro V1, use generate_from_tokens with raw phonemes

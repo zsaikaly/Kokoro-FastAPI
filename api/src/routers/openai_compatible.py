@@ -5,20 +5,19 @@ import json
 import os
 import re
 import tempfile
-from typing import AsyncGenerator, Dict, List, Union, Tuple
+from typing import AsyncGenerator, Dict, List, Tuple, Union
 from urllib import response
-import numpy as np
 
 import aiofiles
-
-from structures.schemas import CaptionedSpeechRequest
+import numpy as np
 import torch
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from loguru import logger
+from structures.schemas import CaptionedSpeechRequest
 
-from ..inference.base import AudioChunk
 from ..core.config import settings
+from ..inference.base import AudioChunk
 from ..services.audio import AudioService
 from ..services.tts_service import TTSService
 from ..structures import OpenAISpeechRequest
@@ -80,7 +79,7 @@ def get_model_name(model: str) -> str:
     return base_name + ".pth"
 
 
-async def process_voices(
+async def process_and_validate_voices(
     voice_input: Union[str, List[str]], tts_service: TTSService
 ) -> str:
     """Process voice input, handling both string and list formats
@@ -88,53 +87,57 @@ async def process_voices(
     Returns:
         Voice name to use (with weights if specified)
     """
+    voices = []
     # Convert input to list of voices
     if isinstance(voice_input, str):
-        # Check if it's an OpenAI voice name
-        mapped_voice = _openai_mappings["voices"].get(voice_input)
-        if mapped_voice:
-            voice_input = mapped_voice
-        # Split on + but preserve any parentheses
-        voices = []
-        for part in voice_input.split("+"):
-            part = part.strip()
-            if not part:
-                continue
-            # Extract voice name without weight
-            voice_name = part.split("(")[0].strip()
-            # Check if it's a valid voice
-            available_voices = await tts_service.list_voices()
-            if voice_name not in available_voices:
-                raise ValueError(
-                    f"Voice '{voice_name}' not found. Available voices: {', '.join(sorted(available_voices))}"
-                )
-            voices.append(part)
+        voice_input=voice_input.replace(" ","").strip()
+
+        if voice_input[-1] in "+-" or voice_input[0] in "+-":
+            raise ValueError(
+                f"Voice combination contains empty combine items"
+            )
+
+        if re.search(r"[+-]{2,}", voice_input) is not None:
+            raise ValueError(
+                f"Voice combination contains empty combine items"
+            )
+        voices = re.split(r"([-+])", voice_input)
     else:
-        # For list input, map each voice if it's an OpenAI voice name
-        voices = []
-        for v in voice_input:
-            mapped = _openai_mappings["voices"].get(v, v)
-            voice_name = mapped.split("(")[0].strip()
-            # Check if it's a valid voice
-            available_voices = await tts_service.list_voices()
-            if voice_name not in available_voices:
-                raise ValueError(
-                    f"Voice '{voice_name}' not found. Available voices: {', '.join(sorted(available_voices))}"
+        voices = [[item,"+"] for item in voice_input][:-1]
+    
+    available_voices = await tts_service.list_voices()
+
+    for voice_index in range(0,len(voices), 2):
+
+        mapped_voice = voices[voice_index].split("(")
+        mapped_voice = list(map(str.strip, mapped_voice))
+
+        if len(mapped_voice) > 2:
+            raise ValueError(
+                    f"Voice '{voices[voice_index]}' contains too many weight items"
                 )
-            voices.append(mapped)
+        
+        if mapped_voice.count(")") > 1:
+            raise ValueError(
+                    f"Voice '{voices[voice_index]}' contains too many weight items"
+                )
+    
+        mapped_voice[0] = _openai_mappings["voices"].get(mapped_voice[0], mapped_voice[0])
 
-    if not voices:
-        raise ValueError("No voices provided")
+        if mapped_voice[0] not in available_voices:
+            raise ValueError(
+                    f"Voice '{mapped_voice[0]}' not found. Available voices: {', '.join(sorted(available_voices))}"
+                )
 
-    # For multiple voices, combine them with +
-    return "+".join(voices)
-
+        voices[voice_index] = "(".join(mapped_voice)
+    
+    return "".join(voices)
 
 async def stream_audio_chunks(
     tts_service: TTSService, request: Union[OpenAISpeechRequest,CaptionedSpeechRequest], client_request: Request
 ) -> AsyncGenerator[AudioChunk, None]:
     """Stream audio chunks as they're generated with client disconnect handling"""
-    voice_name = await process_voices(request.voice, tts_service)
+    voice_name = await process_and_validate_voices(request.voice, tts_service)
 
     unique_properties={
         "return_timestamps":False
@@ -191,7 +194,7 @@ async def create_speech(
     try:
         # model_name = get_model_name(request.model)
         tts_service = await get_tts_service()
-        voice_name = await process_voices(request.voice, tts_service)
+        voice_name = await process_and_validate_voices(request.voice, tts_service)
 
         # Set content type based on format
         content_type = {
