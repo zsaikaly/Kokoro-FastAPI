@@ -121,7 +121,7 @@ class AudioService:
         is_last_chunk: bool = False,
         trim_audio: bool = True,
         normalizer: AudioNormalizer = None,
-    ) -> Tuple[AudioChunk]:
+    ) -> AudioChunk:
         """Convert audio data to specified format with streaming support
 
         Args:
