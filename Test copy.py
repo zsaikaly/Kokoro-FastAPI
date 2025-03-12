@@ -23,7 +23,7 @@ In conclusion, "Jet Black Heart" by 5 Seconds of Summer is far more than a typic
 5 Seconds of Summer, initially perceived as purveyors of upbeat, radio-friendly pop-punk, embarked on a significant artistic evolution with their album Sounds Good Feels Good. Among its tracks, "Jet Black Heart" stands out as a powerful testament to this shift, moving beyond catchy melodies and embracing a darker, more emotionally complex sound. Released in 2015, the song transcends the typical themes of youthful exuberance and romantic angst, instead plunging into the depths of personal turmoil and the corrosive effects of inner darkness on interpersonal relationships. "Jet Black Heart" is not merely a song about heartbreak; it is a raw and vulnerable exploration of internal struggle, self-destructive patterns, and the precarious flicker of hope that persists even in the face of profound emotional chaos."""
 
 
-Type="mp3"
+Type="wav"
 response = requests.post(
     "http://localhost:8880/dev/captioned_speech",
     json={
@@ -51,12 +51,12 @@ for chunk in response.iter_lines(decode_unicode=True):
         f.write(chunk_audio)
         
         # Print word level timestamps
-last3=chunk_json["timestamps"][-3]
+last_chunks={"start_time":chunk_json["timestamps"][-10]["start_time"],"end_time":chunk_json["timestamps"][-3]["end_time"],"word":" ".join([X["word"] for X in chunk_json["timestamps"][-10:-3]])}
 
-print(f"CUTTING TO {last3['word']}")
+print(f"CUTTING TO {last_chunks['word']}")
 
 audioseg=pydub.AudioSegment.from_file(f"outputstream.{Type}",format=Type)
-audioseg=audioseg[last3["start_time"]*1000:last3["end_time"] * 1000]
+audioseg=audioseg[last_chunks["start_time"]*1000:last_chunks["end_time"] * 1000]
 audioseg.export(f"outputstreamcut.{Type}",format=Type)
 
 
