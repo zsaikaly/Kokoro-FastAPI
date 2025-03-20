@@ -180,10 +180,11 @@ async def create_captioned_speech(
             "pcm": "audio/pcm",
         }.get(request.response_format, f"audio/{request.response_format}")
 
+        writer = StreamingAudioWriter(request.response_format, sample_rate=24000)
         # Check if streaming is requested (default for OpenAI client)
         if request.stream:
             # Create generator but don't start it yet
-            generator = stream_audio_chunks(tts_service, request, client_request)
+            generator = stream_audio_chunks(tts_service, request, client_request, writer)
 
             # If download link requested, wrap generator with temp file writer
             if request.return_download_link:
@@ -284,6 +285,7 @@ async def create_captioned_speech(
             audio_data = await tts_service.generate_audio(
                 text=request.input,
                 voice=voice_name,
+                writer=writer,
                 speed=request.speed,
                 return_timestamps=request.return_timestamps,
                 normalization_options=request.normalization_options,
@@ -294,6 +296,7 @@ async def create_captioned_speech(
                 audio_data,
                 24000,
                 request.response_format,
+                writer,
                 is_first_chunk=True,
                 is_last_chunk=False,
                 trim_audio=False,
@@ -304,6 +307,7 @@ async def create_captioned_speech(
                 AudioChunk(np.array([], dtype=np.int16)),
                 24000,
                 request.response_format,
+                writer,
                 is_first_chunk=False,
                 is_last_chunk=True,
             )

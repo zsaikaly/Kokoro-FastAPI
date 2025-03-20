@@ -115,6 +115,7 @@ class AudioService:
         audio_chunk: AudioChunk,
         sample_rate: int,
         output_format: str,
+        writer: StreamingAudioWriter,
         speed: float = 1,
         chunk_text: str = "",
         is_first_chunk: bool = True,
@@ -153,28 +154,30 @@ class AudioService:
                 audio_chunk = AudioService.trim_audio(audio_chunk,chunk_text,speed,is_last_chunk,normalizer)
             
             # Get or create format-specific writer
-            writer_key = f"{output_format}_{sample_rate}"
+            """writer_key = f"{output_format}_{sample_rate}"
             if is_first_chunk or writer_key not in AudioService._writers:
                 AudioService._writers[writer_key] = StreamingAudioWriter(
                     output_format, sample_rate
                 )
                 
-            writer = AudioService._writers[writer_key]
+            writer = AudioService._writers[writer_key]"""
             
             # Write audio data first
             if len(audio_chunk.audio) > 0:
                 chunk_data = writer.write_chunk(audio_chunk.audio)
 
+            
+
             # Then finalize if this is the last chunk
             if is_last_chunk:
                 final_data = writer.write_chunk(finalize=True)
-                del AudioService._writers[writer_key]
+                
                 if final_data:
                     audio_chunk.output=final_data
                 return audio_chunk
-            
+
             if chunk_data:
-                    audio_chunk.output=chunk_data
+                audio_chunk.output=chunk_data
             return audio_chunk
 
         except Exception as e:
