@@ -49,7 +49,7 @@ async def test_convert_to_mp3(sample_audio):
     """Test converting to MP3 format"""
     audio_data, sample_rate = sample_audio
 
-    writer = StreamingAudioWriter("writer", sample_rate=24000)
+    writer = StreamingAudioWriter("mp3", sample_rate=24000)
 
     audio_chunk = await AudioService.convert_audio(
         AudioChunk(audio_data), sample_rate, "mp3", writer
