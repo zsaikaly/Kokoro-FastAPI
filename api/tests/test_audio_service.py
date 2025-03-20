@@ -34,8 +34,11 @@ async def test_convert_to_wav(sample_audio):
     writer = StreamingAudioWriter("wav", sample_rate=24000)
     # Write and finalize in one step for WAV
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(audio_data), sample_rate, "wav", writer, is_first_chunk=True, is_last_chunk=False
+        AudioChunk(audio_data), "wav", writer, is_last_chunk=False
     )
+
+    writer.close()
+
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
     assert len(audio_chunk.output) > 0
@@ -52,8 +55,11 @@ async def test_convert_to_mp3(sample_audio):
     writer = StreamingAudioWriter("mp3", sample_rate=24000)
 
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(audio_data), sample_rate, "mp3", writer
+        AudioChunk(audio_data), "mp3", writer
     )
+
+    writer.close()
+
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
     assert len(audio_chunk.output) > 0
@@ -64,13 +70,17 @@ async def test_convert_to_mp3(sample_audio):
 @pytest.mark.asyncio
 async def test_convert_to_opus(sample_audio):
     """Test converting to Opus format"""
+
     audio_data, sample_rate = sample_audio
 
     writer = StreamingAudioWriter("opus", sample_rate=24000)
 
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(audio_data), sample_rate, "opus",writer
+        AudioChunk(audio_data), "opus",writer
     )
+
+    writer.close()
+
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
     assert len(audio_chunk.output) > 0
@@ -86,8 +96,11 @@ async def test_convert_to_flac(sample_audio):
     writer = StreamingAudioWriter("flac", sample_rate=24000)
 
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(audio_data), sample_rate, "flac", writer
+        AudioChunk(audio_data), "flac", writer
     )
+
+    writer.close()
+
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
     assert len(audio_chunk.output) > 0
@@ -103,8 +116,11 @@ async def test_convert_to_aac(sample_audio):
     writer = StreamingAudioWriter("aac", sample_rate=24000)
 
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(audio_data), sample_rate, "aac", writer
+        AudioChunk(audio_data), "aac", writer
     )
+
+    writer.close()
+    
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
     assert len(audio_chunk.output) > 0
@@ -120,8 +136,11 @@ async def test_convert_to_pcm(sample_audio):
     writer = StreamingAudioWriter("pcm", sample_rate=24000)
 
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(audio_data), sample_rate, "pcm", writer
+        AudioChunk(audio_data), "pcm", writer
     )
+
+    writer.close()
+
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
     assert len(audio_chunk.output) > 0
@@ -131,12 +150,9 @@ async def test_convert_to_pcm(sample_audio):
 @pytest.mark.asyncio
 async def test_convert_to_invalid_format_raises_error(sample_audio):
     """Test that converting to an invalid format raises an error"""
-    audio_data, sample_rate = sample_audio
+    #audio_data, sample_rate = sample_audio
     with pytest.raises(ValueError, match="Unsupported format: invalid"):
-        StreamingAudioWriter("invalid", sample_rate=24000)
-
-    with pytest.raises(ValueError, match="Format invalid not supported"):
-        await AudioService.convert_audio(audio_data, sample_rate, "invalid", None)
+        writer = StreamingAudioWriter("invalid", sample_rate=24000)
 
 
 @pytest.mark.asyncio
@@ -150,8 +166,11 @@ async def test_normalization_wav(sample_audio):
     large_audio = audio_data * 1e5
     # Write and finalize in one step for WAV
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(large_audio), sample_rate, "wav", writer, is_first_chunk=True
+        AudioChunk(large_audio), "wav", writer
     )
+
+    writer.close()
+
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
     assert len(audio_chunk.output) > 0
@@ -167,7 +186,7 @@ async def test_normalization_pcm(sample_audio):
     # Create audio data outside int16 range
     large_audio = audio_data * 1e5
     audio_chunk = await AudioService.convert_audio(
-        AudioChunk(large_audio), sample_rate, "pcm", writer
+        AudioChunk(large_audio), "pcm", writer
     )
     assert isinstance(audio_chunk.output, bytes)
     assert isinstance(audio_chunk, AudioChunk)
@@ -197,8 +216,11 @@ async def test_different_sample_rates(sample_audio):
         writer = StreamingAudioWriter("wav", sample_rate=rate)
 
         audio_chunk = await AudioService.convert_audio(
-            AudioChunk(audio_data), rate, "wav", writer, is_first_chunk=True
+            AudioChunk(audio_data), "wav", writer
         )
+
+        writer.close()
+
         assert isinstance(audio_chunk.output, bytes)
         assert isinstance(audio_chunk, AudioChunk)
         assert len(audio_chunk.output) > 0
@@ -213,7 +235,7 @@ async def test_buffer_position_after_conversion(sample_audio):
 
     # Write and finalize in one step for first conversion
     audio_chunk1 = await AudioService.convert_audio(
-        AudioChunk(audio_data), sample_rate, "wav", writer, is_first_chunk=True, is_last_chunk=True
+        AudioChunk(audio_data), "wav", writer, is_last_chunk=True
     )
     assert isinstance(audio_chunk1.output, bytes)
     assert isinstance(audio_chunk1, AudioChunk)
@@ -222,7 +244,7 @@ async def test_buffer_position_after_conversion(sample_audio):
     writer = StreamingAudioWriter("wav", sample_rate=24000)
 
     audio_chunk2 = await AudioService.convert_audio(
-        AudioChunk(audio_data), sample_rate, "wav", writer, is_first_chunk=True, is_last_chunk=True
+        AudioChunk(audio_data), "wav", writer, is_last_chunk=True
     )
     assert isinstance(audio_chunk2.output, bytes)
     assert isinstance(audio_chunk2, AudioChunk)

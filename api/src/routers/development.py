@@ -120,7 +120,7 @@ async def generate_from_phonemes(
             except Exception as e:
                 logger.error(f"Error in audio generation: {str(e)}")
                 # Clean up writer on error
-                writer.write_chunk(finalize=True)
+                writer.close()
                 # Re-raise the original exception
                 raise
 
@@ -236,6 +236,7 @@ async def create_captioned_speech(
                         # Ensure temp writer is closed
                         if not temp_writer._finalized:
                             await temp_writer.__aexit__(None, None, None)
+                        writer.close()
 
                 # Stream with temp file writing
                 return JSONStreamingResponse(
@@ -267,6 +268,7 @@ async def create_captioned_speech(
                                 
                 except Exception as e:
                     logger.error(f"Error in single output streaming: {e}")
+                    writer.close()
                     raise
 
             # Standard streaming without download link
@@ -294,10 +296,8 @@ async def create_captioned_speech(
             
             audio_data = await AudioService.convert_audio(
                 audio_data,
-                24000,
                 request.response_format,
                 writer,
-                is_first_chunk=True,
                 is_last_chunk=False,
                 trim_audio=False,
             )
@@ -305,10 +305,8 @@ async def create_captioned_speech(
             # Convert to requested format with proper finalization
             final = await AudioService.convert_audio(
                 AudioChunk(np.array([], dtype=np.int16)),
-                24000,
                 request.response_format,
                 writer,
-                is_first_chunk=False,
                 is_last_chunk=True,
             )
             output=audio_data.output + final.output
@@ -316,6 +314,9 @@ async def create_captioned_speech(
             base64_output= base64.b64encode(output).decode("utf-8")
             
             content=CaptionedSpeechResponse(audio=base64_output,audio_format=content_type,timestamps=audio_data.word_timestamps).model_dump()
+
+            writer.close()
+
             return JSONResponse(
                 content=content,
                 media_type="application/json",
@@ -328,6 +329,12 @@ async def create_captioned_speech(
     except ValueError as e:
         # Handle validation errors
         logger.warning(f"Invalid request: {str(e)}")
+
+        try:
+            writer.close()
+        except:
+            pass
+
         raise HTTPException(
             status_code=400,
             detail={
@@ -339,6 +346,12 @@ async def create_captioned_speech(
     except RuntimeError as e:
         # Handle runtime/processing errors
         logger.error(f"Processing error: {str(e)}")
+
+        try:
+            writer.close()
+        except:
+            pass
+
         raise HTTPException(
             status_code=500,
             detail={
@@ -350,6 +363,12 @@ async def create_captioned_speech(
     except Exception as e:
         # Handle unexpected errors
         logger.error(f"Unexpected error in captioned speech generation: {str(e)}")
+
+        try:
+            writer.close()
+        except:
+            pass
+
         raise HTTPException(
             status_code=500,
             detail={

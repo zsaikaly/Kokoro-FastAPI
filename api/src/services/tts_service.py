@@ -70,12 +70,10 @@ class TTSService:
                         return
                     chunk_data = await AudioService.convert_audio(
                         AudioChunk(np.array([], dtype=np.float32)),  # Dummy data for type checking
-                        24000,
                         output_format,
                         writer,
                         speed,
                         "",
-                        is_first_chunk=False,
                         normalizer=normalizer,
                         is_last_chunk=True,
                     )
@@ -105,12 +103,10 @@ class TTSService:
                             try:
                                 chunk_data = await AudioService.convert_audio(
                                     chunk_data,
-                                    24000,
                                     output_format,
                                     writer,
                                     speed,
                                     chunk_text,
-                                    is_first_chunk=is_first and chunk_index == 0,
                                     is_last_chunk=is_last,
                                     normalizer=normalizer,
                                 )
@@ -139,12 +135,10 @@ class TTSService:
                         try:
                             chunk_data = await AudioService.convert_audio(
                                 chunk_data,
-                                24000,
                                 output_format,
                                 writer,
                                 speed,
                                 chunk_text,
-                                is_first_chunk=is_first,
                                 normalizer=normalizer,
                                 is_last_chunk=is_last,
                             )

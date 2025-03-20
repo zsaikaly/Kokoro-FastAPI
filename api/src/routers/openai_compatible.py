@@ -240,6 +240,7 @@ async def create_speech(
                         # Ensure temp writer is closed
                         if not temp_writer._finalized:
                             await temp_writer.__aexit__(None, None, None)
+                        writer.close()
 
                 # Stream with temp file writing
                 return StreamingResponse(dual_output(), media_type=content_type, headers=headers)
@@ -252,6 +253,7 @@ async def create_speech(
                             yield chunk_data.output
                 except Exception as e:
                     logger.error(f"Error in single output streaming: {e}")
+                    writer.close()
                     raise
 
             # Standard streaming without download link
@@ -281,15 +283,13 @@ async def create_speech(
                 lang_code=request.lang_code,
             )
 
-            audio_data = await AudioService.convert_audio(audio_data, 24000, request.response_format, writer, is_first_chunk=True, is_last_chunk=False, trim_audio=False)
+            audio_data = await AudioService.convert_audio(audio_data, request.response_format, writer, is_last_chunk=False, trim_audio=False)
 
             # Convert to requested format with proper finalization
             final = await AudioService.convert_audio(
                 AudioChunk(np.array([], dtype=np.int16)),
-                24000,
                 request.response_format,
                 writer,
-                is_first_chunk=False,
                 is_last_chunk=True,
             )
             output = audio_data.output + final.output
@@ -321,6 +321,7 @@ async def create_speech(
                     # Ensure temp writer is closed
                     if not temp_writer._finalized:
                         await temp_writer.__aexit__(None, None, None)
+                    writer.close()
 
             return Response(
                 content=output,
@@ -331,6 +332,12 @@ async def create_speech(
     except ValueError as e:
         # Handle validation errors
         logger.warning(f"Invalid request: {str(e)}")
+        
+        try:
+            writer.close()
+        except:
+            pass
+
         raise HTTPException(
             status_code=400,
             detail={
@@ -342,6 +349,12 @@ async def create_speech(
     except RuntimeError as e:
         # Handle runtime/processing errors
         logger.error(f"Processing error: {str(e)}")
+
+        try:
+            writer.close()
+        except:
+            pass
+
         raise HTTPException(
             status_code=500,
             detail={
@@ -353,6 +366,12 @@ async def create_speech(
     except Exception as e:
         # Handle unexpected errors
         logger.error(f"Unexpected error in speech generation: {str(e)}")
+
+        try:
+            writer.close()
+        except:
+            pass
+
         raise HTTPException(
             status_code=500,
             detail={
@@ -361,6 +380,7 @@ async def create_speech(
                 "type": "server_error",
             },
         )
+    
 
 
 @router.get("/download/{filename}")
