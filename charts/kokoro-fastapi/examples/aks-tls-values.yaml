@@ -19,7 +19,7 @@
 #   --skip-gpu-driver-install
 
 kokoroTTS:
-  replicaCount: 2
+  replicaCount: 8
   port: 8880
   tag: v0.2.0
   pullPolicy: IfNotPresent
