@@ -79,13 +79,13 @@ def test_list_models(mock_openai_mappings):
     assert data["object"] == "list"
     assert isinstance(data["data"], list)
     assert len(data["data"]) == 3  # tts-1, tts-1-hd, and kokoro
-    
+
     # Verify all expected models are present
     model_ids = [model["id"] for model in data["data"]]
     assert "tts-1" in model_ids
     assert "tts-1-hd" in model_ids
     assert "kokoro" in model_ids
-    
+
     # Verify model format
     for model in data["data"]:
         assert model["object"] == "model"
@@ -111,7 +111,6 @@ def test_retrieve_model(mock_openai_mappings):
     assert error["detail"]["error"] == "model_not_found"
     assert "not found" in error["detail"]["message"]
     assert error["detail"]["type"] == "invalid_request_error"
-
 
 
 @pytest.mark.asyncio
@@ -146,7 +145,7 @@ async def test_stream_audio_chunks_client_disconnect():
 
     async def mock_stream(*args, **kwargs):
         for i in range(5):
-            yield AudioChunk(np.ndarray([],np.int16),output=b"chunk")
+            yield AudioChunk(np.ndarray([], np.int16), output=b"chunk")
 
     mock_service.generate_audio_stream = mock_stream
     mock_service.list_voices.return_value = ["test_voice"]
@@ -242,10 +241,10 @@ def mock_tts_service(mock_audio_bytes):
     """Mock TTS service for testing."""
     with patch("api.src.routers.openai_compatible.get_tts_service") as mock_get:
         service = AsyncMock(spec=TTSService)
-        service.generate_audio.return_value = AudioChunk(np.zeros(1000,np.int16))
+        service.generate_audio.return_value = AudioChunk(np.zeros(1000, np.int16))
 
         async def mock_stream(*args, **kwargs) -> AsyncGenerator[AudioChunk, None]:
-            yield AudioChunk(np.ndarray([],np.int16),output=mock_audio_bytes)
+            yield AudioChunk(np.ndarray([], np.int16), output=mock_audio_bytes)
 
         service.generate_audio_stream = mock_stream
         service.list_voices.return_value = ["test_voice", "voice1", "voice2"]
@@ -262,8 +261,10 @@ def test_openai_speech_endpoint(
 ):
     """Test the OpenAI-compatible speech endpoint with basic MP3 generation"""
     # Configure mocks
-    mock_tts_service.generate_audio.return_value = AudioChunk(np.zeros(1000,np.int16))
-    mock_convert.return_value = AudioChunk(np.zeros(1000,np.int16),output=mock_audio_bytes)
+    mock_tts_service.generate_audio.return_value = AudioChunk(np.zeros(1000, np.int16))
+    mock_convert.return_value = AudioChunk(
+        np.zeros(1000, np.int16), output=mock_audio_bytes
+    )
 
     response = client.post(
         "/v1/audio/speech",
