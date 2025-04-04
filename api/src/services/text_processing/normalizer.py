@@ -69,9 +69,9 @@ VALID_UNITS = {
     "mi": "mile",  # Length
     "g": "gram",
     "kg": "kilogram",
-    "mg": "miligram",  # Mass
+    "mg": "milligram",  # Mass
     "s": "second",
-    "ms": "milisecond",
+    "ms": "millisecond",
     "min": "minutes",
     "h": "hour",  # Time
     "l": "liter",

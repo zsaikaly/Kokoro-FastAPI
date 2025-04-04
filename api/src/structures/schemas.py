@@ -52,7 +52,7 @@ class NormalizationOptions(BaseModel):
     )
     url_normalization: bool = Field(
         default=True,
-        description="Changes urls so they can be properly pronouced by kokoro",
+        description="Changes urls so they can be properly pronounced by kokoro",
     )
     email_normalization: bool = Field(
         default=True,
