@@ -3,12 +3,12 @@
 </p>
 
 # <sub><sub>_`FastKoko`_ </sub></sub>
-[![Tests](https://img.shields.io/badge/tests-69%20passed-darkgreen)]()
-[![Coverage](https://img.shields.io/badge/coverage-52%25-tan)]()
+[![Tests](https://img.shields.io/badge/tests-69-darkgreen)]()
+[![Coverage](https://img.shields.io/badge/coverage-54%25-tan)]()
 [![Try on Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Try%20on-Spaces-blue)](https://huggingface.co/spaces/Remsky/Kokoro-TTS-Zero)
 
-[![Kokoro](https://img.shields.io/badge/kokoro-v0.7.9::31a2b63-BB5420)](https://github.com/hexgrad/kokoro)
-[![Misaki](https://img.shields.io/badge/misaki-v0.7.9::ebc76c2-B8860B)](https://github.com/hexgrad/misaki)
+[![Kokoro](https://img.shields.io/badge/kokoro-0.9.2-BB5420)](https://github.com/hexgrad/kokoro)
+[![Misaki](https://img.shields.io/badge/misaki-0.9.3-B8860B)](https://github.com/hexgrad/misaki)
 
 [![Tested at Model Commit](https://img.shields.io/badge/last--tested--model--commit-1.0::9901c2b-blue)](https://huggingface.co/hexgrad/Kokoro-82M/commit/9901c2b79161b6e898b7ea857ae5298f47b8b0d6)
 
@@ -24,10 +24,6 @@ Dockerized FastAPI wrapper for [Kokoro-82M](https://huggingface.co/hexgrad/Kokor
 ### Integration Guides
  [![Helm Chart](https://img.shields.io/badge/Helm%20Chart-black?style=flat&logo=helm&logoColor=white)](https://github.com/remsky/Kokoro-FastAPI/wiki/Setup-Kubernetes) [![DigitalOcean](https://img.shields.io/badge/DigitalOcean-black?style=flat&logo=digitalocean&logoColor=white)](https://github.com/remsky/Kokoro-FastAPI/wiki/Integrations-DigitalOcean) [![SillyTavern](https://img.shields.io/badge/SillyTavern-black?style=flat&color=red)](https://github.com/remsky/Kokoro-FastAPI/wiki/Integrations-SillyTavern)
 [![OpenWebUI](https://img.shields.io/badge/OpenWebUI-black?style=flat&color=white)](https://github.com/remsky/Kokoro-FastAPI/wiki/Integrations-OpenWebUi)
-
-
-
-
 ## Get Started
 
 <details>
@@ -41,8 +37,8 @@ Refer to the core/config.py file for a full list of variables which can be manag
 # the `latest` tag can be used, but should not be considered stable as it may include `nightly` branch builds
 # it may have some bonus features however, and feedback/testing is welcome
 
-docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.2.2 # CPU, or:
-docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.2  #NVIDIA GPU
+docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.3.0 # CPU, or:
+docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.3.0  #NVIDIA GPU
 ```
 
 
@@ -66,7 +62,7 @@ docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.2.2  #NV
         # *Note for Apple Silicon (M1/M2) users:
         # The current GPU build relies on CUDA, which is not supported on Apple Silicon.  
         # If you are on an M1/M2/M3 Mac, please use the `docker/cpu` setup.  
-        # MPS (Apple’s GPU acceleration) support is planned but not yet available.
+        # MPS (Apple's GPU acceleration) support is planned but not yet available.
 
         # Models will auto-download, but if needed you can manually download:
         python docker/scripts/download_model.py --output api/src/models/v1_0
@@ -139,8 +135,8 @@ with client.audio.speech.with_streaming_response.create(
 
 </details>
 
-
 ## Features 
+
 <details>
 <summary>OpenAI-Compatible Speech Endpoint</summary>
 

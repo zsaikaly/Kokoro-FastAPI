@@ -4,40 +4,37 @@ import tomli
 from pathlib import Path
 
 def extract_dependency_info():
-    """Extract version and commit hash for kokoro and misaki from pyproject.toml"""
+    """Extract version for kokoro and misaki from pyproject.toml"""
     with open("pyproject.toml", "rb") as f:
         pyproject = tomli.load(f)
     
     deps = pyproject["project"]["dependencies"]
     info = {}
+    kokoro_found = False
+    misaki_found = False
     
-    # Extract kokoro info
     for dep in deps:
-        if dep.startswith("kokoro @"):
-            # Extract version from the dependency string if available
-            version_match = re.search(r"kokoro @ git\+https://github\.com/hexgrad/kokoro\.git@", dep)
-            if version_match:
-                # If no explicit version, use v0.7.9 as shown in the README
-                version = "v0.7.9"
-            commit_match = re.search(r"@([a-f0-9]{7})", dep)
-            if commit_match:
-                info["kokoro"] = {
-                    "version": version,
-                    "commit": commit_match.group(1)
-                }
-        elif dep.startswith("misaki["):
-            # Extract version from the dependency string if available
-            version_match = re.search(r"misaki\[.*?\] @ git\+https://github\.com/hexgrad/misaki\.git@", dep)
-            if version_match:
-                # If no explicit version, use v0.7.9 as shown in the README
-                version = "v0.7.9"
-            commit_match = re.search(r"@([a-f0-9]{7})", dep)
-            if commit_match:
-                info["misaki"] = {
-                    "version": version,
-                    "commit": commit_match.group(1)
-                }
-    
+        # Match kokoro==version
+        kokoro_match = re.match(r"^kokoro==(.+)$", dep)
+        if kokoro_match:
+            info["kokoro"] = {"version": kokoro_match.group(1)}
+            kokoro_found = True
+            
+        # Match misaki[...] ==version or misaki==version
+        misaki_match = re.match(r"^misaki(?:\[.*?\])?==(.+)$", dep)
+        if misaki_match:
+            info["misaki"] = {"version": misaki_match.group(1)}
+            misaki_found = True
+
+        # Stop if both found
+        if kokoro_found and misaki_found:
+            break
+            
+    if not kokoro_found:
+        raise ValueError("Kokoro version not found in pyproject.toml dependencies")
+    if not misaki_found:
+        raise ValueError("Misaki version not found in pyproject.toml dependencies")
+        
     return info
 
 def run_pytest_with_coverage():
@@ -98,20 +95,24 @@ def update_readme_badges(passed_tests, coverage_percentage, dep_info):
     
     # Update kokoro badge
     if "kokoro" in dep_info:
+        # Find badge like kokoro-v0.9.2::abcdefg-BB5420 or kokoro-v0.9.2-BB5420
+        kokoro_version = dep_info["kokoro"]["version"]
         content = re.sub(
-            r'!\[Kokoro\]\(https://img\.shields\.io/badge/kokoro-[^)]+\)',
-            f'![Kokoro](https://img.shields.io/badge/kokoro-{dep_info["kokoro"]["version"]}::{dep_info["kokoro"]["commit"]}-BB5420)',
+            r'(!\[Kokoro\]\(https://img\.shields\.io/badge/kokoro-)[^)-]+(-BB5420\))',
+            lambda m: f"{m.group(1)}{kokoro_version}{m.group(2)}",
             content
         )
     
     # Update misaki badge
     if "misaki" in dep_info:
+        # Find badge like misaki-v0.9.3::abcdefg-B8860B or misaki-v0.9.3-B8860B
+        misaki_version = dep_info["misaki"]["version"]
         content = re.sub(
-            r'!\[Misaki\]\(https://img\.shields\.io/badge/misaki-[^)]+\)',
-            f'![Misaki](https://img.shields.io/badge/misaki-{dep_info["misaki"]["version"]}::{dep_info["misaki"]["commit"]}-B8860B)',
+            r'(!\[Misaki\]\(https://img\.shields\.io/badge/misaki-)[^)-]+(-B8860B\))',
+            lambda m: f"{m.group(1)}{misaki_version}{m.group(2)}",
             content
         )
-    
+        
     readme_path.write_text(content)
     return True
 
@@ -128,9 +129,9 @@ def main():
         print(f"- Tests: {passed_tests} passed")
         print(f"- Coverage: {coverage_percentage}%")
         if "kokoro" in dep_info:
-            print(f"- Kokoro: {dep_info['kokoro']['version']}::{dep_info['kokoro']['commit']}")
+            print(f"- Kokoro: {dep_info['kokoro']['version']}")
         if "misaki" in dep_info:
-            print(f"- Misaki: {dep_info['misaki']['version']}::{dep_info['misaki']['commit']}")
+            print(f"- Misaki: {dep_info['misaki']['version']}")
     else:
         print("Failed to update badges")
 
