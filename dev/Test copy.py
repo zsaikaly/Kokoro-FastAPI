@@ -1,7 +1,9 @@
-import requests
 import base64
 import json
+
 import pydub
+import requests
+
 text="""Delving into the Abyss: A Deeper Exploration of Meaning in 5 Seconds of Summer's "Jet Black Heart"
 
 5 Seconds of Summer, initially perceived as purveyors of upbeat, radio-friendly pop-punk, embarked on a significant artistic evolution with their album Sounds Good Feels Good. Among its tracks, "Jet Black Heart" stands out as a powerful testament to this shift, moving beyond catchy melodies and embracing a darker, more emotionally complex sound. Released in 2015, the song transcends the typical themes of youthful exuberance and romantic angst, instead plunging into the depths of personal turmoil and the corrosive effects of inner darkness on interpersonal relationships. "Jet Black Heart" is not merely a song about heartbreak; it is a raw and vulnerable exploration of internal struggle, self-destructive patterns, and the precarious flicker of hope that persists even in the face of profound emotional chaos. Through potent metaphors, starkly honest lyrics, and a sonic landscape that mirrors its thematic weight, the song offers a profound meditation on the human condition, grappling with the shadows that reside within us all and their far-reaching consequences.

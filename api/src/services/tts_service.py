@@ -8,7 +8,6 @@ import time
 from typing import AsyncGenerator, List, Optional, Tuple, Union
 
 import numpy as np
-from .streaming_audio_writer import StreamingAudioWriter
 import torch
 from kokoro import KPipeline
 from loguru import logger
@@ -20,6 +19,7 @@ from ..inference.model_manager import get_manager as get_model_manager
 from ..inference.voice_manager import get_manager as get_voice_manager
 from ..structures.schemas import NormalizationOptions
 from .audio import AudioNormalizer, AudioService
+from .streaming_audio_writer import StreamingAudioWriter
 from .text_processing import tokenize
 from .text_processing.text_processor import process_text_chunk, smart_split
 

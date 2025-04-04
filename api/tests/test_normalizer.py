@@ -5,6 +5,7 @@ import pytest
 from api.src.services.text_processing.normalizer import normalize_text
 from api.src.structures.schemas import NormalizationOptions
 
+
 def test_url_protocols():
     """Test URL protocol handling"""
     assert (

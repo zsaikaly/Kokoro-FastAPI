@@ -17,11 +17,12 @@ import base64
 import concurrent.futures
 import json
 import os
-import requests
+import sys
 import time
 import wave
-import sys
 from pathlib import Path
+
+import requests
 
 
 def setup_args():

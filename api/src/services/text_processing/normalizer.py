@@ -6,12 +6,13 @@ Converts them into a format suitable for text-to-speech processing.
 
 import re
 from functools import lru_cache
+
 import inflect
 from numpy import number
-from torch import mul
-from ...structures.schemas import NormalizationOptions
-
 from text_to_num import text2num
+from torch import mul
+
+from ...structures.schemas import NormalizationOptions
 
 # Constants
 VALID_TLDS = [

@@ -1,7 +1,9 @@
 import re
 import subprocess
-import tomli
 from pathlib import Path
+
+import tomli
+
 
 def extract_dependency_info():
     """Extract version for kokoro and misaki from pyproject.toml"""

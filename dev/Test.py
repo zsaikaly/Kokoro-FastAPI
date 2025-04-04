@@ -1,6 +1,7 @@
-import requests
 import base64
 import json
+
+import requests
 
 text="""Delving into the Abyss: A Deeper Exploration of Meaning in 5 Seconds of Summer's "Jet Black Heart"
 

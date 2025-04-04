@@ -1,8 +1,10 @@
-import pytest
-from unittest.mock import patch, MagicMock
-import requests
 import base64
 import json
+from unittest.mock import MagicMock, patch
+
+import pytest
+import requests
+
 
 def test_generate_captioned_speech():
     """Test the generate_captioned_speech function with mocked responses"""

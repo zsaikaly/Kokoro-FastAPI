@@ -4,11 +4,12 @@ import struct
 from io import BytesIO
 from typing import Optional
 
+import av
 import numpy as np
 import soundfile as sf
 from loguru import logger
 from pydub import AudioSegment
-import av
+
 
 class StreamingAudioWriter:
     """Handles streaming audio format conversions"""

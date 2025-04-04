@@ -1,6 +1,7 @@
-from text_to_num import text2num
 import re
+
 import inflect
+from text_to_num import text2num
 from torch import mul
 
 INFLECT_ENGINE = inflect.engine()

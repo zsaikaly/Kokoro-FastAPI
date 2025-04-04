@@ -3,8 +3,8 @@ import time
 from datetime import datetime
 
 import psutil
-from fastapi import APIRouter
 import torch
+from fastapi import APIRouter
 
 try:
     import GPUtil

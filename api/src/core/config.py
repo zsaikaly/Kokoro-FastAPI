@@ -1,5 +1,5 @@
-from pydantic_settings import BaseSettings
 import torch
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):

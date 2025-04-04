@@ -1,10 +1,11 @@
 """Base interface for Kokoro inference."""
 
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Optional, Tuple, Union, List
+from typing import AsyncGenerator, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+
 
 class AudioChunk:
     """Class for audio chunks returned by model backends"""

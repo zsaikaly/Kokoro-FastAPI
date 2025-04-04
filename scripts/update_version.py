@@ -7,8 +7,9 @@ in pyproject.toml, the Helm chart, and README.md.
 """
 
 import re
-import yaml
 from pathlib import Path
+
+import yaml
 
 # Get the project root directory
 ROOT_DIR = Path(__file__).parent.parent

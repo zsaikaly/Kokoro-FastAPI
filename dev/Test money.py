@@ -1,6 +1,7 @@
-import requests
 import base64
 import json
+
+import requests
 
 text="""the administration has offered up a platter of repression for more than a year and is still slated to lose $400 million.
 

@@ -10,18 +10,18 @@ from urllib import response
 
 import aiofiles
 import numpy as np
-from ..services.streaming_audio_writer import StreamingAudioWriter
 import torch
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import FileResponse, StreamingResponse
 from loguru import logger
-from ..structures.schemas import CaptionedSpeechRequest
 
 from ..core.config import settings
 from ..inference.base import AudioChunk
 from ..services.audio import AudioService
+from ..services.streaming_audio_writer import StreamingAudioWriter
 from ..services.tts_service import TTSService
 from ..structures import OpenAISpeechRequest
+from ..structures.schemas import CaptionedSpeechRequest
 
 
 # Load OpenAI mappings

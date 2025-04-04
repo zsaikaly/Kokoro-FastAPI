@@ -1,12 +1,12 @@
 """Audio conversion service"""
 
+import math
 import struct
 import time
-from typing import Tuple
 from io import BytesIO
+from typing import Tuple
 
 import numpy as np
-import math
 import scipy.io.wavfile as wavfile
 import soundfile as sf
 from loguru import logger
@@ -14,8 +14,9 @@ from pydub import AudioSegment
 from torch import norm
 
 from ..core.config import settings
-from .streaming_audio_writer import StreamingAudioWriter
 from ..inference.base import AudioChunk
+from .streaming_audio_writer import StreamingAudioWriter
+
 
 class AudioNormalizer:
     """Handles audio normalization state for a single stream"""

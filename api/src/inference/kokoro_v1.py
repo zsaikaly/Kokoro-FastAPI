@@ -11,9 +11,10 @@ from loguru import logger
 from ..core import paths
 from ..core.config import settings
 from ..core.model_config import model_config
-from .base import BaseModelBackend
-from .base import AudioChunk
 from ..structures.schemas import WordTimestamp
+from .base import AudioChunk, BaseModelBackend
+
+
 class KokoroV1(BaseModelBackend):
     """Kokoro backend with controlled resource management."""
 

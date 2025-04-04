@@ -7,10 +7,10 @@ from typing import AsyncGenerator, Dict, List, Tuple
 from loguru import logger
 
 from ...core.config import settings
+from ...structures.schemas import NormalizationOptions
 from .normalizer import normalize_text
 from .phonemizer import phonemize
 from .vocabulary import tokenize
-from ...structures.schemas import NormalizationOptions
 
 # Pre-compiled regex patterns for performance
 CUSTOM_PHONEMES = re.compile(r"(\[([^\]]|\n)*?\])(\(\/([^\/)]|\n)*?\/\))")

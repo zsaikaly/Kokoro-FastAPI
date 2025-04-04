@@ -5,9 +5,11 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from api.src.services.audio import AudioNormalizer, AudioService
 from api.src.inference.base import AudioChunk
+from api.src.services.audio import AudioNormalizer, AudioService
 from api.src.services.streaming_audio_writer import StreamingAudioWriter
+
+
 @pytest.fixture(autouse=True)
 def mock_settings():
     """Mock settings for all tests"""

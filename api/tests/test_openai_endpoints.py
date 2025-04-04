@@ -4,20 +4,19 @@ import os
 from typing import AsyncGenerator, Tuple
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from api.src.services.streaming_audio_writer import StreamingAudioWriter
-
-from api.src.inference.base import AudioChunk
 import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
 from api.src.core.config import settings
+from api.src.inference.base import AudioChunk
 from api.src.main import app
 from api.src.routers.openai_compatible import (
     get_tts_service,
     load_openai_mappings,
     stream_audio_chunks,
 )
+from api.src.services.streaming_audio_writer import StreamingAudioWriter
 from api.src.services.tts_service import TTSService
 from api.src.structures.schemas import OpenAISpeechRequest
 
