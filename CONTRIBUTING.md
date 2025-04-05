@@ -45,6 +45,18 @@ uv run pytest
 ```
 *Note: The CI workflow runs tests using `uv run pytest api/tests/ --asyncio-mode=auto --cov=api --cov-report=term-missing`. Running `uv run pytest` locally should cover the essential checks.*
 
+## Testing with Docker Compose
+
+In addition to local `pytest` runs, test your changes using Docker Compose to ensure they work correctly within the containerized environment. If you aren't able to test on CUDA hardware, make note so it can be tested by another maintainer
+
+```bash
+
+docker compose -f docker/cpu/docker-compose.yml up --build
++
+docker compose -f docker/gpu/docker-compose.yml up --build
+```
+This command will build the Docker images (if they've changed) and start the services defined in the respective compose file. Verify the application starts correctly and test the relevant functionality.
+
 ## Code Formatting and Linting
 
 We use `ruff` to maintain code quality and consistency. Please format and lint your code before committing. 

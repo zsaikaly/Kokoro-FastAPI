@@ -34,8 +34,7 @@ Pre built images are available to run, with arm/multi-arch support, and baked in
 Refer to the core/config.py file for a full list of variables which can be managed via the environment
 
 ```bash
-# the `latest` tag can be used, but should not be considered stable as it may include `nightly` branch builds
-# it may have some bonus features however, and feedback/testing is welcome
+# the `latest` tag can be used, though it may have some unexpected bonus features which impact stability. Named versions should be pinned for your regular usage. Feedback/testing is always welcome
 
 docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:v0.3.0 # CPU, or:
 docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:v0.3.0  #NVIDIA GPU
@@ -546,13 +545,15 @@ for chunk in response.iter_content(chunk_size=1024):
 <details>
 <summary>Versioning & Development</summary>
 
-I'm doing what I can to keep things stable, but we are on an early and rapid set of build cycles here.
-If you run into trouble, you may have to roll back a version on the release tags if something comes up, or build up from source and/or troubleshoot + submit a PR. Will leave the branch up here for the last known stable points:
+**Branching Strategy:**
+*   **`release` branch:** Contains the latest stable build, recommended for production use. Docker images tagged with specific versions (e.g., `v0.3.0`) are built from this branch.
+*   **`master` branch:** Used for active development. It may contain experimental features, ongoing changes, or fixes not yet in a stable release. Use this branch if you want the absolute latest code, but be aware it might be less stable. The `latest` Docker tag often points to builds from this branch.
 
-`v0.1.4`
-`v0.0.5post1`
+Note: This is a *development* focused project at its core. 
 
-Free and open source is a community effort, and I love working on this project, though there's only really so many hours in a day. If you'd like to support the work, feel free to open a PR, buy me a coffee, or report any bugs/features/etc you find during use.
+If you run into trouble, you may have to roll back a version on the release tags if something comes up, or build up from source and/or troubleshoot + submit a PR.
+
+Free and open source is a community effort, and there's only really so many hours in a day. If you'd like to support the work, feel free to open a PR, buy me a coffee, or report any bugs/features/etc you find during use.
 
   <a href="https://www.buymeacoffee.com/remsky" target="_blank">
     <img 
