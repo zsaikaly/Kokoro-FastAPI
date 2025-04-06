@@ -17,6 +17,21 @@ services:
       - ONNX_OPTIMIZATION_LEVEL=all
       - ONNX_MEMORY_PATTERN=true
       - ONNX_ARENA_EXTEND_STRATEGY=kNextPowerOfTwo
+    networks:
+     - kokoro-network
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: ngrok
+    networks:
+      - kokoro-network
+    environment:
+      - NGROK_AUTHTOKEN=2uEG2K4vag9GfPOGvLV5iCamozB_38wfcw6QMPgyHdBa9F83k
+    command: http kokoro-fastapi-cpu-kokoro-tts-1:8880
+
+networks:
+  kokoro-network:
+    driver: bridge
       
   # # Gradio UI service [Comment out everything below if you don't need it]
   # gradio-ui:
