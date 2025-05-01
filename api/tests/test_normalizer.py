@@ -206,6 +206,11 @@ def test_time():
         == "It is currently three o'clock"
     )
 
+    assert (
+        normalize_text("12:00 am is midnight", normalization_options=NormalizationOptions())
+        == "twelve am is midnight"
+    )
+
 def test_number():
     """Test number normalization"""
 
@@ -242,6 +247,11 @@ def test_number():
     assert (
         normalize_text("He made -50 sales today.", normalization_options=NormalizationOptions())
         == "He made minus fifty sales today."
+    )
+
+    assert (
+        normalize_text("56.789 to the power of 1.35 million", normalization_options=NormalizationOptions())
+        == "fifty-six point seven eight nine to the power of one point three five million"
     )
 
 def test_non_url_text():
