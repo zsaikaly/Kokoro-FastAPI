@@ -4,6 +4,7 @@ Handles various text formats including URLs, emails, numbers, money, and special
 Converts them into a format suitable for text-to-speech processing.
 """
 
+import math
 import re
 from functools import lru_cache
 from typing import List, Optional, Union
@@ -12,7 +13,6 @@ import inflect
 from numpy import number
 from text_to_num import text2num
 from torch import mul
-import math
 
 from ...structures.schemas import NormalizationOptions
 
@@ -134,11 +134,7 @@ VALID_UNITS = {
     "px": "pixel",  # CSS units
 }
 
-MONEY_UNITS = {
-    "$": ("dollar", "cent"),
-    "£": ("pound", "pence"),
-    "€": ("euro", "cent")
-}
+MONEY_UNITS = {"$": ("dollar", "cent"), "£": ("pound", "pence"), "€": ("euro", "cent")}
 
 # Pre-compiled regex patterns for performance
 EMAIL_PATTERN = re.compile(
@@ -159,21 +155,23 @@ UNIT_PATTERN = re.compile(
 )
 
 TIME_PATTERN = re.compile(
-    r"([0-9]{1,2} ?: ?[0-9]{2}( ?: ?[0-9]{2})?)( ?(pm|am)\b)?",
-    re.IGNORECASE
+    r"([0-9]{1,2} ?: ?[0-9]{2}( ?: ?[0-9]{2})?)( ?(pm|am)\b)?", re.IGNORECASE
 )
 
 MONEY_PATTERN = re.compile(
-    r"(-?)([" + ''.join(MONEY_UNITS.keys()) + r"])(\d+(?:\.\d+)?)((?: hundred| thousand| (?:[bm]|tr|quadr)illion|k|m|b|t)*)\b",
-    re.IGNORECASE
+    r"(-?)(["
+    + "".join(MONEY_UNITS.keys())
+    + r"])(\d+(?:\.\d+)?)((?: hundred| thousand| (?:[bm]|tr|quadr)illion|k|m|b|t)*)\b",
+    re.IGNORECASE,
 )
 
 NUMBER_PATTERN = re.compile(
     r"(-?)(\d+(?:\.\d+)?)((?: hundred| thousand| (?:[bm]|tr|quadr)illion|k|m|b)*)\b",
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 
 INFLECT_ENGINE = inflect.engine()
+
 
 def handle_units(u: re.Match[str]) -> str:
     """Converts units to their full form"""
@@ -199,18 +197,26 @@ def conditional_int(number: float, threshold: float = 0.00001):
         return int(round(number))
     return number
 
+
 def translate_multiplier(multiplier: str) -> str:
     """Translate multiplier abrevations to words"""
 
-    multiplier_translation = {"k": "thousand", "m": "million", "b": "billion", "t": "trillion"}
+    multiplier_translation = {
+        "k": "thousand",
+        "m": "million",
+        "b": "billion",
+        "t": "trillion",
+    }
     if multiplier.lower() in multiplier_translation:
         return multiplier_translation[multiplier.lower()]
     return multiplier.strip()
+
 
 def split_four_digit(number: float):
     part1 = str(conditional_int(number))[:2]
     part2 = str(conditional_int(number))[2:]
     return f"{INFLECT_ENGINE.number_to_words(part1)} {INFLECT_ENGINE.number_to_words(part2)}"
+
 
 def handle_numbers(n: re.Match[str]) -> str:
     number = n.group(2)
@@ -229,10 +235,16 @@ def handle_numbers(n: re.Match[str]) -> str:
     if multiplier != "":
         multiplier = f" {multiplier}"
     else:
-        if number % 1 == 0 and len(str(number)) == 4 and number > 1500 and number % 1000 > 9:
+        if (
+            number % 1 == 0
+            and len(str(number)) == 4
+            and number > 1500
+            and number % 1000 > 9
+        ):
             return split_four_digit(number)
 
     return f"{INFLECT_ENGINE.number_to_words(number)}{multiplier}"
+
 
 def handle_money(m: re.Match[str]) -> str:
     """Convert money expressions to spoken form"""
@@ -240,7 +252,7 @@ def handle_money(m: re.Match[str]) -> str:
     bill, coin = MONEY_UNITS[m.group(2)]
 
     number = m.group(3)
-    
+
     try:
         number = float(number)
     except:
@@ -365,7 +377,7 @@ def handle_time(t: re.Match[str]) -> str:
     half = ""
     if len(time_parts) > 2:
         seconds_number = INFLECT_ENGINE.number_to_words(time_parts[2].strip())
-        second_word = INFLECT_ENGINE.plural('second',int(time_parts[2].strip()))
+        second_word = INFLECT_ENGINE.plural("second", int(time_parts[2].strip()))
         numbers.append(f"and {seconds_number} {second_word}")
     else:
         if t[2] is not None:
@@ -441,10 +453,7 @@ def normalize_text(text: str, normalization_options: NormalizationOptions) -> st
         text,
     )
 
-    text = NUMBER_PATTERN.sub(
-        handle_numbers,
-        text
-    )
+    text = NUMBER_PATTERN.sub(handle_numbers, text)
 
     text = re.sub(r"\d*\.\d+", handle_decimal, text)
 

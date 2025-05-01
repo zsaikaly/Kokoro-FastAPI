@@ -149,8 +149,8 @@ def test_money():
 
     assert (
         normalize_text(
-            "He went gambling and lost about $25.05k.", 
-            normalization_options=NormalizationOptions()
+            "He went gambling and lost about $25.05k.",
+            normalization_options=NormalizationOptions(),
         )
         == "He went gambling and lost about twenty-five point zero five thousand dollars."
     )
@@ -169,90 +169,133 @@ def test_money():
     )
 
     assert (
-        normalize_text("The plant cost $200,000.8.", normalization_options=NormalizationOptions())
+        normalize_text(
+            "The plant cost $200,000.8.", normalization_options=NormalizationOptions()
+        )
         == "The plant cost two hundred thousand dollars and eighty cents."
     )
 
     assert (
-        normalize_text("€30.2 is in euros", normalization_options=NormalizationOptions())
+        normalize_text(
+            "€30.2 is in euros", normalization_options=NormalizationOptions()
+        )
         == "thirty euros and twenty cents is in euros"
     )
+
 
 def test_time():
     """Test time normalization"""
 
     assert (
-        normalize_text("Your flight leaves at 10:35 pm", normalization_options=NormalizationOptions())
+        normalize_text(
+            "Your flight leaves at 10:35 pm",
+            normalization_options=NormalizationOptions(),
+        )
         == "Your flight leaves at ten thirty-five pm"
     )
 
     assert (
-        normalize_text("He departed for london around 5:03 am.", normalization_options=NormalizationOptions())
+        normalize_text(
+            "He departed for london around 5:03 am.",
+            normalization_options=NormalizationOptions(),
+        )
         == "He departed for london around five oh three am."
     )
 
     assert (
-        normalize_text("Only the 13:42 and 15:12 slots are available.", normalization_options=NormalizationOptions())
+        normalize_text(
+            "Only the 13:42 and 15:12 slots are available.",
+            normalization_options=NormalizationOptions(),
+        )
         == "Only the thirteen forty-two and fifteen twelve slots are available."
     )
 
     assert (
-        normalize_text("It is currently 1:00 pm", normalization_options=NormalizationOptions())
+        normalize_text(
+            "It is currently 1:00 pm", normalization_options=NormalizationOptions()
+        )
         == "It is currently one pm"
     )
 
     assert (
-        normalize_text("It is currently 3:00", normalization_options=NormalizationOptions())
+        normalize_text(
+            "It is currently 3:00", normalization_options=NormalizationOptions()
+        )
         == "It is currently three o'clock"
     )
 
     assert (
-        normalize_text("12:00 am is midnight", normalization_options=NormalizationOptions())
+        normalize_text(
+            "12:00 am is midnight", normalization_options=NormalizationOptions()
+        )
         == "twelve am is midnight"
     )
+
 
 def test_number():
     """Test number normalization"""
 
     assert (
-        normalize_text("I bought 1035 cans of soda", normalization_options=NormalizationOptions())
+        normalize_text(
+            "I bought 1035 cans of soda", normalization_options=NormalizationOptions()
+        )
         == "I bought one thousand and thirty-five cans of soda"
     )
 
     assert (
-        normalize_text("The bus has a maximum capacity of 62 people", normalization_options=NormalizationOptions())
+        normalize_text(
+            "The bus has a maximum capacity of 62 people",
+            normalization_options=NormalizationOptions(),
+        )
         == "The bus has a maximum capacity of sixty-two people"
     )
 
     assert (
-        normalize_text("There are 1300 products left in stock", normalization_options=NormalizationOptions())
+        normalize_text(
+            "There are 1300 products left in stock",
+            normalization_options=NormalizationOptions(),
+        )
         == "There are one thousand, three hundred products left in stock"
     )
 
     assert (
-        normalize_text("The population is 7,890,000 people.", normalization_options=NormalizationOptions())
+        normalize_text(
+            "The population is 7,890,000 people.",
+            normalization_options=NormalizationOptions(),
+        )
         == "The population is seven million, eight hundred and ninety thousand people."
     )
 
     assert (
-        normalize_text("He looked around but only found 1.6k of the 10k bricks", normalization_options=NormalizationOptions())
+        normalize_text(
+            "He looked around but only found 1.6k of the 10k bricks",
+            normalization_options=NormalizationOptions(),
+        )
         == "He looked around but only found one point six thousand of the ten thousand bricks"
     )
 
     assert (
-        normalize_text("The book has 342 pages.", normalization_options=NormalizationOptions())
+        normalize_text(
+            "The book has 342 pages.", normalization_options=NormalizationOptions()
+        )
         == "The book has three hundred and forty-two pages."
     )
 
     assert (
-        normalize_text("He made -50 sales today.", normalization_options=NormalizationOptions())
+        normalize_text(
+            "He made -50 sales today.", normalization_options=NormalizationOptions()
+        )
         == "He made minus fifty sales today."
     )
 
     assert (
-        normalize_text("56.789 to the power of 1.35 million", normalization_options=NormalizationOptions())
+        normalize_text(
+            "56.789 to the power of 1.35 million",
+            normalization_options=NormalizationOptions(),
+        )
         == "fifty-six point seven eight nine to the power of one point three five million"
     )
+
 
 def test_non_url_text():
     """Test that non-URL text is unaffected"""
