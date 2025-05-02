@@ -104,7 +104,7 @@ async def generate_from_phonemes(
 
                 if chunk_audio is not None:
                     # Normalize audio before writing
-                    normalized_audio = await normalizer.normalize(chunk_audio)
+                    normalized_audio = normalizer.normalize(chunk_audio)
                     # Write chunk and yield bytes
                     chunk_bytes = writer.write_chunk(normalized_audio)
                     if chunk_bytes:
@@ -114,6 +114,7 @@ async def generate_from_phonemes(
                     final_bytes = writer.write_chunk(finalize=True)
                     if final_bytes:
                         yield final_bytes
+                        writer.close()
                 else:
                     raise ValueError("Failed to generate audio data")
 
