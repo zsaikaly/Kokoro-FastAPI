@@ -11,7 +11,7 @@ from typing import List, Optional, Union
 
 import inflect
 from numpy import number
-from text_to_num import text2num
+# from text_to_num import text2num
 from torch import mul
 
 from ...structures.schemas import NormalizationOptions
