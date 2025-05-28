@@ -103,3 +103,65 @@ async def test_smart_split_with_punctuation():
 
     # Verify punctuation is preserved
     assert all(any(p in chunk for p in "!?;:.") for chunk in chunks)
+
+def test_process_text_chunk_chinese_phonemes():
+    """Test processing with Chinese pinyin phonemes."""
+    pinyin = "nǐ hǎo lì"  # Example pinyin sequence with tones
+    tokens = process_text_chunk(pinyin, skip_phonemize=True, language="z")
+    assert isinstance(tokens, list)
+    assert len(tokens) > 0
+
+
+def test_get_sentence_info_chinese():
+    """Test Chinese sentence splitting and info extraction."""
+    text = "这是一个句子。这是第二个句子！第三个问题？"
+    results = get_sentence_info(text, {}, lang_code="z")
+
+    assert len(results) == 3
+    for sentence, tokens, count in results:
+        assert isinstance(sentence, str)
+        assert isinstance(tokens, list)
+        assert isinstance(count, int)
+        assert count == len(tokens)
+        assert count > 0
+
+@pytest.mark.asyncio
+async def test_smart_split_chinese_short():
+    """Test Chinese smart splitting with short text."""
+    text = "这是一句话。"
+    chunks = []
+    async for chunk_text, chunk_tokens in smart_split(text, lang_code="z"):
+        chunks.append((chunk_text, chunk_tokens))
+
+    assert len(chunks) == 1
+    assert isinstance(chunks[0][0], str)
+    assert isinstance(chunks[0][1], list)
+
+
+@pytest.mark.asyncio
+async def test_smart_split_chinese_long():
+    """Test Chinese smart splitting with longer text."""
+    text = "。".join([f"测试句子 {i}" for i in range(20)])
+    
+    chunks = []
+    async for chunk_text, chunk_tokens in smart_split(text, lang_code="z"):
+        chunks.append((chunk_text, chunk_tokens))
+
+    assert len(chunks) > 1
+    for chunk_text, chunk_tokens in chunks:
+        assert isinstance(chunk_text, str)
+        assert isinstance(chunk_tokens, list)
+        assert len(chunk_tokens) > 0
+
+
+@pytest.mark.asyncio
+async def test_smart_split_chinese_punctuation():
+    """Test Chinese smart splitting with punctuation preservation."""
+    text = "第一句！第二问？第三句；第四句：第五句。"
+    
+    chunks = []
+    async for chunk_text, _ in smart_split(text, lang_code="z"):
+        chunks.append(chunk_text)
+
+    # Verify Chinese punctuation is preserved
+    assert all(any(p in chunk for p in "！？；：。") for chunk in chunks)

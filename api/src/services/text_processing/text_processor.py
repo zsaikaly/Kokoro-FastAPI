@@ -92,44 +92,30 @@ def get_sentence_info(
 ) -> List[Tuple[str, List[int], int]]:
     """Process all sentences and return info, 支持中文分句"""
     # 判断是否为中文
-    is_chinese = lang_code.startswith("zh") or re.search(r"[\u4e00-\u9fff]", text)
+    is_chinese = lang_code.startswith("z") or re.search(r"[\u4e00-\u9fff]", text)
     if is_chinese:
         # 按中文标点断句
-        sentences = re.split(r"([，。！？；])", text)
-        # 合并标点
-        merged = []
-        for i in range(0, len(sentences)-1, 2):
-            merged.append(sentences[i] + sentences[i+1])
-        if len(sentences) % 2 == 1:
-            merged.append(sentences[-1])
-        sentences = merged
+        sentences = re.split(r"([，。！？；])+", text)
     else:
         sentences = re.split(r"([.!?;:])(?=\s|$)", text)
     phoneme_length, min_value = len(custom_phenomes_list), 0
+
     results = []
-    if is_chinese:
-        for sentence in sentences:
-            sentence = sentence.strip()
-            if not sentence:
-                continue
-            tokens = process_text_chunk(sentence)
-            results.append((sentence, tokens, len(tokens)))
-    else:
-        for i in range(0, len(sentences), 2):
-            sentence = sentences[i].strip()
-            for replaced in range(min_value, phoneme_length):
-                current_id = f"</|custom_phonemes_{replaced}|/>"
-                if current_id in sentence:
-                    sentence = sentence.replace(
-                        current_id, custom_phenomes_list.pop(current_id)
-                    )
-                    min_value += 1
-            punct = sentences[i + 1] if i + 1 < len(sentences) else ""
-            if not sentence:
-                continue
-            full = sentence + punct
-            tokens = process_text_chunk(full)
-            results.append((full, tokens, len(tokens)))
+    for i in range(0, len(sentences), 2):
+        sentence = sentences[i].strip()
+        for replaced in range(min_value, phoneme_length):
+            current_id = f"</|custom_phonemes_{replaced}|/>"
+            if current_id in sentence:
+                sentence = sentence.replace(
+                    current_id, custom_phenomes_list.pop(current_id)
+                )
+                min_value += 1
+        punct = sentences[i + 1] if i + 1 < len(sentences) else ""
+        if not sentence:
+            continue
+        full = sentence + punct
+        tokens = process_text_chunk(full)
+        results.append((full, tokens, len(tokens)))
     return results
 
 
@@ -154,7 +140,6 @@ async def smart_split(
 
     # Normalize text
     if settings.advanced_text_normalization and normalization_options.normalize:
-        print(lang_code)
         if lang_code in ["a", "b", "en-us", "en-gb"]:
             text = CUSTOM_PHONEMES.sub(
                 lambda s: handle_custom_phonemes(s, custom_phoneme_list), text
