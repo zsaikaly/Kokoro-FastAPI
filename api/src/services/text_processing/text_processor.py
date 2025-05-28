@@ -88,10 +88,16 @@ def process_text(text: str, language: str = "a") -> List[int]:
 
 
 def get_sentence_info(
-    text: str, custom_phenomes_list: Dict[str, str]
+    text: str, custom_phenomes_list: Dict[str, str], lang_code: str = "a"
 ) -> List[Tuple[str, List[int], int]]:
-    """Process all sentences and return info."""
-    sentences = re.split(r"([.!?;:])(?=\s|$)", text)
+    """Process all sentences and return info, 支持中文分句"""
+    # 判断是否为中文
+    is_chinese = lang_code.startswith("z") or re.search(r"[\u4e00-\u9fff]", text)
+    if is_chinese:
+        # 按中文标点断句
+        sentences = re.split(r"([，。！？；])+", text)
+    else:
+        sentences = re.split(r"([.!?;:])(?=\s|$)", text)
     phoneme_length, min_value = len(custom_phenomes_list), 0
 
     results = []
@@ -104,16 +110,12 @@ def get_sentence_info(
                     current_id, custom_phenomes_list.pop(current_id)
                 )
                 min_value += 1
-
         punct = sentences[i + 1] if i + 1 < len(sentences) else ""
-
         if not sentence:
             continue
-
         full = sentence + punct
         tokens = process_text_chunk(full)
         results.append((full, tokens, len(tokens)))
-
     return results
 
 
@@ -138,7 +140,6 @@ async def smart_split(
 
     # Normalize text
     if settings.advanced_text_normalization and normalization_options.normalize:
-        print(lang_code)
         if lang_code in ["a", "b", "en-us", "en-gb"]:
             text = CUSTOM_PHONEMES.sub(
                 lambda s: handle_custom_phonemes(s, custom_phoneme_list), text
@@ -150,7 +151,7 @@ async def smart_split(
             )
 
     # Process all sentences
-    sentences = get_sentence_info(text, custom_phoneme_list)
+    sentences = get_sentence_info(text, custom_phoneme_list, lang_code=lang_code)
 
     current_chunk = []
     current_tokens = []
