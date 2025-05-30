@@ -30,6 +30,12 @@ def process_text_chunk(
         List of token IDs
     """
     start_time = time.time()
+    
+    # Strip input text to remove any leading/trailing spaces that could cause artifacts
+    text = text.strip()
+    
+    if not text:
+        return []
 
     if skip_phonemize:
         # Input is already phonemes, just tokenize
@@ -43,6 +49,8 @@ def process_text_chunk(
 
         t0 = time.time()
         phonemes = phonemize(text, language, normalize=False)  # Already normalized
+        # Strip phonemes result to ensure no extra spaces
+        phonemes = phonemes.strip()
         t1 = time.time()
 
         t0 = time.time()
@@ -114,6 +122,10 @@ def get_sentence_info(
         if not sentence:
             continue
         full = sentence + punct
+        # Strip the full sentence to remove any leading/trailing spaces before processing
+        full = full.strip()
+        if not full:  # Skip if empty after stripping
+            continue
         tokens = process_text_chunk(full)
         results.append((full, tokens, len(tokens)))
     return results
@@ -162,7 +174,7 @@ async def smart_split(
         if count > max_tokens:
             # Yield current chunk if any
             if current_chunk:
-                chunk_text = " ".join(current_chunk)
+                chunk_text = " ".join(current_chunk).strip()  # Strip after joining
                 chunk_count += 1
                 logger.debug(
                     f"Yielding chunk {chunk_count}: '{chunk_text[:50]}{'...' if len(text) > 50 else ''}' ({current_count} tokens)"
@@ -201,7 +213,7 @@ async def smart_split(
                 else:
                     # Yield clause chunk if we have one
                     if clause_chunk:
-                        chunk_text = " ".join(clause_chunk)
+                        chunk_text = " ".join(clause_chunk).strip()  # Strip after joining
                         chunk_count += 1
                         logger.debug(
                             f"Yielding clause chunk {chunk_count}: '{chunk_text[:50]}{'...' if len(text) > 50 else ''}' ({clause_count} tokens)"
@@ -213,7 +225,7 @@ async def smart_split(
 
             # Don't forget last clause chunk
             if clause_chunk:
-                chunk_text = " ".join(clause_chunk)
+                chunk_text = " ".join(clause_chunk).strip()  # Strip after joining
                 chunk_count += 1
                 logger.debug(
                     f"Yielding final clause chunk {chunk_count}: '{chunk_text[:50]}{'...' if len(text) > 50 else ''}' ({clause_count} tokens)"
@@ -227,7 +239,7 @@ async def smart_split(
         ):
             # If we have a good sized chunk and adding next sentence exceeds target,
             # yield current chunk and start new one
-            chunk_text = " ".join(current_chunk)
+            chunk_text = " ".join(current_chunk).strip()  # Strip after joining
             chunk_count += 1
             logger.info(
                 f"Yielding chunk {chunk_count}: '{chunk_text[:50]}{'...' if len(text) > 50 else ''}' ({current_count} tokens)"
@@ -252,7 +264,7 @@ async def smart_split(
         else:
             # Yield current chunk and start new one
             if current_chunk:
-                chunk_text = " ".join(current_chunk)
+                chunk_text = " ".join(current_chunk).strip()  # Strip after joining
                 chunk_count += 1
                 logger.info(
                     f"Yielding chunk {chunk_count}: '{chunk_text[:50]}{'...' if len(text) > 50 else ''}' ({current_count} tokens)"
@@ -264,7 +276,7 @@ async def smart_split(
 
     # Don't forget the last chunk
     if current_chunk:
-        chunk_text = " ".join(current_chunk)
+        chunk_text = " ".join(current_chunk).strip()  # Strip after joining
         chunk_count += 1
         logger.info(
             f"Yielding final chunk {chunk_count}: '{chunk_text[:50]}{'...' if len(text) > 50 else ''}' ({current_count} tokens)"
