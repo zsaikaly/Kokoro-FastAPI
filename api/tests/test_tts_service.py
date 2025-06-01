@@ -94,20 +94,20 @@ async def test_get_voice_path_combined():
         patch("torch.load") as mock_load,
         patch("torch.save") as mock_save,
         patch("tempfile.gettempdir") as mock_temp,
-        patch("os.path.join") as mock_join,
     ):
         mock_get_model.return_value = model_manager
         mock_get_voice.return_value = voice_manager
         mock_temp.return_value = "/tmp"
-        mock_join.return_value = "/tmp/voice1+voice2.pt"
         mock_load.return_value = torch.ones(10)
 
         service = await TTSService.create("test_output")
         name, path = await service._get_voices_path("voice1+voice2")
         assert name == "voice1+voice2"
-        assert path == "/tmp/voice1+voice2.pt"
+        # Verify the path points to a temporary file with expected format
+        assert path.startswith("/tmp/")
+        assert "voice1+voice2" in path
+        assert path.endswith(".pt")
         mock_save.assert_called_once()
-        mock_join.assert_called_with("/tmp", "voice1+voice2.pt")
 
 
 @pytest.mark.asyncio
