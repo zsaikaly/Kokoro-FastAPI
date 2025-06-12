@@ -134,6 +134,23 @@ VALID_UNITS = {
     "px": "pixel",  # CSS units
 }
 
+SYMBOL_REPLACEMENTS = {
+    '~': ' ',
+    '@': ' at ',
+    '#': ' number ',
+    '$': ' dollar ',
+    '%': ' percent ',
+    '^': ' ',
+    '&': ' and ',
+    '*': ' ',
+    '_': ' ',
+    '|': ' ',
+    '\\': ' ',
+    '/': ' slash ',
+    '=': ' equals ',
+    '+': ' plus ',
+}
+
 MONEY_UNITS = {"$": ("dollar", "cent"), "£": ("pound", "pence"), "€": ("euro", "cent")}
 
 # Pre-compiled regex patterns for performance
@@ -464,20 +481,9 @@ def normalize_text(text: str, normalization_options: NormalizationOptions) -> st
     text = re.sub(r"\d*\.\d+", handle_decimal, text)
 
     # Handle other problematic symbols AFTER money/number processing
-    text = text.replace('~', '')    # Remove tilde
-    text = text.replace('@', ' at ')  # At symbol
-    text = text.replace('#', ' number ')  # Hash/pound
-    text = text.replace('$', ' dollar ')  # Dollar sign (if not handled by money pattern)
-    text = text.replace('%', ' percent ')  # Percent sign
-    text = text.replace('^', '')    # Caret
-    text = text.replace('&', ' and ')  # Ampersand
-    text = text.replace('*', '')    # Asterisk
-    text = text.replace('_', ' ')   # Underscore to space
-    text = text.replace('|', ' ')   # Pipe to space
-    text = text.replace('\\', ' ')  # Backslash to space
-    text = text.replace('/', ' slash ')   # Forward slash to space (unless in URLs)
-    text = text.replace('=', ' equals ')  # Equals sign
-    text = text.replace('+', ' plus ')    # Plus sign
+    if normalization_options.replace_remaining_symbols:
+        for symbol, replacement in SYMBOL_REPLACEMENTS.items():
+            text = text.replace(symbol, replacement)
 
     # Handle various formatting
     text = re.sub(r"(?<=\d)-(?=\d)", " to ", text)
@@ -488,5 +494,7 @@ def normalize_text(text: str, normalization_options: NormalizationOptions) -> st
         r"(?:[A-Za-z]\.){2,} [a-z]", lambda m: m.group().replace(".", "-"), text
     )
     text = re.sub(r"(?i)(?<=[A-Z])\.(?=[A-Z])", "-", text)
+
+    text = re.sub(r"\s{2,}", " ", text)
 
     return text.strip()

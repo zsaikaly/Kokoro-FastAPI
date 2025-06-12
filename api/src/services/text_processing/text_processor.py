@@ -52,7 +52,7 @@ def process_text_chunk(
         t1 = time.time()
 
         t0 = time.time()
-        phonemes = phonemize(text, language, normalize=False)  # Already normalized
+        phonemes = phonemize(text, language)
         # Strip phonemes result to ensure no extra spaces
         phonemes = phonemes.strip()
         t1 = time.time()
@@ -102,11 +102,11 @@ def process_text(text: str, language: str = "a") -> List[int]:
 def get_sentence_info(
     text: str, custom_phenomes_list: Dict[str, str], lang_code: str = "a"
 ) -> List[Tuple[str, List[int], int]]:
-    """Process all sentences and return info, 支持中文分句"""
-    # 判断是否为中文
+    """Process all sentences and return info"""
+    # Detect Chinese text
     is_chinese = lang_code.startswith("z") or re.search(r"[\u4e00-\u9fff]", text)
     if is_chinese:
-        # 按中文标点断句
+        # Split using Chinese punctuation
         sentences = re.split(r"([，。！？；])+", text)
     else:
         sentences = re.split(r"([.!?;:])(?=\s|$)", text)

@@ -84,13 +84,12 @@ def create_phonemizer(language: str = "a") -> PhonemizerBackend:
     return EspeakBackend(lang_map[language])
 
 
-def phonemize(text: str, language: str = "a", normalize: bool = True) -> str:
+def phonemize(text: str, language: str = "a") -> str:
     """Convert text to phonemes
 
     Args:
         text: Text to convert to phonemes
         language: Language code ('a' for US English, 'b' for British English)
-        normalize: Whether to normalize text before phonemization
 
     Returns:
         Phonemized text
@@ -99,13 +98,6 @@ def phonemize(text: str, language: str = "a", normalize: bool = True) -> str:
     
     # Strip input text first to remove problematic leading/trailing spaces
     text = text.strip()
-    
-    if normalize:
-        # Create default normalization options and normalize text
-        normalization_options = NormalizationOptions()
-        text = normalize_text(text, normalization_options)
-        # Strip again after normalization
-        text = text.strip()
     
     if language not in phonemizers:
         phonemizers[language] = create_phonemizer(language)

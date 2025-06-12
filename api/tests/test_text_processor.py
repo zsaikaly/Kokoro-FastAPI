@@ -195,3 +195,30 @@ async def test_smart_split_with_pause():
     assert chunks[2][2] is None  # No pause
     assert "How are you?" in chunks[2][0]
     assert len(chunks[2][1]) > 0
+
+@pytest.mark.asyncio
+async def test_smart_split_with_two_pause():
+    """Test smart splitting with two pause tags."""
+    text = "[pause:0.5s][pause:1.67s]0.5"
+    
+    chunks = []
+    async for chunk_text, chunk_tokens, pause_duration in smart_split(text):
+        chunks.append((chunk_text, chunk_tokens, pause_duration))
+    
+    # Should have 3 chunks: pause, pause, text
+    assert len(chunks) == 3
+    
+    # First chunk: pause
+    assert chunks[0][2] == 0.5  # 0.5 second pause
+    assert chunks[0][0] == ""  # Empty text
+    assert len(chunks[0][1]) == 0
+    
+    # Second chunk: pause
+    assert chunks[1][2] == 1.67  # 1.67 second pause
+    assert chunks[1][0] == ""  # Empty text
+    assert len(chunks[1][1]) == 0  # No tokens
+    
+    # Third chunk: text
+    assert chunks[2][2] is None  # No pause
+    assert "zero point five" in chunks[2][0]
+    assert len(chunks[2][1]) > 0

@@ -47,12 +47,12 @@ class StreamingAudioWriter:
                 )
                 self.stream = self.container.add_stream(
                     codec_map[self.format],
-                    rate=self.sample_rate, # Correct parameter name is 'rate'
+                    rate=self.sample_rate,
                     layout="mono" if self.channels == 1 else "stereo",
                 )
                 # Set bit_rate only for codecs where it's applicable and useful
                 if self.format in ['mp3', 'aac', 'opus']:
-                    self.stream.bit_rate = 128000 # Example bitrate, can be configured
+                    self.stream.bit_rate = 128000
         else:
             raise ValueError(f"Unsupported format: {self.format}") # Use self.format here
 
