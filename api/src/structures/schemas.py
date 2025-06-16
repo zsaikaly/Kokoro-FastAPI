@@ -108,6 +108,10 @@ class OpenAISpeechRequest(BaseModel):
         default=None,
         description="Optional language code to use for text processing. If not provided, will use first letter of voice name.",
     )
+    volume_multiplier: Optional[float] = Field(
+        default = 1.0,
+        description="A volume multiplier to multiply the output audio by."
+    )
     normalization_options: Optional[NormalizationOptions] = Field(
         default=NormalizationOptions(),
         description="Options for the normalization system",
@@ -151,6 +155,10 @@ class CaptionedSpeechRequest(BaseModel):
     lang_code: Optional[str] = Field(
         default=None,
         description="Optional language code to use for text processing. If not provided, will use first letter of voice name.",
+    )
+    volume_multiplier: Optional[float] = Field(
+        default = 1.0,
+        description="A volume multiplier to multiply the output audio by."
     )
     normalization_options: Optional[NormalizationOptions] = Field(
         default=NormalizationOptions(),

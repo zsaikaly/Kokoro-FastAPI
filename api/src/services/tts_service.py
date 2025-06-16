@@ -55,6 +55,7 @@ class TTSService:
         output_format: Optional[str] = None,
         is_first: bool = False,
         is_last: bool = False,
+        volume_multiplier: Optional[float] = 1.0,
         normalizer: Optional[AudioNormalizer] = None,
         lang_code: Optional[str] = None,
         return_timestamps: Optional[bool] = False,
@@ -100,6 +101,7 @@ class TTSService:
                         lang_code=lang_code,
                         return_timestamps=return_timestamps,
                     ):
+                        chunk_data.audio*=volume_multiplier
                         # For streaming, convert to bytes
                         if output_format:
                             try:
@@ -132,7 +134,7 @@ class TTSService:
                         speed=speed,
                         return_timestamps=return_timestamps,
                     )
-
+                    
                     if chunk_data.audio is None:
                         logger.error("Model generated None for audio chunk")
                         return
@@ -140,6 +142,8 @@ class TTSService:
                     if len(chunk_data.audio) == 0:
                         logger.error("Model generated empty audio chunk")
                         return
+
+                    chunk_data.audio*=volume_multiplier
 
                     # For streaming, convert to bytes
                     if output_format:
@@ -259,6 +263,7 @@ class TTSService:
         speed: float = 1.0,
         output_format: str = "wav",
         lang_code: Optional[str] = None,
+        volume_multiplier: Optional[float] = 1.0,
         normalization_options: Optional[NormalizationOptions] = NormalizationOptions(),
         return_timestamps: Optional[bool] = False,
     ) -> AsyncGenerator[AudioChunk, None]:
@@ -298,6 +303,7 @@ class TTSService:
                         output_format,
                         is_first=(chunk_index == 0),
                         is_last=False,  # We'll update the last chunk later
+                        volume_multiplier=volume_multiplier,
                         normalizer=stream_normalizer,
                         lang_code=pipeline_lang_code,  # Pass lang_code
                         return_timestamps=return_timestamps,
@@ -337,6 +343,7 @@ class TTSService:
                         output_format,
                         is_first=False,
                         is_last=True,  # Signal this is the last chunk
+                        volume_multiplier=volume_multiplier,
                         normalizer=stream_normalizer,
                         lang_code=pipeline_lang_code,  # Pass lang_code
                     ):
@@ -356,6 +363,7 @@ class TTSService:
         writer: StreamingAudioWriter,
         speed: float = 1.0,
         return_timestamps: bool = False,
+        volume_multiplier: Optional[float] = 1.0,
         normalization_options: Optional[NormalizationOptions] = NormalizationOptions(),
         lang_code: Optional[str] = None,
     ) -> AudioChunk:
@@ -368,6 +376,7 @@ class TTSService:
                 voice,
                 writer,
                 speed=speed,
+                volume_multiplier=volume_multiplier,
                 normalization_options=normalization_options,
                 return_timestamps=return_timestamps,
                 lang_code=lang_code,
