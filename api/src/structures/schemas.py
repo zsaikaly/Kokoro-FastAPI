@@ -1,3 +1,4 @@
+from email.policy import default
 from enum import Enum
 from typing import List, Literal, Optional, Union
 
@@ -65,6 +66,10 @@ class NormalizationOptions(BaseModel):
     phone_normalization: bool = Field(
         default=True,
         description="Changes phone numbers so they can be properly pronouced by kokoro",
+    )
+    replace_remaining_symbols: bool = Field(
+        default=True,
+        description="Replaces the remaining symbols after normalization with their words"
     )
 
 
